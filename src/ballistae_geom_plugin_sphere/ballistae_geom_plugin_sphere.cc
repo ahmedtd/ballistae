@@ -10,7 +10,8 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
-#include <libballistae/contact.hh>
+#include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
 
@@ -27,8 +28,13 @@ public:
 
     virtual ~sphere_priv();
 
-    virtual ballistae::contact ray_intersect(
-        const ballistae::dray3 &query
+    virtual void ray_intersect(
+        const ballistae::dray3 *query_src,
+        const ballistae::dray3 *query_lim,
+        const ballistae::span<double> &must_overlap,
+        const std::size_t index,
+        ballistae::span<double> *out_spans_src,
+        arma::vec3 *out_normals_src
     ) const;
 };
 
@@ -45,26 +51,61 @@ sphere_priv::~sphere_priv()
 {
 }
 
-ballistae::contact sphere_priv::ray_intersect(
-    const ballistae::dray3 &query
+void sphere_priv::ray_intersect(
+    const ballistae::dray3 *query_src,
+    const ballistae::dray3 *query_lim,
+    const ballistae::span<double> &must_overlap,
+    const std::size_t index,
+    ballistae::span<double> *out_spans_src,
+    arma::vec3 *out_normals_src
 ) const
 {
     using std::sqrt;
 
-    auto b = arma::dot(query.slope, query.point - this->center);
-    auto c = arma::dot(query.point - this->center, query.point - this->center)
-        - this->radius_squared;
+    if(index != 0)
+    {
+        // A sphere can only have one span.
+        for(; query_src != query_lim;
+            ++query_src, ++out_spans_src, out_normals_src += 2)
+        {
+            *out_spans_src = ballistae::span<double>::nan();
+            // Don't need to write any normals, since the span is nan.
+        }
 
-    // We rely on std::sqrt's mandated NaN behavior.
-    auto t = -b - sqrt(b * b - c);
-    auto point = eval_ray(query, t);
-    auto normal = arma::normalise(point - this->center);
+        return;
+    }
 
-    return ballistae::contact(
-        t,
-        point,
-        normal
-    );
+    for(; query_src != query_lim;
+        ++query_src, ++out_spans_src, out_normals_src += 2)
+    {
+        const ballistae::dray3 &query = *query_src;
+
+        auto offset = query.point - this->center;
+
+        auto b = arma::dot(query.slope, offset);
+        auto c = arma::dot(offset, offset) - this->radius_squared;
+
+        // We rely on std::sqrt's mandated NaN behavior.
+        auto t_min = -b - sqrt(b * b - c);
+        auto t_max = -b + sqrt(b * b - c);
+
+        if(ballistae::overlaps(must_overlap, {t_min, t_max}))
+        {
+            auto point_min = ballistae::eval_ray(query, t_min);
+            auto point_max = ballistae::eval_ray(query, t_max);
+
+            arma::vec3 normal_min = arma::normalise(point_min - this->center);
+            arma::vec3 normal_max = arma::normalise(point_max - this->center);
+
+            *out_spans_src = {t_min, t_max};
+            out_normals_src[0] = normal_min;
+            out_normals_src[1] = normal_max;
+        }
+        else
+        {
+            out_spans_src[0] = ballistae::span<double>::nan();
+        }
+    }
 }
 
 std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(

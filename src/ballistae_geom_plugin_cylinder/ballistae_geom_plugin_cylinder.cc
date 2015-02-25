@@ -10,7 +10,8 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
-#include <libballistae/contact.hh>
+#include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
@@ -31,8 +32,13 @@ public:
 
     virtual ~cylinder_priv();
 
-    virtual ballistae::contact ray_intersect(
-        const ballistae::dray3 &query
+    virtual void ray_intersect(
+        const ballistae::dray3 *query_src,
+        const ballistae::dray3 *query_lim,
+        const ballistae::span<double> &must_overlap,
+        const std::size_t index,
+        ballistae::span<double> *out_spans_src,
+        arma::vec3 *out_normals_src
     ) const;
 };
 
@@ -51,27 +57,81 @@ cylinder_priv::~cylinder_priv()
 {
 }
 
-ballistae::contact cylinder_priv::ray_intersect(
-    const ballistae::dray3 &query
+void cylinder_priv::ray_intersect(
+    const ballistae::dray3 *query_src,
+    const ballistae::dray3 *query_lim,
+    const ballistae::span<double> &must_overlap,
+    const std::size_t index,
+    ballistae::span<double> *out_spans_src,
+    arma::vec3 *out_normals_src
 ) const
 {
     using std::sqrt;
 
-    arma::vec3 foil_a = query.slope - axis * arma::dot(query.slope, axis);
-    arma::vec3 foil_b = query.point - center
-        - axis * arma::dot(query.point - center, axis);
+    if(index != 0)
+    {
+        // A cylinder can only have one span.
+        for(; query_src != query_lim;
+            ++query_src, ++out_spans_src, out_normals_src += 2)
+        {
+            out_spans_src[0] = ballistae::span<double>::nan();
+        }
 
-    double a = arma::dot(foil_a, foil_a);
-    double b = 2.0 * arma::dot(foil_a, foil_b);
-    double c = arma::dot(foil_b, foil_b) - radius_squared;
+        return;
+    }
 
-    double t = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+    for(; query_src != query_lim;
+        ++query_src, ++out_spans_src, out_normals_src += 2)
+    {
+        const ballistae::dray3 &query = *query_src;
 
-    arma::vec3 p = ballistae::eval_ray(query, t);
+        arma::vec3 foil_a = ballistae::reject(axis, query.slope);
+        arma::vec3 foil_b = ballistae::reject(axis, query.point - center);
 
-    arma::vec3 n = arma::normalise(ballistae::reject(axis, p - center));
+        double a = arma::dot(foil_a, foil_a);
+        double b = 2.0 * arma::dot(foil_a, foil_b);
+        double c = arma::dot(foil_b, foil_b) - radius_squared;
 
-    return ballistae::contact(t, p, n);
+        double t_min = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+        double t_max = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+
+        if(!std::isnan(t_min))
+        {
+            // The ray hits the cylinder.
+            if(overlaps(must_overlap, {t_min, t_max}))
+            {
+                arma::vec3 p_min = ballistae::eval_ray(query, t_min);
+                arma::vec3 p_max = ballistae::eval_ray(query, t_max);
+
+                arma::vec3 n_min = ballistae::reject(axis, p_min - center);
+                arma::vec3 n_max = ballistae::reject(axis, p_max - center);
+
+                out_spans_src[0] = {t_min, t_max};
+
+                out_normals_src[0] = n_min;
+                out_normals_src[1] = n_max;
+            }
+        }
+        else
+        {
+            // The ray is parallel to the cylinder axis.
+
+            if(c > double(0))
+            {
+                out_spans_src[0] = ballistae::span<double>::nan();
+            }
+            else
+            {
+                out_spans_src[0] = {
+                    -std::numeric_limits<double>::infinity(),
+                    std::numeric_limits<double>::infinity()
+                };
+
+                // No normals at infinity.
+            }
+        }
+
+    }
 }
 
 std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(

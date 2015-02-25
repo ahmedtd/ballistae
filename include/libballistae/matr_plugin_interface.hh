@@ -5,8 +5,8 @@
 /// The interface that material plugins should implement.
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 
 namespace ballistae
@@ -20,7 +20,8 @@ public:
 
     virtual ballistae::color_d_rgb shade(
         const ballistae::dray3 &eye_ray,
-        const ballistae::contact &info
+        const ballistae::span<double> &span,
+        const arma::vec3 *span_normals
     ) const = 0;
 
 };

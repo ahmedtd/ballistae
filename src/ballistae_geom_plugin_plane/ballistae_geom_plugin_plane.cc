@@ -10,7 +10,8 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
-#include <libballistae/contact.hh>
+#include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
 
@@ -27,8 +28,13 @@ public:
 
     virtual ~plane_priv();
 
-    virtual ballistae::contact ray_intersect(
-        const ballistae::dray3 &query
+    virtual void ray_intersect(
+        const ballistae::dray3 *query_src,
+        const ballistae::dray3 *query_lim,
+        const ballistae::span<double> &must_overlap,
+        const std::size_t index,
+        ballistae::span<double> *out_spans_src,
+        arma::vec3 *out_normals_src
     ) const;
 };
 
@@ -45,18 +51,77 @@ plane_priv::~plane_priv()
 {
 }
 
-ballistae::contact plane_priv::ray_intersect(
-    const ballistae::dray3 &query
+void plane_priv::ray_intersect(
+    const ballistae::dray3 *query_src,
+    const ballistae::dray3 *query_lim,
+    const ballistae::span<double> &must_overlap,
+    const std::size_t index,
+    ballistae::span<double> *out_spans_src,
+    arma::vec3 *out_normals_src
 ) const
 {
-    auto t = arma::dot(center - query.point, normal)
-        / arma::dot(query.slope, normal);
+    constexpr auto infty = std::numeric_limits<double>::infinity();
 
-    return ballistae::contact(
-        t,
-        ballistae::eval_ray(query, t),
-        normal
-    );
+    if(index != 0)
+    {
+        // A plane can only have one span.
+        for(; query_src != query_lim;
+            ++query_src, ++out_spans_src, out_normals_src += 2)
+        {
+            *out_spans_src = ballistae::span<double>::nan();
+            // Don't need to write any normals, since the span is nan.
+        }
+
+        return;
+    }
+
+    for(; query_src != query_lim;
+        ++query_src, ++out_spans_src, out_normals_src += 2)
+    {
+        auto height = arma::dot(center - query_src->point, normal);
+        auto slope = arma::dot(query_src->slope, normal);
+        auto t = height / slope;
+
+        if(slope > double(0))
+        {
+            if(overlaps(must_overlap, {-infty, t}))
+            {
+                out_spans_src[0] = {
+                    -std::numeric_limits<double>::infinity(),
+                    t
+                };
+
+                // There is no normal at infinity.
+                out_normals_src[1] = normal;
+            }
+            else
+            {
+                out_spans_src[0] = ballistae::span<double>::nan();
+            }
+        }
+        else if(slope < double(0))
+        {
+            if(overlaps(must_overlap, {t, infty}))
+            {
+                out_spans_src[0] = {
+                    t,
+                    std::numeric_limits<double>::infinity()
+                };
+
+                out_normals_src[0] = normal;
+                // There is no normal at infinity.
+            }
+            else
+            {
+                out_spans_src[0] = ballistae::span<double>::nan();
+            }
+        }
+        else
+        {
+            // Ray never intersects plane.
+            out_spans_src[0] = ballistae::span<double>::nan();
+        }
+    }
 }
 
 std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(

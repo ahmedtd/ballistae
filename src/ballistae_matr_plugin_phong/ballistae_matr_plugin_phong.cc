@@ -11,7 +11,8 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
-#include <libballistae/contact.hh>
+#include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
@@ -44,7 +45,8 @@ public:
 
     virtual ballistae::color_d_rgb shade(
         const ballistae::dray3 &eye_ray,
-        const ballistae::contact &info
+        const ballistae::span<double> &span,
+        const arma::vec3 *span_normals
     ) const;
 };
 
@@ -58,22 +60,29 @@ phong_priv::~phong_priv()
 
 ballistae::color_d_rgb phong_priv::shade(
     const ballistae::dray3 &eye_ray,
-    const ballistae::contact &info
+    const ballistae::span<double> &span,
+    const arma::vec3 *span_normals
 ) const
 {
     ballistae::color_d_rgb result = {{0.0, 0.0, 0.0}};
 
+    if(std::isnan(span.lo))
+        return result;
+
+    const double &t = span.lo;
+    const arma::vec3 &n = span_normals[0];
+    
     result = result +  k_a * color_a;
 
     for(const auto &light : lights)
     {
-        arma::vec3 light_v = light - info.point;
+        arma::vec3 light_v = light - ballistae::eval_ray(eye_ray, t);
         arma::vec3 light_n = arma::normalise(light_v);
-        double diffuse_contr = arma::dot(info.normal, light_n);
+        double diffuse_contr = arma::dot(n, light_n);
         diffuse_contr = (diffuse_contr - d_min) / (d_max - d_min);
         
         arma::vec3 refl
-                = 2.0 * arma::dot(light_n, info.normal) * info.normal - light_n;
+                = 2.0 * arma::dot(light_n, n) * n - light_n;
 
         double specular_contr = arma::dot(refl, -eye_ray.slope);
         specular_contr = (specular_contr - s_min) / (s_max - s_min);
@@ -90,7 +99,6 @@ ballistae::color_d_rgb phong_priv::shade(
             }
         }
     }
-        
     
     return result;
 }
