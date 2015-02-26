@@ -11,6 +11,7 @@
 #include <libguile.h>
 
 #include <libballistae/ray.hh>
+#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 
@@ -33,6 +34,7 @@ public:
     virtual ~cylinder_priv();
 
     virtual void ray_intersect(
+        const ballistae::scene &the_scene,
         const ballistae::dray3 *query_src,
         const ballistae::dray3 *query_lim,
         const ballistae::span<double> &must_overlap,
@@ -58,6 +60,7 @@ cylinder_priv::~cylinder_priv()
 }
 
 void cylinder_priv::ray_intersect(
+    const ballistae::scene &the_scene,
     const ballistae::dray3 *query_src,
     const ballistae::dray3 *query_lim,
     const ballistae::span<double> &must_overlap,
@@ -111,6 +114,10 @@ void cylinder_priv::ray_intersect(
                 out_normals_src[0] = n_min;
                 out_normals_src[1] = n_max;
             }
+            else
+            {
+                out_spans_src[0] = ballistae::span<double>::nan();
+            }
         }
         else
         {
@@ -122,10 +129,11 @@ void cylinder_priv::ray_intersect(
             }
             else
             {
-                out_spans_src[0] = {
-                    -std::numeric_limits<double>::infinity(),
-                    std::numeric_limits<double>::infinity()
-                };
+                double inf = std::numeric_limits<double>::infinity();
+                ballistae::span<double> test = {-inf, inf};
+
+                if(overlaps(must_overlap, test))
+                    out_spans_src[0] = test;
 
                 // No normals at infinity.
             }

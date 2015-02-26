@@ -11,6 +11,7 @@
 #include <libguile.h>
 
 #include <libballistae/ray.hh>
+#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
@@ -29,6 +30,7 @@ public:
     virtual ~sphere_priv();
 
     virtual void ray_intersect(
+        const ballistae::scene &the_scene,
         const ballistae::dray3 *query_src,
         const ballistae::dray3 *query_lim,
         const ballistae::span<double> &must_overlap,
@@ -52,6 +54,7 @@ sphere_priv::~sphere_priv()
 }
 
 void sphere_priv::ray_intersect(
+    const ballistae::scene &the_scene,
     const ballistae::dray3 *query_src,
     const ballistae::dray3 *query_lim,
     const ballistae::span<double> &must_overlap,

@@ -82,6 +82,7 @@ void ray_intersect_batch(
     {
 
         the_scene.geometries[cur_geomind]->ray_intersect(
+            the_scene,
             query_src,
             query_lim,
             must_overlap,
@@ -103,8 +104,8 @@ void ray_intersect_batch(
 }
 
 void shade_batch(
-    const dray3 *query_src,
-    const dray3 *query_lim,
+    const dray3 *queries_src,
+    const dray3 *queries_lim,
     const span<double> *spans_src,
     const arma::vec3   *normals_src,
     const std::size_t  *geominds_src,
@@ -112,23 +113,20 @@ void shade_batch(
     color_d_rgb *shades_out_src
 )
 {
-    // For now, dispatch them serially.
-
-    for(; query_src != query_lim;
-        ++query_src, ++spans_src, normals_src += 2, ++geominds_src,
+    for(; queries_src != queries_lim;
+        ++queries_src, ++spans_src, normals_src += 2, ++geominds_src,
             ++shades_out_src)
     {
         if(*geominds_src < the_scene.materials.size())
         {
-            *shades_out_src = the_scene.materials[*geominds_src]->shade(
-                *query_src,
-                *spans_src,
-                normals_src
+            the_scene.materials[*geominds_src]->shade(
+                the_scene,
+                queries_src,
+                queries_src + 1,
+                spans_src,
+                normals_src,
+                shades_out_src
             );
-        }
-        else
-        {
-            *shades_out_src = {0, 0, 0};
         }
     }
 }
@@ -165,8 +163,8 @@ cimg::CImg<float>& render_scene(
     std::mt19937 ss_pert_engn(1235);
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
 
-    std::size_t img_rows = static_cast<std::size_t>(img.width());
-    std::size_t img_cols = static_cast<std::size_t>(img.height());
+    std::size_t img_rows = static_cast<std::size_t>(img.height());
+    std::size_t img_cols = static_cast<std::size_t>(img.width());
 
     std::size_t sample_rows = (img_rows << ss_factor);
     std::size_t sample_cols = (img_cols << ss_factor);
@@ -178,6 +176,7 @@ cimg::CImg<float>& render_scene(
     std::vector<arma::vec3> normals(2 * samples);
     std::vector<std::size_t> geominds(samples);
     std::vector<color_d_rgb> shades(samples);
+    std::fill(shades.begin(), shades.end(), color_d_rgb{{0, 0, 0}});
 
     // Generate queries
     for(std::size_t r = 0; r < sample_rows; ++r)
@@ -220,7 +219,7 @@ cimg::CImg<float>& render_scene(
     // Reduce the shade buffer into our hdr image.
     for(std::size_t r = 0; r < sample_rows; ++r)
     {
-        for(std::size_t c = 0; c < sample_rows; ++c)
+        for(std::size_t c = 0; c < sample_cols; ++c)
         {
             for(std::size_t channel = 0; channel < 3; ++channel)
             {

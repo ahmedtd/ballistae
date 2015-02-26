@@ -34,7 +34,7 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
 {
     scene_subsmob_flags = ss_dispatch.size();
 
-    scm_c_define_gsubr("ballistae/scene/crush", 2, 0, 0, (scm_t_subr) crush);
+    scm_c_define_gsubr("ballistae/scene/crush", 1, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("ballistae/render-scene", 6, 0, 0, (scm_t_subr) render_scene);
     scm_c_define_gsubr("ballistae/scene?", 1, 0, 0, (scm_t_subr) scene_p);
 
@@ -48,17 +48,9 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
     ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
 }
 
-SCM crush(SCM infty_matr, SCM geometry_material_alist)
+SCM crush(SCM geometry_material_alist)
 {
     constexpr const char* const subr = "ballistae::scene::crush";
-
-    SCM_ASSERT_TYPE(
-        scm_is_true(matr_instance::matr_p(infty_matr)),
-        infty_matr,
-        SCM_ARG1,
-        subr,
-        "ballistae/matr"
-    );
 
     // Verify the geometry.
     SCM cur_head = geometry_material_alist;
@@ -94,9 +86,6 @@ SCM crush(SCM infty_matr, SCM geometry_material_alist)
     //
 
     auto the_scene = new ballistae::scene();
-
-    the_scene->infty_matr
-        = *smob_get_data<std::shared_ptr<ballistae::matr_priv>*>(infty_matr);
 
     cur_head = geometry_material_alist;
     while(!scm_is_null(cur_head))

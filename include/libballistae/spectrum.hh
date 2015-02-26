@@ -11,7 +11,16 @@ struct rgb_tag {};
 template<class Elem, class CSTag>
 struct color3
 {
-    std::array<float, 3> channels;
+    std::array<Elem, 3> channels;
+
+    color3<Elem, CSTag>& operator+=(const color3<Elem, CSTag> &other)
+    {
+        for(std::size_t i = 0; i < this->channels.size(); ++i)
+        {
+            this->channels[i] += other.channels[i];
+        }
+        return *this;
+    }
 };
 
 template<class Elem, class CSTag>
@@ -32,10 +41,7 @@ color3<Elem, CSTag> operator+(
 )
 {
     auto r = a;
-    for(std::size_t i = 0; i < a.channels.size(); ++i)
-    {
-        r.channels[i] += b.channels[i];
-    }
+    r += b;
     return r;
 }
 

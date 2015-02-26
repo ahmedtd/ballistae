@@ -18,7 +18,7 @@ namespace scene
 
 void init(std::vector<subsmob_fns> &ss_dispatch);
 
-SCM crush(SCM infty_matr, SCM geometry_material_alist);
+SCM crush(SCM geometry_material_alist);
 
 SCM scene_p(SCM obj);
 

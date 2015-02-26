@@ -19,6 +19,6 @@ LD_LIBRARY_PATH="${LD_LIBRARY_PATH}":"${DIR}"/src/ballistae_geom_plugin_plane
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}":"${DIR}"/src/ballistae_geom_plugin_sphere
 LD_LIBRARY_PATH="${LD_LIBRARY_PATH}":"${DIR}"/src/ballistae_matr_plugin_phong
 export LD_LIBRARY_PATH
-export LD_WARN=unimportant-value # Warn about unresolved symbols.
+export LD_WARN=bindings # Warn about unresolved symbols.
 #export LD_DEBUG=bindings
 exec guile-2.0 "$@"

@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include <array>
 #include <memory>
 #include <vector>
 
@@ -12,11 +13,19 @@
 #include <libguile.h>
 
 #include <libballistae/ray.hh>
+#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
 #include <libguile_armadillo/utility.hh>
+
+struct spot_light
+{
+    arma::vec3 pos;
+    arma::vec3 dir;
+    double     cos_cutoff_angle;
+};
 
 class phong_priv : public ballistae::matr_priv
 {
@@ -33,8 +42,10 @@ public:
 
     double alpha;
 
-    std::vector<arma::vec3> lights;
-
+    std::vector<arma::vec3> point_lights;
+    std::vector<arma::vec3> dir_lights;
+    std::vector<spot_light> spot_lights;
+    
     ballistae::color_d_rgb color_a;
     ballistae::color_d_rgb color_d;
     ballistae::color_d_rgb color_s;
@@ -43,10 +54,13 @@ public:
     phong_priv();
     virtual ~phong_priv();
 
-    virtual ballistae::color_d_rgb shade(
-        const ballistae::dray3 &eye_ray,
-        const ballistae::span<double> &span,
-        const arma::vec3 *span_normals
+    virtual void shade(
+        const ballistae::scene &the_scene,
+        const ballistae::dray3 *eyes_src,
+        const ballistae::dray3 *eyes_lim,
+        const ballistae::span<double> *spans_src,
+        const arma::vec3 *normals_src,
+        ballistae::color_d_rgb *shades_out_src
     ) const;
 };
 
@@ -58,49 +72,182 @@ phong_priv::~phong_priv()
 {
 }
 
-ballistae::color_d_rgb phong_priv::shade(
-    const ballistae::dray3 &eye_ray,
-    const ballistae::span<double> &span,
-    const arma::vec3 *span_normals
+void phong_priv::shade(
+    const ballistae::scene &the_scene,
+    const ballistae::dray3 *eyes_src,
+    const ballistae::dray3 *eyes_lim,
+    const ballistae::span<double> *spans_src,
+    const arma::vec3 *normals_src,
+    ballistae::color_d_rgb *shades_out_src
 ) const
 {
-    ballistae::color_d_rgb result = {{0.0, 0.0, 0.0}};
-
-    if(std::isnan(span.lo))
-        return result;
-
-    const double &t = span.lo;
-    const arma::vec3 &n = span_normals[0];
-    
-    result = result +  k_a * color_a;
-
-    for(const auto &light : lights)
+    for(; eyes_src != eyes_lim;
+        ++eyes_src, ++spans_src, normals_src += 2, ++shades_out_src)
     {
-        arma::vec3 light_v = light - ballistae::eval_ray(eye_ray, t);
-        arma::vec3 light_n = arma::normalise(light_v);
-        double diffuse_contr = arma::dot(n, light_n);
-        diffuse_contr = (diffuse_contr - d_min) / (d_max - d_min);
-        
-        arma::vec3 refl
-                = 2.0 * arma::dot(light_n, n) * n - light_n;
+        // If the geometry didn't contribute, just pass on the whole thing.
+        if(std::isnan(spans_src->lo))
+            continue;
 
-        double specular_contr = arma::dot(refl, -eye_ray.slope);
-        specular_contr = (specular_contr - s_min) / (s_max - s_min);
+        // Ambient contribution.
+        *shades_out_src += k_a * color_a;
         
-        if(diffuse_contr > 0.0 && diffuse_contr < 1.0)
+        const double     &t = spans_src->lo;
+        const arma::vec3 &n = normals_src[0];
+        
+        arma::vec3 point = ballistae::eval_ray(*eyes_src, t);
+
+        for(const auto &light : point_lights)
         {
-            result = result + diffuse_contr * k_d * color_d;
+            arma::vec3 light_vec = light - point;
+            double light_distance = arma::norm(light_vec);
+            ballistae::dray3 light_ray = {point, light_vec / light_distance};
 
-            if(specular_contr > s_min && specular_contr < s_max)
-            {
-                specular_contr = std::pow(specular_contr, alpha);
+            ballistae::span<double> shadow_span {
+                -ballistae::span<double>::inf(),
+                0
+            };
+            std::array<arma::vec3, 2> shadow_normals;
+            std::size_t               shadow_geomind;
 
-                result = result + specular_contr * k_s * color_s;
+            while(shadow_span.lo < 0) {
+                ballistae::ray_intersect_batch(
+                    &light_ray,
+                    &light_ray + 1,
+                    {shadow_span.hi, ballistae::span<double>::inf()},
+                    the_scene,
+                    &shadow_span,
+                    shadow_normals.data(),
+                    &shadow_geomind
+                );
             }
+
+            // Test if the point is in shadow.
+            if(shadow_span.lo < light_distance)
+                continue;
+
+            double diffuse_contr = arma::dot(n, light_ray.slope);
+            diffuse_contr = (diffuse_contr - d_min) / (d_max - d_min);
+
+            if(!(diffuse_contr > 0.0 && diffuse_contr < 1.0))
+                continue;
+
+            *shades_out_src += diffuse_contr * k_d * color_d;
+
+            arma::vec3 refl = 2.0 * arma::dot(light_ray.slope, n) * n
+                - light_ray.slope;
+            double specular_contr = arma::dot(refl, -(eyes_src->slope));
+            specular_contr = (specular_contr - s_min) / (s_max - s_min);
+            
+            if(!(specular_contr > s_min && specular_contr < s_max))
+                continue;
+            
+            specular_contr = std::pow(specular_contr, alpha);
+                
+            *shades_out_src += specular_contr * k_s * color_s;
+        }
+
+        for(const auto &light : dir_lights)
+        {
+            ballistae::dray3 light_ray = {point, -light};
+
+            ballistae::span<double> shadow_span {
+                -ballistae::span<double>::inf(),
+                0
+            };
+            std::array<arma::vec3, 2> shadow_normals;
+            std::size_t               shadow_geomind;
+
+            while(shadow_span.lo < 0) {
+                ballistae::ray_intersect_batch(
+                    &light_ray,
+                    &light_ray + 1,
+                    {shadow_span.hi, ballistae::span<double>::inf()},
+                    the_scene,
+                    &shadow_span,
+                    shadow_normals.data(),
+                    &shadow_geomind
+                );
+            }
+
+            // Test if the point is in shadow.
+            if(shadow_span.lo < std::numeric_limits<double>::infinity())
+                continue;
+
+            double diffuse_contr = arma::dot(n, light_ray.slope);
+            diffuse_contr = (diffuse_contr - d_min) / (d_max - d_min);
+
+            if(!(diffuse_contr > 0.0 && diffuse_contr < 1.0))
+                continue;
+
+            *shades_out_src += diffuse_contr * k_d * color_d;
+
+            arma::vec3 refl = 2.0 * arma::dot(light_ray.slope, n) * n
+                - light_ray.slope;
+            double specular_contr = arma::dot(refl, -(eyes_src->slope));
+            specular_contr = (specular_contr - s_min) / (s_max - s_min);
+            
+            if(!(specular_contr > s_min && specular_contr < s_max))
+                continue;
+            
+            specular_contr = std::pow(specular_contr, alpha);
+                
+            *shades_out_src += specular_contr * k_s * color_s;
+        }
+
+        for(const auto &light : spot_lights)
+        {
+            ballistae::dray3 light_ray = {point, light.pos - point};
+            double light_distance = arma::norm(light_ray.slope);
+            light_ray.slope /= light_distance;
+
+            // Test point is outside of the light's cutoff.
+            if(arma::dot(-light_ray.slope, light.dir) < light.cos_cutoff_angle)
+                continue;
+            
+            ballistae::span<double> shadow_span {
+                -ballistae::span<double>::inf(),
+                0
+            };
+            std::array<arma::vec3, 2> shadow_normals;
+            std::size_t               shadow_geomind;
+
+            while(shadow_span.lo < 0) {
+                ballistae::ray_intersect_batch(
+                    &light_ray,
+                    &light_ray + 1,
+                    {shadow_span.hi, ballistae::span<double>::inf()},
+                    the_scene,
+                    &shadow_span,
+                    shadow_normals.data(),
+                    &shadow_geomind
+                );
+            }
+
+            // Test if the point is in shadow.
+            if(shadow_span.lo < light_distance)
+                continue;
+
+            double diffuse_contr = arma::dot(n, light_ray.slope);
+            diffuse_contr = (diffuse_contr - d_min) / (d_max - d_min);
+
+            if(!(diffuse_contr > 0.0 && diffuse_contr < 1.0))
+                continue;
+
+            *shades_out_src += diffuse_contr * k_d * color_d;
+
+            arma::vec3 refl = 2.0 * arma::dot(light_ray.slope, n) * n
+                - light_ray.slope;
+            double specular_contr = arma::dot(refl, -(eyes_src->slope));
+            specular_contr = (specular_contr - s_min) / (s_max - s_min);
+            
+            if(!(specular_contr > s_min && specular_contr < s_max))
+                continue;
+            
+            specular_contr = std::pow(specular_contr, alpha);
+                
+            *shades_out_src += specular_contr * k_s * color_s;
         }
     }
-    
-    return result;
 }
 
 std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
@@ -121,8 +268,10 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
     
     SCM sym_alpha = scm_from_utf8_symbol("alpha");
 
-    SCM sym_lights = scm_from_utf8_symbol("lights");
-
+    SCM sym_point_lights = scm_from_utf8_symbol("point-lights");
+    SCM sym_dir_lights = scm_from_utf8_symbol("dir-lights");
+    SCM sym_spot_lights = scm_from_utf8_symbol("spot-lights");
+    
     SCM sym_color_a = scm_from_utf8_symbol("color_a");
     SCM sym_color_d = scm_from_utf8_symbol("color_d");
     SCM sym_color_s = scm_from_utf8_symbol("color_s");
@@ -151,7 +300,7 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
                 "real"
             );
         }
-        else if(scm_is_true(scm_eq_p(sym_lights, cur_key)))
+        else if(scm_is_true(scm_eq_p(sym_point_lights, cur_key)))
         {
             SCM_ASSERT_TYPE(
                 scm_is_true(scm_list_p(cur_val)),
@@ -180,6 +329,55 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
                     "arma/f64col[3]"
                 );
             }
+        }
+        else if(scm_is_true(scm_eq_p(sym_dir_lights, cur_key)))
+        {
+            SCM_ASSERT_TYPE(
+                scm_is_true(scm_list_p(cur_val)),
+                cur_val,
+                SCM_ARGn,
+                subr,
+                "list of lights"
+            );
+
+            SCM cur_tail = cur_val;
+            while(! scm_is_null(cur_tail))
+            {
+                SCM cur_elem = scm_car(cur_tail);
+                cur_tail = scm_cdr(cur_tail);
+
+                SCM_ASSERT_TYPE(
+                    scm_is_true(
+                        arma_guile::generic_col_dim_p<double>(
+                            cur_elem,
+                            scm_from_size_t(3)
+                        )
+                    ),
+                    cur_elem,
+                    SCM_ARGn,
+                    subr,
+                    "arma/f64col[3]"
+                );
+            }
+        }
+        else if(scm_is_true(scm_eq_p(sym_spot_lights, cur_key)))
+        {
+            SCM_ASSERT_TYPE(
+                scm_is_true(scm_list_p(cur_val)),
+                cur_val,
+                SCM_ARGn,
+                subr,
+                "list of lights"
+            );
+
+            // SCM cur_tail = cur_val;
+            // while(! scm_is_null(cur_tail))
+            // {
+            //     SCM cur_elem = scm_car(cur_tail);
+            //     cur_tail = scm_cdr(cur_tail);
+
+            //     // What form should a spotlight have?
+            // }
         }
         else if(scm_is_true(scm_eq_p(sym_color_a, cur_key))
                 || scm_is_true(scm_eq_p(sym_color_d, cur_key))
@@ -240,8 +438,11 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
     SCM s_max_lookup = scm_assq_ref(config_alist, sym_s_max);
     SCM s_min_lookup = scm_assq_ref(config_alist, sym_s_min);
 
+    SCM point_lights_lookup = scm_assq_ref(config_alist, sym_point_lights);
+    SCM dir_lights_lookup = scm_assq_ref(config_alist, sym_dir_lights);
+    SCM spot_lights_lookup = scm_assq_ref(config_alist, sym_spot_lights);
+    
     SCM alpha_lookup = scm_assq_ref(config_alist, sym_alpha);
-    SCM lights_lookup = scm_assq_ref(config_alist, sym_lights);
     SCM color_a_lookup = scm_assq_ref(config_alist, sym_color_a);
     SCM color_d_lookup = scm_assq_ref(config_alist, sym_color_d);
     SCM color_s_lookup = scm_assq_ref(config_alist, sym_color_s);
@@ -286,17 +487,51 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
         result->alpha = scm_to_double(alpha_lookup);
     }
 
-    if(scm_is_true(lights_lookup))
+    if(scm_is_true(point_lights_lookup))
     {
-        SCM cur_tail = lights_lookup;
+        SCM cur_tail = point_lights_lookup;
         while(! scm_is_null(cur_tail))
         {
             SCM cur_light = scm_car(cur_tail);
             cur_tail = scm_cdr(cur_tail);
 
-            result->lights.push_back(
+            result->point_lights.push_back(
                 *arma_guile::smob_get_data<arma::Col<double>*>(cur_light)
             );
+        }
+    }
+
+    if(scm_is_true(dir_lights_lookup))
+    {
+        SCM cur_tail = dir_lights_lookup;
+        while(! scm_is_null(cur_tail))
+        {
+            SCM cur_light = scm_car(cur_tail);
+            cur_tail = scm_cdr(cur_tail);
+
+            result->dir_lights.push_back(
+                arma::normalise(
+                    *arma_guile::smob_get_data<arma::Col<double>*>(cur_light)
+                )
+            );
+        }
+    }
+
+    if(scm_is_true(spot_lights_lookup))
+    {
+        using std::cos;
+        
+        SCM cur_tail = spot_lights_lookup;
+        while(cur_tail != SCM_EOL)
+        {
+            SCM cur_light = scm_car(cur_tail);
+            cur_tail = scm_cdr(cur_tail);
+
+            result->spot_lights.push_back({
+                *arma_guile::smob_get_dcol(scm_assq_ref(cur_light, scm_from_utf8_symbol("pos"))),
+                arma::normalise(*arma_guile::smob_get_dcol(scm_assq_ref(cur_light, scm_from_utf8_symbol("dir")))),
+                cos(scm_to_double(scm_assq_ref(cur_light, scm_from_utf8_symbol("cutoff-angle"))))
+            });
         }
     }
 

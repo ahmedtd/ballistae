@@ -4,12 +4,23 @@
 (define cam
   (ballistae/camera
    "pinhole"
-   `((center . ,(arma/list->b64col '(-10 0 3))))))
+   `((center . ,(arma/list->b64col '(-10 0 3)))
+     (aperture-vec . ,(arma/list->b64col '(1 1.6 .9))))))
 
-(define infty-matr
-  (ballistae/matr/make
-   "phong"
-   `((color_a . (0 0 0)))))
+(define pointlight-a (arma/list->b64col '(5 5 10)))
+(define pointlight-b (arma/list->b64col '(0 0  2)))
+
+(define dirlight-a (arma/list->b64col '(0 10 -10)))
+
+(define spotlight-a
+  `((pos . ,(arma/list->b64col '(20 -10 10)))
+    (dir . ,(arma/list->b64col '(-1   1 -1)))
+    (cutoff-angle . 0.8)))
+
+(define spotlight-b
+  `((pos . ,(arma/list->b64col '(5 5 20)))
+    (dir . ,(arma/list->b64col '(0 0 -1)))
+    (cutoff-angle . 0.4)))
 
 (define my-matr
   (ballistae/matr/make
@@ -21,7 +32,10 @@
      (color_a . (1 0 0))
      (color_d . (1 0 0))
      (color_s . (1 1 1))
-     (lights . (,(arma/list->b64col '(0 10 10)))))))
+     ;;(point-lights . (,pointlight-a ,pointlight-b))
+     (dir-lights   . (,dirlight-a))
+     ;;(spot-lights . (,spotlight-a ,spotlight-b))
+     )))
 
 (define my-geom
   (ballistae/geom/make
@@ -41,9 +55,8 @@
 
 (define my-scene
   (ballistae/scene/crush
-   infty-matr
    `((,my-geom      . ,my-matr)
      (,ground-plane . ,my-matr)
      (,cyl          . ,my-matr))))
 
-(ballistae/render-scene cam my-scene "simple-phong-scene.jpeg" 512 512 2)
+(ballistae/render-scene cam my-scene "simple-phong-scene.jpeg" 800 450 2)

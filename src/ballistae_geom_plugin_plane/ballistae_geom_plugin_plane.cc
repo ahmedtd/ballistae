@@ -11,6 +11,7 @@
 #include <libguile.h>
 
 #include <libballistae/ray.hh>
+#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
@@ -29,6 +30,7 @@ public:
     virtual ~plane_priv();
 
     virtual void ray_intersect(
+        const ballistae::scene &the_scene,
         const ballistae::dray3 *query_src,
         const ballistae::dray3 *query_lim,
         const ballistae::span<double> &must_overlap,
@@ -52,6 +54,7 @@ plane_priv::~plane_priv()
 }
 
 void plane_priv::ray_intersect(
+    const ballistae::scene &the_scene,
     const ballistae::dray3 *query_src,
     const ballistae::dray3 *query_lim,
     const ballistae::span<double> &must_overlap,

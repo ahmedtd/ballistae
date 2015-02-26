@@ -20,6 +20,7 @@
 #include <armadillo>
 
 #include <libballistae/ray.hh>
+#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 
 namespace ballistae
@@ -36,6 +37,7 @@ public:
     /// [must_overlap] into out_src[2*i], and the corresponding exit into
     /// out_src[2*i+1]
     virtual void ray_intersect(
+        const scene &the_scene,
         const dray3 *query_src,
         const dray3 *query_lim,
         const span<double> &must_overlap,

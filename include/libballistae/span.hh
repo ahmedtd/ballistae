@@ -29,7 +29,7 @@ struct span final
 template<class Field>
 bool overlaps(const span<Field> &a, const span<Field> &b)
 {
-    return !(a.lo > b.hi || a.hi <= b.lo);
+    return !(a.lo >= b.hi || a.hi <= b.lo);
 }
 
 template<class Field>

@@ -5,6 +5,8 @@
 #include <cstddef>
 #include <libguile.h>
 
+#include <armadillo>
+
 namespace arma_guile
 {
 
@@ -18,6 +20,8 @@ T smob_get_data(SCM obj)
 
     return reinterpret_cast<T>(SCM_SMOB_DATA(obj));
 }
+
+constexpr auto smob_get_dcol = smob_get_data<arma::Col<double>*>;
 
 template<typename T>
 SCM smob_set_data(SCM obj, T data)
