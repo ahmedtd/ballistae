@@ -11,11 +11,18 @@ namespace ballistae
 /// Invariants:
 ///
 ///   * (norm(slope) == 1): SLOPE is a unit vector.
-struct dray3
+template<class Field, size_t Dim>
+struct ray
 {
-    arma::vec3 point;
-    arma::vec3 slope;
+    using vec_type = typename arma::Col<Field>::template fixed<Dim>;
+    vec_type point;
+    vec_type slope;
 };
+
+template<size_t Dim>
+using dray = ray<double, Dim>;
+
+using dray3 = ray<double, 3>;
 
 /// Evaluate R for the given parameter value T.
 ///

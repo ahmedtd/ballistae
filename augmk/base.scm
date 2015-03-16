@@ -194,6 +194,46 @@
     (augmk/paste-eval name " : " phonies-string)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Install targets
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Create a phony target that installs [group] into $(DESTDIR)/[relpath] with
+;; mode [modestring].
+;;
+;; Returns that name of the phony so that you can do this:
+;;
+;;     INSTALL_TARGETS += $(guile (augmk/create-install ...))
+(define-public (augmk/install-phony phony-name relpath modestring group)
+
+  ;; Expand args, since they may have computed components.
+  (set! phony-name (augmk/expand phony-name))
+  (set! relpath (augmk/expand relpath))
+  (set! modestring (augmk/expand modestring))
+  (set! group (augmk/expand group))
+
+  (augmk/paste-eval ".PHONY: " phony-name)
+
+  (augmk/paste-eval "
+"phony-name" : "group"
+	install -d $(DESTDIR)"relpath"
+	install -t $(DESTDIR)"relpath" -m '"modestring"' "group"
+")
+
+  phony-name)
+
+(define-public (augmk/install-hdr-phony phony-name relpath group)
+  (set! relpath (augmk/paste-expand "$(DEST_HDR_DIR)/" relpath))
+  (augmk/install-phony phony-name relpath "a=r,u=rw" group))
+
+(define-public (augmk/install-lib-phony phony-name relpath group)
+  (set! relpath (augmk/paste-expand "$(DEST_LIB_DIR)/" relpath))
+  (augmk/install-phony phony-name relpath "a=r,u=rw" group))
+
+(define-public (augmk/install-bin-phony phony-name relpath group)
+  (set! relpath (augmk/paste-expand "$(DEST_BIN_DIR)/" relpath))
+  (augmk/install-phony phony-name relpath "a=rx,u=rwx" group))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Immediate code -- run as the user loads the module.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -202,3 +242,10 @@
 
 ;; DELETE_ON_ERROR is just a good idea.
 (augmk/eval ".DELETE_ON_ERROR: ")
+
+;; Set a sane default for DESTDIR.  If the user specifies it (make DESTDIR="..."
+;; ...), then that location will be used instead.
+(augmk/eval "DESTDIR := /")
+(augmk/eval "DEST_LIB_DIR := /usr/lib/")
+(augmk/eval "DEST_HDR_DIR := /usr/include/")
+(augmk/eval "DEST_BIN_DIR := /usr/bin/")

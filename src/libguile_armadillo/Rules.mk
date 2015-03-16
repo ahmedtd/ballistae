@@ -28,3 +28,5 @@ $(augmk_d)/libguile_armadillo.so : $($(augmk_d)_objs)
 
 ALL_TARGETS += $(augmk_d)/libguile_armadillo.so
 CLEAN_TARGETS += $(augmk_d)/libguile_armadillo.so
+
+INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/libguile_armadillo.so"))

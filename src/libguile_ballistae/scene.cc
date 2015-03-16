@@ -1,5 +1,11 @@
 #include <libguile_ballistae/scene.hh>
 
+#include <cstdlib>
+
+#include <atomic>
+#include <chrono>
+#include <functional>
+#include <future>
 #include <memory>
 #include <utility>
 
@@ -8,13 +14,11 @@
 
 #include <armadillo>
 
-#define cimg_display 0
-#define cimg_verbosity 1
-#include <CImg.h>
-
 #include <libballistae/camera_plugin_interface.hh>
 #include <libballistae/geom_plugin_interface.hh>
+#include <libballistae/image.hh>
 #include <libballistae/matr_plugin_interface.hh>
+#include <libballistae/render_scene.hh>
 #include <libballistae/scene.hh>
 
 #include <libguile_ballistae/camera_instance.hh>
@@ -29,6 +33,8 @@ scm_t_bits scene_subsmob_flags;
 
 namespace scene
 {
+
+namespace bl = ballistae;
 
 void init(std::vector<subsmob_fns> &ss_dispatch)
 {
@@ -108,6 +114,70 @@ SCM crush(SCM geometry_material_alist)
     return result;
 }
 
+void print_progress_bar(
+    std::atomic_bool &stop_flag_atomic,
+    std::atomic_size_t &cur_progress_atomic,
+    size_t max_progress,
+    SCM port
+)
+{
+    using namespace std::literals::chrono_literals;
+
+    // if(scm_is_true(scm_isatty_p(scm_current_output_port())))
+    // {
+    //     while(!stop_flag_atomic.load())
+    //     {
+    //         std::this_thread::sleep_for(1s);
+    //     }
+
+    //     return;
+    // }
+
+    SCM carriage_return = scm_from_utf8_string("\r");
+    SCM open_bracket = scm_from_utf8_string("[");
+    SCM close_bracket = scm_from_utf8_string("]");
+    SCM equals_sign = scm_from_utf8_string("=");
+    SCM close_angbracket = scm_from_utf8_string(">");
+    SCM space = scm_from_utf8_string(" ");
+
+    std::stringstream valstream;
+    while(!stop_flag_atomic.load())
+    {
+        size_t cur_progress = cur_progress_atomic.load();
+
+        const char *colvar = std::getenv("COLUMNS");
+        size_t term_width = 0;
+        if(colvar != nullptr)
+            term_width = std::strtoul(colvar, nullptr, 10);
+        if(term_width < 80)
+            term_width = 80;
+
+        size_t bar_field_width = term_width - 2;
+        size_t bar_length = (cur_progress * bar_field_width) / max_progress;
+
+        // Write progress bar.
+        scm_simple_format(port, carriage_return, SCM_EOL);
+        scm_simple_format(port, open_bracket, SCM_EOL);
+        for(size_t i = 0; i < bar_length; ++i)
+        {
+            scm_simple_format(port, equals_sign, SCM_EOL);
+        }
+        scm_simple_format(port, close_angbracket, SCM_EOL);
+        for(size_t i = bar_length + 1; i < bar_field_width; ++i)
+        {
+            scm_simple_format(port, space, SCM_EOL);
+        }
+        scm_simple_format(port, close_bracket, SCM_EOL);
+
+        scm_force_output(port);
+
+        std::this_thread::sleep_for(1s);
+    }
+
+    scm_simple_format(port, scm_from_utf8_string("\nFinished.\n"), SCM_EOL);
+    scm_force_output(port);
+}
+
 SCM render_scene(
     SCM camera_scm,
     SCM scene_scm,
@@ -118,8 +188,6 @@ SCM render_scene(
 )
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
-
-    namespace cimg = cimg_library;
 
     auto cam_p
         = *smob_get_data<std::shared_ptr<ballistae::camera_priv>*>(camera_scm);
@@ -134,21 +202,45 @@ SCM render_scene(
     // Below this point, no scheme exceptions may be thrown.
     //
 
-    cimg::CImg<float> hdr_img(img_rows, img_cols, 1, 3);
-
-    hdr_img = ballistae::render_scene(
-        hdr_img,
-        cam_p,
-        *the_scene,
-        ss_factor
+    // Launch the progress bar.
+    std::atomic_bool stop_flag;
+    stop_flag = false;
+    std::atomic_size_t cur_progress;
+    cur_progress = 0;
+    auto progress_bar_future = std::async(
+        std::launch::async,
+        std::bind(
+            print_progress_bar,
+            std::ref(stop_flag),
+            std::ref(cur_progress),
+            img_rows,
+            scm_current_output_port()
+        )
     );
 
-    // Convert to LDR image.
-    hdr_img /= std::max(hdr_img.max(), 1.0f);
-    hdr_img *= std::nextafter(256.0f, 0.0f);
-    cimg::CImg<std::uint8_t> ldr_img = hdr_img;
+    bl::image<float> hdr_img = ballistae::render_scene(
+        img_rows,
+        img_cols,
+        cam_p,
+        *the_scene,
+        ss_factor,
+        cur_progress
+    );
 
-    ldr_img.save_jpeg(output_file);
+    // Stop the progress printer.
+    stop_flag = true;
+
+    if(bl::write_pfm(hdr_img, output_file) != 0)
+    {
+        scm_simple_format(
+            SCM_BOOL_T,
+            scm_from_utf8_string("Warning: could not write output file."),
+            SCM_EOL
+        );
+    }
+
+    // Wait for the progress bar to finish
+    progress_bar_future.get();
 
     scm_remember_upto_here_1(camera_scm);
     scm_remember_upto_here_1(scene_scm);

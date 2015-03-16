@@ -17,6 +17,8 @@
 
 #include <cstddef>
 
+#include <random>
+
 #include <armadillo>
 
 #include <libballistae/ray.hh>
@@ -31,19 +33,11 @@ class geom_priv
 public:
     virtual ~geom_priv() {}
 
-    /// Ray intersection (batch interface).
-    ///
-    /// Write the [index]th entry of ray query[i] that is within the span
-    /// [must_overlap] into out_src[2*i], and the corresponding exit into
-    /// out_src[2*i+1]
-    virtual void ray_intersect(
+    virtual span<double> ray_intersect(
         const scene &the_scene,
-        const dray3 *query_src,
-        const dray3 *query_lim,
+        const dray3 &query,
         const span<double> &must_overlap,
-        const std::size_t index,
-        span<double> *out_spans_src,
-        arma::vec3 *out_normals_src
+        std::mt19937 &thread_rng
     ) const = 0;
 };
 

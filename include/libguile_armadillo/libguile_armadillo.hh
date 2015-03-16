@@ -1,7 +1,6 @@
 #ifndef LIBGUILE_ARMADILLO_HH
 #define LIBGUILE_ARMADILLO_HH
 
-#include <iomanip>
 #include <sstream>
 
 #include <armadillo>

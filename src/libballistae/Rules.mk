@@ -4,6 +4,7 @@ libballistae_objs := $(libballistae_srcs:.cc=.o)
 CLEAN_TARGETS += $(libballistae_objs)
 
 libballistae_CXXFLAGS :=
+libballistae_CXXFLAGS += -fopenmp
 libballistae_CXXFLAGS += -fPIC
 libballistae_CXXFLAGS += $(armadillo4_CFLAGS)
 libballistae_CXXFLAGS += -Iinclude
@@ -24,3 +25,5 @@ $(augmk_d)/libballistae.so : $(libballistae_objs)
 
 ALL_TARGETS += $(augmk_d)/libballistae.so
 CLEAN_TARGETS += $(augmk_d)/libballistae.so
+
+INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)/libballistae.so_install" "./" "$(augmk_d)/libballistae.so"))

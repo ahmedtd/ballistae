@@ -29,3 +29,5 @@ $(augmk_d)/ballistae_geom_plugin_sphere.so : $(sphere_plugin_objs)
 
 ALL_TARGETS += $(augmk_d)/ballistae_geom_plugin_sphere.so
 CLEAN_TARGETS += $(augmk_d)/ballistae_geom_plugin_sphere.so
+
+INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/ballistae_geom_plugin_sphere.so"))

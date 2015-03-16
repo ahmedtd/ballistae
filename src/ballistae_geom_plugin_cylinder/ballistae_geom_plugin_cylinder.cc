@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <memory>
+#include <random>
 
 #include <armadillo>
 
@@ -16,6 +17,8 @@
 #include <libballistae/vector.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
+
+namespace bl = ballistae;
 
 class cylinder_priv : public ballistae::geom_priv
 {
@@ -33,14 +36,11 @@ public:
 
     virtual ~cylinder_priv();
 
-    virtual void ray_intersect(
-        const ballistae::scene &the_scene,
-        const ballistae::dray3 *query_src,
-        const ballistae::dray3 *query_lim,
-        const ballistae::span<double> &must_overlap,
-        const std::size_t index,
-        ballistae::span<double> *out_spans_src,
-        arma::vec3 *out_normals_src
+    virtual bl::span<double> ray_intersect(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::mt19937 &thread_rng
     ) const;
 };
 
@@ -59,86 +59,63 @@ cylinder_priv::~cylinder_priv()
 {
 }
 
-void cylinder_priv::ray_intersect(
-    const ballistae::scene &the_scene,
-    const ballistae::dray3 *query_src,
-    const ballistae::dray3 *query_lim,
-    const ballistae::span<double> &must_overlap,
-    const std::size_t index,
-    ballistae::span<double> *out_spans_src,
-    arma::vec3 *out_normals_src
+bl::span<double> cylinder_priv::ray_intersect(
+    const bl::scene &the_scene,
+    const bl::dray3 &query,
+    const bl::span<double> &must_overlap,
+    std::mt19937 &thread_rng
 ) const
 {
     using std::sqrt;
 
-    if(index != 0)
+    arma::vec3 foil_a = bl::reject<double, 3>(axis, query.slope);
+    arma::vec3 foil_b = bl::reject<double, 3>(axis, query.point - center);
+
+    double a = arma::dot(foil_a, foil_a);
+    double b = 2.0 * arma::dot(foil_a, foil_b);
+    double c = arma::dot(foil_b, foil_b) - radius_squared;
+
+    double t_min = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+    double t_max = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+
+    auto covered = bl::span<double>::undecorated(t_min, t_max);
+
+    if(!std::isnan(t_min))
     {
-        // A cylinder can only have one span.
-        for(; query_src != query_lim;
-            ++query_src, ++out_spans_src, out_normals_src += 2)
+        // The ray hits the cylinder.
+        if(overlaps(must_overlap, covered))
         {
-            out_spans_src[0] = ballistae::span<double>::nan();
-        }
+            arma::vec3 p_min = ballistae::eval_ray(query, t_min);
+            arma::vec3 p_max = ballistae::eval_ray(query, t_max);
 
-        return;
-    }
+            covered.lo_normal = bl::reject<double, 3>(axis, p_min - center);
+            covered.hi_normal = bl::reject<double, 3>(axis, p_max - center);
 
-    for(; query_src != query_lim;
-        ++query_src, ++out_spans_src, out_normals_src += 2)
-    {
-        const ballistae::dray3 &query = *query_src;
-
-        arma::vec3 foil_a = ballistae::reject(axis, query.slope);
-        arma::vec3 foil_b = ballistae::reject(axis, query.point - center);
-
-        double a = arma::dot(foil_a, foil_a);
-        double b = 2.0 * arma::dot(foil_a, foil_b);
-        double c = arma::dot(foil_b, foil_b) - radius_squared;
-
-        double t_min = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-        double t_max = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-
-        if(!std::isnan(t_min))
-        {
-            // The ray hits the cylinder.
-            if(overlaps(must_overlap, {t_min, t_max}))
-            {
-                arma::vec3 p_min = ballistae::eval_ray(query, t_min);
-                arma::vec3 p_max = ballistae::eval_ray(query, t_max);
-
-                arma::vec3 n_min = ballistae::reject(axis, p_min - center);
-                arma::vec3 n_max = ballistae::reject(axis, p_max - center);
-
-                out_spans_src[0] = {t_min, t_max};
-
-                out_normals_src[0] = n_min;
-                out_normals_src[1] = n_max;
-            }
-            else
-            {
-                out_spans_src[0] = ballistae::span<double>::nan();
-            }
+            return covered;
         }
         else
         {
-            // The ray is parallel to the cylinder axis.
-
-            if(c > double(0))
-            {
-                out_spans_src[0] = ballistae::span<double>::nan();
-            }
-            else
-            {
-                double inf = std::numeric_limits<double>::infinity();
-                ballistae::span<double> test = {-inf, inf};
-
-                if(overlaps(must_overlap, test))
-                    out_spans_src[0] = test;
-
-                // No normals at infinity.
-            }
+            return ballistae::span<double>::nan();
         }
+    }
+    else
+    {
+        // The ray is parallel to the cylinder axis.
 
+        if(c > double(0))
+        {
+            return ballistae::span<double>::nan();
+        }
+        else
+        {
+            double inf = std::numeric_limits<double>::infinity();
+            auto test = ballistae::span<double>::undecorated(-inf, inf);
+
+            if(overlaps(must_overlap, test))
+                return test;
+            else
+                return bl::span<double>::nan();
+        }
     }
 }
 

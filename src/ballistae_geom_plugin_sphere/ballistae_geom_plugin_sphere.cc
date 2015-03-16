@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include <memory>
+#include <random>
 
 #include <armadillo>
 
@@ -15,6 +16,8 @@
 #include <libballistae/span.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
+
+namespace bl = ballistae;
 
 class sphere_priv : public ballistae::geom_priv
 {
@@ -29,14 +32,11 @@ public:
 
     virtual ~sphere_priv();
 
-    virtual void ray_intersect(
-        const ballistae::scene &the_scene,
-        const ballistae::dray3 *query_src,
-        const ballistae::dray3 *query_lim,
-        const ballistae::span<double> &must_overlap,
-        const std::size_t index,
-        ballistae::span<double> *out_spans_src,
-        arma::vec3 *out_normals_src
+    virtual bl::span<double> ray_intersect(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::mt19937 &thread_rng
     ) const;
 };
 
@@ -53,61 +53,39 @@ sphere_priv::~sphere_priv()
 {
 }
 
-void sphere_priv::ray_intersect(
-    const ballistae::scene &the_scene,
-    const ballistae::dray3 *query_src,
-    const ballistae::dray3 *query_lim,
-    const ballistae::span<double> &must_overlap,
-    const std::size_t index,
-    ballistae::span<double> *out_spans_src,
-    arma::vec3 *out_normals_src
+bl::span<double> sphere_priv::ray_intersect(
+    const bl::scene &the_scene,
+    const bl::dray3 &query,
+    const bl::span<double> &must_overlap,
+    std::mt19937 &thread_rng
 ) const
 {
     using std::sqrt;
 
-    if(index != 0)
-    {
-        // A sphere can only have one span.
-        for(; query_src != query_lim;
-            ++query_src, ++out_spans_src, out_normals_src += 2)
-        {
-            *out_spans_src = ballistae::span<double>::nan();
-            // Don't need to write any normals, since the span is nan.
-        }
+    auto offset = query.point - this->center;
 
-        return;
+    auto b = arma::dot(query.slope, offset);
+    auto c = arma::dot(offset, offset) - this->radius_squared;
+
+    // We rely on std::sqrt's mandated NaN behavior.
+    auto t_min = -b - sqrt(b * b - c);
+    auto t_max = -b + sqrt(b * b - c);
+
+    auto covered = bl::span<double>::undecorated(t_min, t_max);
+
+    if(ballistae::overlaps(must_overlap, covered))
+    {
+        auto point_min = ballistae::eval_ray(query, t_min);
+        auto point_max = ballistae::eval_ray(query, t_max);
+
+        covered.lo_normal = arma::normalise(point_min - this->center);
+        covered.hi_normal = arma::normalise(point_max - this->center);
+
+        return covered;
     }
-
-    for(; query_src != query_lim;
-        ++query_src, ++out_spans_src, out_normals_src += 2)
+    else
     {
-        const ballistae::dray3 &query = *query_src;
-
-        auto offset = query.point - this->center;
-
-        auto b = arma::dot(query.slope, offset);
-        auto c = arma::dot(offset, offset) - this->radius_squared;
-
-        // We rely on std::sqrt's mandated NaN behavior.
-        auto t_min = -b - sqrt(b * b - c);
-        auto t_max = -b + sqrt(b * b - c);
-
-        if(ballistae::overlaps(must_overlap, {t_min, t_max}))
-        {
-            auto point_min = ballistae::eval_ray(query, t_min);
-            auto point_max = ballistae::eval_ray(query, t_max);
-
-            arma::vec3 normal_min = arma::normalise(point_min - this->center);
-            arma::vec3 normal_max = arma::normalise(point_max - this->center);
-
-            *out_spans_src = {t_min, t_max};
-            out_normals_src[0] = normal_min;
-            out_normals_src[1] = normal_max;
-        }
-        else
-        {
-            out_spans_src[0] = ballistae::span<double>::nan();
-        }
+        return bl::span<double>::nan();
     }
 }
 

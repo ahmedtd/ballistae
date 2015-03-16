@@ -3,12 +3,28 @@
 
 /// Additional useful vector operations.
 
+#include <cstddef>
+
 #include <armadillo>
 
 namespace ballistae
 {
 
-arma::vec3 reject(const arma::vec3 &a, const arma::vec3 &b) __attribute__((pure));
+template<class Field, size_t Dim>
+using fixvec = typename arma::Col<Field>:: template fixed<Dim>;
+
+using vec3 = fixvec<double, 3>;
+
+template<class Field, size_t NRows, size_t NCols>
+using fixmat = typename arma::Mat<Field>:: template fixed<NRows, NCols>;
+
+using mat33 = fixmat<double, 3, 3>;
+
+template<class Field, size_t Dim>
+fixvec<Field, Dim> reject(const fixvec<Field, Dim> &a, const fixvec<Field, Dim> &b)
+{
+    return b - arma::normalise(a) * (arma::dot(a, b) / arma::norm(a));
+}
 
 }
 

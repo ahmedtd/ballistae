@@ -23,13 +23,13 @@ $($(augmk_d)_objs): d := $(augmk_d)
 $($(augmk_d)_objs): %.o : %.cc
 	g++ -c -o $@ $< $($(d)_CXXFLAGS) $(CXXFLAGS)
 
-$(augmk_d)/ballistae_camera_plugin_pinhole.so : d := $(augmk_d)
-$(augmk_d)/ballistae_camera_plugin_pinhole.so : | src/libballistae/libballistae.so
-$(augmk_d)/ballistae_camera_plugin_pinhole.so : | src/libguile_armadillo/libguile_armadillo.so
-$(augmk_d)/ballistae_camera_plugin_pinhole.so : $($(augmk_d)_objs)
+$(augmk_d)/ballistae_geom_plugin_infty.so : d := $(augmk_d)
+$(augmk_d)/ballistae_geom_plugin_infty.so : | src/libballistae/libballistae.so
+$(augmk_d)/ballistae_geom_plugin_infty.so : | src/libguile_armadillo/libguile_armadillo.so
+$(augmk_d)/ballistae_geom_plugin_infty.so : $($(augmk_d)_objs)
 	g++ -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 
-ALL_TARGETS   += $(augmk_d)/ballistae_camera_plugin_pinhole.so
-CLEAN_TARGETS += $(augmk_d)/ballistae_camera_plugin_pinhole.so
+ALL_TARGETS   += $(augmk_d)/ballistae_geom_plugin_infty.so
+CLEAN_TARGETS += $(augmk_d)/ballistae_geom_plugin_infty.so
 
-INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/ballistae_camera_plugin_pinhole.so"))
+INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/ballistae_geom_plugin_infty.so"))

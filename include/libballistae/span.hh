@@ -3,26 +3,50 @@
 
 #include <limits>
 
+#include <armadillo>
+
 namespace ballistae
 {
 
 template<class Field>
 struct span final
 {
+    using vec_type = typename arma::Col<Field>::template fixed<3>;
+
     Field lo;
     Field hi;
 
-    static Field inf()
+    vec_type lo_normal;
+    vec_type hi_normal;
+
+    static span<Field> pos_half()
     {
-        return std::numeric_limits<Field>::infinity();
+        constexpr Field inf = std::numeric_limits<Field>::infinity();
+        constexpr Field nan = std::numeric_limits<Field>::quiet_NaN();
+
+        return {Field(0), inf, {nan, nan, nan}, {nan, nan, nan}};
+    }
+
+    static span<Field> inf()
+    {
+        constexpr Field inf = std::numeric_limits<Field>::infinity();
+        constexpr Field nan = std::numeric_limits<Field>::quiet_NaN();
+
+        return {inf, inf, {nan, nan, nan}, {nan, nan, nan}};
     }
 
     static span<Field> nan()
     {
-        return {
-            std::numeric_limits<Field>::quiet_NaN(),
-            std::numeric_limits<Field>::quiet_NaN()
-        };
+        constexpr double nan = std::numeric_limits<Field>::quiet_NaN();
+        return {nan, nan, {nan, nan, nan}, {nan, nan, nan}};
+    }
+
+    static span<Field> undecorated(const Field &lo, const Field &hi)
+    {
+        span<Field> result;
+        result.lo = lo;
+        result.hi = hi;
+        return result;
     }
 };
 

@@ -8,6 +8,7 @@ libguile_ballistae_CXXFLAGS += -fPIC
 libguile_ballistae_CXXFLAGS += $(armadillo4_CFLAGS)
 libguile_ballistae_CXXFLAGS += $(guile2_CFLAGS)
 libguile_ballistae_CXXFLAGS += -Iinclude
+libguile_ballistae_CXXFLAGS += -pthread # We use c++14 threads.
 
 libguile_ballistae_LFLAGS :=
 libguile_ballistae_LFLAGS += $(armadillo4_LIBS)
@@ -30,3 +31,5 @@ $(augmk_d)/libguile_ballistae.so : $(libguile_ballistae_objs)
 
 ALL_TARGETS += $(augmk_d)/libguile_ballistae.so
 CLEAN_TARGETS += $(augmk_d)/libguile_ballistae.so
+
+INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/libguile_ballistae.so"))

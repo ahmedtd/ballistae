@@ -7,6 +7,7 @@ $(guile (augmk/enter "ballistae_camera_plugin_pinhole"))
 
 # Geometry plugins
 $(guile (augmk/enter "ballistae_geom_plugin_cylinder"))
+$(guile (augmk/enter "ballistae_geom_plugin_infty"))
 $(guile (augmk/enter "ballistae_geom_plugin_plane"))
 $(guile (augmk/enter "ballistae_geom_plugin_sphere"))
 
