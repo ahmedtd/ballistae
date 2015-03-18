@@ -9,7 +9,9 @@
 #include <chrono>
 #include <functional>
 #include <future>
+#include <iostream>
 #include <memory>
+#include <string>
 #include <utility>
 
 #include <cstddef> // workaround for bug in GMP
@@ -124,13 +126,6 @@ void print_progress_bar(
     SCM port
 )
 {
-    SCM carriage_return = scm_from_utf8_string("\r");
-    SCM open_bracket = scm_from_utf8_string("[");
-    SCM close_bracket = scm_from_utf8_string("]");
-    SCM equals_sign = scm_from_utf8_string("=");
-    SCM close_angbracket = scm_from_utf8_string(">");
-    SCM space = scm_from_utf8_string(" ");
-
     std::stringstream valstream;
     while(!stop_flag_atomic.load())
     {
@@ -142,21 +137,17 @@ void print_progress_bar(
         size_t bar_field_width = (size_t) w.ws_col - 2;
         size_t bar_length = (cur_progress * bar_field_width) / max_progress;
 
-        // Write progress bar.
-        scm_simple_format(port, carriage_return, SCM_EOL);
-        scm_simple_format(port, open_bracket, SCM_EOL);
-        for(size_t i = 0; i < bar_length; ++i)
-        {
-            scm_simple_format(port, equals_sign, SCM_EOL);
-        }
-        scm_simple_format(port, close_angbracket, SCM_EOL);
-        for(size_t i = bar_length + 1; i < bar_field_width; ++i)
-        {
-            scm_simple_format(port, space, SCM_EOL);
-        }
-        scm_simple_format(port, close_bracket, SCM_EOL);
+        std::string buf(w.ws_col, ' ');
+        size_t i = 0;
+        buf[i] = '['; ++i;
+        for(; i < 1 + bar_length; ++i)
+            buf[i] = '=';
+        buf[i] = '>'; ++i;
+        for(; i < 1 + bar_field_width; ++i)
+            buf[i] = ' ';
+        buf[i] = ']';
 
-        scm_force_output(port);
+        std::cout << '\r' << buf << std::flush;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
