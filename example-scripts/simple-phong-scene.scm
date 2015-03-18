@@ -11,7 +11,7 @@
   (ballistae/matr/make "phong"
                        `((emission-wavelength-mean   . 500)
                          (emission-wavelength-stddev . 1000)
-                         (emission-peak-power        . 1)
+                         (emission-peak-power        . 100)
                          (prop-wavelength-mean . 500)
                          (prop-wavelength-stddev . 100)
                          (prop-peak-k . 0.0))))
@@ -50,4 +50,9 @@
      (,ground-plane . ,red-matr)
      (,cyl          . ,light-matr))))
 
-(ballistae/render-scene cam my-scene "simple-phong-scene.pfm" 450 800 0)
+(ballistae/render-scene
+ cam my-scene
+ "simple-phong-scene.pfm"
+ 450 800
+ 0
+ '(1 16 8 8 4))

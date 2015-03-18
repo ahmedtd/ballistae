@@ -22,7 +22,8 @@ image<float> render_scene(
     const std::shared_ptr<const camera_priv> &the_camera,
     const scene &scene,
     unsigned int supersample_factor,
-    std::atomic_size_t &cur_progress
+    std::atomic_size_t &cur_progress,
+    const std::vector<size_t> &sampling_profile
 );
 
 }

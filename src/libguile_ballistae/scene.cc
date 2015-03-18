@@ -1,5 +1,8 @@
 #include <libguile_ballistae/scene.hh>
 
+#include <sys/ioctl.h>
+#include <unistd.h>
+
 #include <cstdlib>
 
 #include <atomic>
@@ -41,7 +44,7 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
     scene_subsmob_flags = ss_dispatch.size();
 
     scm_c_define_gsubr("ballistae/scene/crush", 1, 0, 0, (scm_t_subr) crush);
-    scm_c_define_gsubr("ballistae/render-scene", 6, 0, 0, (scm_t_subr) render_scene);
+    scm_c_define_gsubr("ballistae/render-scene", 7, 0, 0, (scm_t_subr) render_scene);
     scm_c_define_gsubr("ballistae/scene?", 1, 0, 0, (scm_t_subr) scene_p);
 
     scm_c_export(
@@ -145,14 +148,10 @@ void print_progress_bar(
     {
         size_t cur_progress = cur_progress_atomic.load();
 
-        const char *colvar = std::getenv("COLUMNS");
-        size_t term_width = 0;
-        if(colvar != nullptr)
-            term_width = std::strtoul(colvar, nullptr, 10);
-        if(term_width < 80)
-            term_width = 80;
+        winsize w;
+        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
-        size_t bar_field_width = term_width - 2;
+        size_t bar_field_width = (size_t) w.ws_col - 2;
         size_t bar_length = (cur_progress * bar_field_width) / max_progress;
 
         // Write progress bar.
@@ -184,7 +183,8 @@ SCM render_scene(
     SCM output_file_scm,
     SCM img_rows_scm,
     SCM img_cols_scm,
-    SCM ss_factor_scm
+    SCM ss_factor_scm,
+    SCM sample_profile_scm
 )
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
@@ -197,6 +197,12 @@ SCM render_scene(
     std::size_t img_rows = scm_to_size_t(img_rows_scm);
     std::size_t img_cols = scm_to_size_t(img_cols_scm);
     std::size_t ss_factor = scm_to_size_t(ss_factor_scm);
+
+    std::vector<size_t> sample_profile;
+    for(SCM cur = sample_profile_scm; !scm_is_null(cur); cur = scm_cdr(cur))
+    {
+        sample_profile.push_back(scm_to_size_t(scm_car(cur)));
+    }
 
     //
     // Below this point, no scheme exceptions may be thrown.
@@ -224,7 +230,8 @@ SCM render_scene(
         cam_p,
         *the_scene,
         ss_factor,
-        cur_progress
+        cur_progress,
+        sample_profile
     );
 
     // Stop the progress printer.

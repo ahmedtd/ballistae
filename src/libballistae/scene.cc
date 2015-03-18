@@ -111,27 +111,28 @@ double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
     double lambda_nm,
-    std::mt19937 &thread_rng
+    std::mt19937 &thread_rng,
+    const std::vector<size_t> &l_stack
 )
 {
     using std::pow;
 
-    constexpr size_t depth_lim = 8;
+    size_t depth_lim = l_stack.size();
 
-    std::array<ray<double, 3>, depth_lim> r_stack;
-    std::array<double, depth_lim>         p_stack;
-    std::array<double, depth_lim>         k_stack;
+    static thread_local std::vector<size_t>         c_stack(depth_lim, 0);
+    static thread_local std::vector<ray<double, 3>> r_stack(depth_lim);
+    static thread_local std::vector<double>         p_stack(depth_lim);
+    static thread_local std::vector<double>         k_stack(depth_lim);
 
-    std::array<size_t, depth_lim> c_stack;
-    c_stack.fill(0);
-
-    std::array<size_t, depth_lim> l_stack = {0, 16, 16, 8, 8, 4, 4, 2};
+    // TODO: Resize the thread_local variables.
 
     // Load the initial query into cell 0.  The final result will appear in
     // p_stack[0].
     p_stack[0] = 0.0;
     k_stack[0] = 1.0;
     r_stack[0] = initial_query;
+
+    std::fill(c_stack.begin(), c_stack.end(), 0);
 
     size_t i = 1;
     do
@@ -163,7 +164,7 @@ double sample_ray(
             if(c_stack[i] == 0)
                 p_stack[i] = 0.0;
 
-            p_stack[i] += shading.emitted_power;
+            p_stack[i] += shading.emitted_power / l_stack[i];
             k_stack[i] = shading.propagation_k;
             r_stack[i] = shading.incident_ray;
 
@@ -181,7 +182,7 @@ double sample_ray(
         }
         else
         {
-            p_stack[i-1] += k_stack[i-1] * p_stack[i];
+            p_stack[i-1] += (k_stack[i-1] * p_stack[i]) / l_stack[i-1];
             c_stack[i] = 0;
             --i;
             continue;
@@ -200,7 +201,8 @@ color_d_XYZ shade_pixel(
     const std::shared_ptr<const camera_priv> &the_camera,
     const scene &the_scene,
     unsigned int ss_factor,
-    std::mt19937 &rng
+    std::mt19937 &rng,
+    const std::vector<size_t> &sampling_profile
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
@@ -209,7 +211,7 @@ color_d_XYZ shade_pixel(
     double lambda_src = 390;
     double lambda_lim = 835;
     double lambda_step = (lambda_lim - lambda_src) / (double) lambda_bins;
-    std::uniform_real_distribution<double> lambda_dist(0, lambda_step);
+    //std::uniform_real_distribution<double> lambda_dist(0, lambda_step);
 
     color_d_XYZ result = {0, 0, 0};
 
@@ -226,16 +228,17 @@ color_d_XYZ shade_pixel(
 
             dray3 cur_query = the_camera->image_to_ray(image_coords);
 
-            for(size_t lambda_i = 0; lambda_i < 16; ++lambda_i)
+            for(size_t lambda_i = 0; lambda_i < 128; ++lambda_i)
             {
                 double cur_lambda_nm = lambda_src
-                    + lambda_i * lambda_step + lambda_dist(rng);
+                    + lambda_i * lambda_step /*+ lambda_dist(rng)*/;
 
                 double sampled_power = sample_ray(
                     cur_query,
                     the_scene,
                     cur_lambda_nm,
-                    rng
+                    rng,
+                    sampling_profile
                 );
 
                 result += spectral_to_XYZ(cur_lambda_nm, sampled_power);
@@ -253,14 +256,15 @@ image<float> render_scene(
     const std::shared_ptr<const camera_priv> &the_camera,
     const scene &the_scene,
     unsigned int ss_factor,
-    std::atomic_size_t &cur_progress
+    std::atomic_size_t &cur_progress,
+    const std::vector<size_t> &sampling_profile
 )
 {
     std::mt19937 thread_rng(1235);
 
     image<float> result({img_rows, img_cols, 3}, 0.0f);
 
-# pragma omp parallel for firstprivate(thread_rng)
+//# pragma omp parallel for firstprivate(thread_rng) schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)
     {
         for(size_t cc = 0; cc < img_cols; ++cc)
@@ -271,7 +275,8 @@ image<float> render_scene(
                 the_camera,
                 the_scene,
                 ss_factor,
-                thread_rng
+                thread_rng,
+                sampling_profile
             );
 
             color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
