@@ -66,7 +66,7 @@ public:
     template<class... ArgTail>
     Elt& index(ArgTail... arg_tail)
     {
-        std::array<size_t, sizeof...(arg_tail)> indices = {static_cast<size_t>(arg_tail)...};
+        std::array<size_t, sizeof...(arg_tail)> indices = {{static_cast<size_t>(arg_tail)...}};
         size_t stride = 1;
         size_t comp_index = 0;
         for(size_t i = indices.size(); i != 0; --i)
