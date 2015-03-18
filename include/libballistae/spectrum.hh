@@ -128,11 +128,11 @@ color3<Elem, CSTag> clamp_0(const color3<Elem, CSTag> &a)
 template<class Field>
 color3<Field, rgb_tag> to_rgb(const color3<Field, XYZ_tag> &src)
 {
-    return {
+    return {{
          3.240479 * src[0] + -1.537150 * src[1] + -0.498535 * src[2],
         -0.969265 * src[0] +  1.875992 * src[1] +  0.041556 * src[2],
          0.055648 * src[0] + -0.204043 * src[1] +  1.057311 * src[2]
-    };
+             }};
 }
 
 using color_d_rgb = color3<double, rgb_tag>;
