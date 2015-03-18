@@ -21,7 +21,7 @@ T smob_get_data(SCM obj)
     return reinterpret_cast<T>(SCM_SMOB_DATA(obj));
 }
 
-static constexpr auto smob_get_dcol = smob_get_data<arma::Col<double>*>;
+//static constexpr auto smob_get_dcol = smob_get_data<arma::Col<double>*>;
 
 template<typename T>
 SCM smob_set_data(SCM obj, T data)
