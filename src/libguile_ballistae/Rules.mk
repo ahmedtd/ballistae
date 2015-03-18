@@ -22,12 +22,12 @@ $(guile (augmk/gcc/autodep-cc "$(libguile_ballistae_srcs)" \
 							  "$(libguile_ballistae_CXXFLAGS) $(CXXFLAGS)"))
 
 $(libguile_ballistae_objs) : %.o : %.cc
-	g++ -c -o $@ $< $(libguile_ballistae_CXXFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(libguile_ballistae_CXXFLAGS) $(CXXFLAGS)
 
 $(augmk_d)/libguile_ballistae.so : | src/libguile_armadillo/libguile_armadillo.so
 $(augmk_d)/libguile_ballistae.so : | src/libballistae/libballistae.so
 $(augmk_d)/libguile_ballistae.so : $(libguile_ballistae_objs)
-	g++ -shared -o $@ $^ $(libguile_ballistae_CXXFLAGS) $(libguile_ballistae_LFLAGS) $(CXXFLAGS)
+	$(CXX) -shared -o $@ $^ $(libguile_ballistae_CXXFLAGS) $(libguile_ballistae_LFLAGS) $(CXXFLAGS)
 
 ALL_TARGETS += $(augmk_d)/libguile_ballistae.so
 CLEAN_TARGETS += $(augmk_d)/libguile_ballistae.so

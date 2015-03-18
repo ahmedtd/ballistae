@@ -25,7 +25,8 @@
   (set! objs (augmk/group-norm objs))
   (set! opts (augmk/expand opts))
   (map
-   (lambda (src obj) (augmk/gcc/autodep-helper "gcc" src obj opts))
+   (lambda (src obj)
+     (augmk/gcc/autodep-helper (augmk/expand "$(CC)") src obj opts))
    srcs objs))
 
 (define-public (augmk/gcc/autodep-cc srcs objs opts)
@@ -33,5 +34,6 @@
   (set! objs  (augmk/group-norm objs))
   (set! opts  (augmk/expand opts))
   (map
-   (lambda (src obj) (augmk/gcc/autodep-helper "g++" src obj opts))
+   (lambda (src obj)
+     (augmk/gcc/autodep-helper (augmk/expand "$(CXX)") src obj opts))
    srcs objs))  

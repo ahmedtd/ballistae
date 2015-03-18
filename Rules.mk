@@ -1,3 +1,6 @@
+CC  := gcc
+CXX := g++
+
 # We use C++14, with GNU extensions, across the board.
 override CXXFLAGS += -std=gnu++1y -Wall -Werror
 

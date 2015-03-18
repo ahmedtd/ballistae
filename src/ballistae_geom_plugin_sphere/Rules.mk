@@ -20,12 +20,12 @@ $(guile (augmk/gcc/autodep-cc "$(sphere_plugin_srcs)" "$(sphere_plugin_objs)" \
     "$(sphere_plugin_CXXFLAGS) $(CXXFLAGS)"))
 
 $(sphere_plugin_objs): %.o : %.cc
-	g++ -c -o $@ $< $(sphere_plugin_CXXFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(sphere_plugin_CXXFLAGS) $(CXXFLAGS)
 
 $(augmk_d)/ballistae_geom_plugin_sphere.so : | src/libballistae/libballistae.so
 $(augmk_d)/ballistae_geom_plugin_sphere.so : | src/libguile_armadillo/libguile_armadillo.so
 $(augmk_d)/ballistae_geom_plugin_sphere.so : $(sphere_plugin_objs)
-	g++ -shared -o $@ $^ $(sphere_plugin_CXXFLAGS) $(sphere_plugin_LFLAGS) $(CXXFLAGS)
+	$(CXX) -shared -o $@ $^ $(sphere_plugin_CXXFLAGS) $(sphere_plugin_LFLAGS) $(CXXFLAGS)
 
 ALL_TARGETS += $(augmk_d)/ballistae_geom_plugin_sphere.so
 CLEAN_TARGETS += $(augmk_d)/ballistae_geom_plugin_sphere.so

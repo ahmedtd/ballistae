@@ -18,10 +18,10 @@ $(guile (augmk/gcc/autodep-cc "$(libballistae_srcs)" \
 							  "$(libballistae_CXXFLAGS) $(CXXFLAGS)"))
 
 $(libballistae_objs) : %.o : %.cc
-	g++ -c -o $@ $< $(libballistae_CXXFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $(libballistae_CXXFLAGS) $(CXXFLAGS)
 
 $(augmk_d)/libballistae.so : $(libballistae_objs)
-	g++ -shared -o $@ $^ $(libballistae_CXXFLAGS) $(libballistae_LFLAGS) $(CXXFLAGS)
+	$(CXX) -shared -o $@ $^ $(libballistae_CXXFLAGS) $(libballistae_LFLAGS) $(CXXFLAGS)
 
 ALL_TARGETS += $(augmk_d)/libballistae.so
 CLEAN_TARGETS += $(augmk_d)/libballistae.so

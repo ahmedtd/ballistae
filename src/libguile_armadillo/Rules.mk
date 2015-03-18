@@ -20,11 +20,11 @@ $(guile (augmk/gcc/autodep-cc "$($(augmk_d)_srcs)" \
 
 $($(augmk_d)_objs) : d := $(augmk_d)
 $($(augmk_d)_objs) : %.o : %.cc
-	g++ -c -o $@ $< $($(d)_CXXFLAGS) $(CXXFLAGS)
+	$(CXX) -c -o $@ $< $($(d)_CXXFLAGS) $(CXXFLAGS)
 
 $($(augmk_d)_objs) : d := $(augmk_d)
 $(augmk_d)/libguile_armadillo.so : $($(augmk_d)_objs)
-	g++ -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
+	$(CXX) -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 
 ALL_TARGETS += $(augmk_d)/libguile_armadillo.so
 CLEAN_TARGETS += $(augmk_d)/libguile_armadillo.so
