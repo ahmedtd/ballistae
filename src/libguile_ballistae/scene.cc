@@ -124,18 +124,6 @@ void print_progress_bar(
     SCM port
 )
 {
-    using namespace std::literals::chrono_literals;
-
-    // if(scm_is_true(scm_isatty_p(scm_current_output_port())))
-    // {
-    //     while(!stop_flag_atomic.load())
-    //     {
-    //         std::this_thread::sleep_for(1s);
-    //     }
-
-    //     return;
-    // }
-
     SCM carriage_return = scm_from_utf8_string("\r");
     SCM open_bracket = scm_from_utf8_string("[");
     SCM close_bracket = scm_from_utf8_string("]");
@@ -170,7 +158,7 @@ void print_progress_bar(
 
         scm_force_output(port);
 
-        std::this_thread::sleep_for(1s);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
     scm_simple_format(port, scm_from_utf8_string("\nFinished.\n"), SCM_EOL);

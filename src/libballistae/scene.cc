@@ -107,32 +107,42 @@ shade_info<double> shade_ray(
     }
 }
 
+struct sample_scratch
+{
+    sample_scratch(size_t s)
+        : c_stack(s),
+          r_stack(s),
+          p_stack(s),
+          k_stack(s)
+    {
+    }
+
+    std::vector<size_t>         c_stack;
+    std::vector<ray<double, 3>> r_stack;
+    std::vector<double>         p_stack;
+    std::vector<double>         k_stack;
+};
+
 double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
     double lambda_nm,
     std::mt19937 &thread_rng,
-    const std::vector<size_t> &l_stack
+    const std::vector<size_t> &l_stack,
+    sample_scratch &scratch
 )
 {
     using std::pow;
 
     size_t depth_lim = l_stack.size();
 
-    static thread_local std::vector<size_t>         c_stack(depth_lim, 0);
-    static thread_local std::vector<ray<double, 3>> r_stack(depth_lim);
-    static thread_local std::vector<double>         p_stack(depth_lim);
-    static thread_local std::vector<double>         k_stack(depth_lim);
-
-    // TODO: Resize the thread_local variables.
-
     // Load the initial query into cell 0.  The final result will appear in
     // p_stack[0].
-    p_stack[0] = 0.0;
-    k_stack[0] = 1.0;
-    r_stack[0] = initial_query;
+    scratch.p_stack[0] = 0.0;
+    scratch.k_stack[0] = 1.0;
+    scratch.r_stack[0] = initial_query;
 
-    std::fill(c_stack.begin(), c_stack.end(), 0);
+    std::fill(scratch.c_stack.begin(), scratch.c_stack.end(), 0);
 
     size_t i = 1;
     do
@@ -143,54 +153,56 @@ double sample_ray(
 
             shade_info<double> shading = shade_ray(
                 the_scene,
-                r_stack[i-1],
+                scratch.r_stack[i-1],
                 lambda_nm,
                 thread_rng
             );
 
-            p_stack[i-1] += k_stack[i-1] * shading.emitted_power;
+            scratch.p_stack[i-1]
+                += scratch.k_stack[i-1] * shading.emitted_power;
             --i;
             continue;
         }
-        else if(c_stack[i] < l_stack[i])
+        else if(scratch.c_stack[i] < l_stack[i])
         {
             shade_info<double> shading = shade_ray(
                 the_scene,
-                r_stack[i-1],
+                scratch.r_stack[i-1],
                 lambda_nm,
                 thread_rng
             );
 
-            if(c_stack[i] == 0)
-                p_stack[i] = 0.0;
+            if(scratch.c_stack[i] == 0)
+                scratch.p_stack[i] = 0.0;
 
-            p_stack[i] += shading.emitted_power / l_stack[i];
-            k_stack[i] = shading.propagation_k;
-            r_stack[i] = shading.incident_ray;
+            scratch.p_stack[i] += shading.emitted_power / l_stack[i];
+            scratch.k_stack[i] = shading.propagation_k;
+            scratch.r_stack[i] = shading.incident_ray;
 
             // Terminate this branch early if we won't use any power from lower
             // levels.
-            if(k_stack[i] == 0.0)
+            if(scratch.k_stack[i] == 0.0)
             {
-                ++c_stack[i];
+                ++scratch.c_stack[i];
                 continue;
             }
 
-            ++c_stack[i];
+            ++scratch.c_stack[i];
             ++i;
             continue;
         }
         else
         {
-            p_stack[i-1] += (k_stack[i-1] * p_stack[i]) / l_stack[i-1];
-            c_stack[i] = 0;
+            scratch.p_stack[i-1]
+                += (scratch.k_stack[i-1] * scratch.p_stack[i]) / l_stack[i-1];
+            scratch.c_stack[i] = 0;
             --i;
             continue;
         }
     }
     while(i != 0);
 
-    return p_stack[0];
+    return scratch.p_stack[0];
 }
 
 color_d_XYZ shade_pixel(
@@ -202,7 +214,8 @@ color_d_XYZ shade_pixel(
     const scene &the_scene,
     unsigned int ss_factor,
     std::mt19937 &rng,
-    const std::vector<size_t> &sampling_profile
+    const std::vector<size_t> &sampling_profile,
+    sample_scratch &scratch
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
@@ -238,7 +251,8 @@ color_d_XYZ shade_pixel(
                     the_scene,
                     cur_lambda_nm,
                     rng,
-                    sampling_profile
+                    sampling_profile,
+                    scratch
                 );
 
                 result += spectral_to_XYZ(cur_lambda_nm, sampled_power);
@@ -261,10 +275,13 @@ image<float> render_scene(
 )
 {
     std::mt19937 thread_rng(1235);
+    sample_scratch scratch(sampling_profile.size());
 
     image<float> result({img_rows, img_cols, 3}, 0.0f);
 
-//# pragma omp parallel for firstprivate(thread_rng) schedule(dynamic, 16)
+# pragma omp parallel for             \
+    firstprivate(thread_rng, scratch) \
+    schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)
     {
         for(size_t cc = 0; cc < img_cols; ++cc)
@@ -276,7 +293,8 @@ image<float> render_scene(
                 the_scene,
                 ss_factor,
                 thread_rng,
-                sampling_profile
+                sampling_profile,
+                scratch
             );
 
             color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
