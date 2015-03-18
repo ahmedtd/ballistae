@@ -118,11 +118,11 @@ template<class Elem, class CSTag>
 color3<Elem, CSTag> clamp_0(const color3<Elem, CSTag> &a)
 {
     using std::max;
-    return {
+    return {{{
         max(Elem(0), a.channels[0]),
         max(Elem(0), a.channels[1]),
         max(Elem(0), a.channels[2])
-    };
+            }}};
 }
 
 template<class Field>
