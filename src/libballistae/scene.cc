@@ -226,7 +226,7 @@ color_d_XYZ shade_pixel(
     double lambda_step = (lambda_lim - lambda_src) / (double) lambda_bins;
     //std::uniform_real_distribution<double> lambda_dist(0, lambda_step);
 
-    color_d_XYZ result = {0, 0, 0};
+    color_d_XYZ result = {{{0, 0, 0}}};
 
     for(size_t sr = 0; sr < (1u << ss_factor); ++sr)
     {
