@@ -10,7 +10,7 @@ fixed_dense_function<Field, 90> cie_2006_X()
     return {
         390,
         835,
-        {
+        {{
             0.003769647
             ,0.009382967
             ,0.02214302
@@ -100,7 +100,7 @@ fixed_dense_function<Field, 90> cie_2006_X()
             ,3.167765E-006
             ,2.358723E-006
                 ,1.762465E-006
-                }
+                }}
     };
 }
 
@@ -110,7 +110,7 @@ fixed_dense_function<Field, 90> cie_2006_Y()
     return {
         390,
         835,
-        {
+        {{
             0.0004146161
                 ,0.001059646
                 ,0.002452194
@@ -200,7 +200,7 @@ fixed_dense_function<Field, 90> cie_2006_Y()
                 ,1.262556E-006
                 ,9.422514E-007
                 ,7.05386E-007
-                }
+                }}
     };
 }
 
@@ -210,7 +210,7 @@ fixed_dense_function<Field, 90> cie_2006_Z()
     return {
         390,
         835,
-        {
+        {{
             0.0184726
                 ,0.04609784
                 ,0.109609
@@ -300,7 +300,7 @@ fixed_dense_function<Field, 90> cie_2006_Z()
                 ,0
                 ,0
                 ,0
-                }
+                }}
     };
 }
 
