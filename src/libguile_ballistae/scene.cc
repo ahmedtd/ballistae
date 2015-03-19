@@ -29,6 +29,7 @@
 #include <libguile_ballistae/camera_instance.hh>
 #include <libguile_ballistae/geom_instance.hh>
 #include <libguile_ballistae/matr_instance.hh>
+#include <libguile_ballistae/utility.hh>
 
 namespace ballistae_guile
 {
