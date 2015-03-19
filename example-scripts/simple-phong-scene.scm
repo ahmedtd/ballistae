@@ -39,20 +39,21 @@
                        `((center . ,(arma/list->b64col '(20 0 0)))
                          (normal . ,(arma/list->b64col '(0 0 1))))))
 
-(define cyl
-  (ballistae/geom/make "cylinder"
-                       `((center . ,(arma/list->b64col '(10 0 10)))
-                         (axis   . ,(arma/list->b64col '(1 1 1))))))
+(define light-sphere
+  (ballistae/geom/make
+   "sphere"
+   `((center . ,(arma/list->b64col '(10 -10 10)))
+     (radius . 4))))
 
 (define my-scene
   (ballistae/scene/crush
    `((,my-geom      . ,red-matr)
      (,ground-plane . ,red-matr)
-     (,cyl          . ,light-matr))))
+     (,light-sphere . ,light-matr))))
 
 (ballistae/render-scene
  cam my-scene
  "simple-phong-scene.pfm"
  450 800
  0
- '(1 8 4 4 2))
+ '(1 16 16 16))
