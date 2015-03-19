@@ -29,7 +29,6 @@
 #include <libguile_ballistae/camera_instance.hh>
 #include <libguile_ballistae/geom_instance.hh>
 #include <libguile_ballistae/matr_instance.hh>
-#include <libguile_ballistae/utility.hh>
 
 namespace ballistae_guile
 {
@@ -152,8 +151,7 @@ void print_progress_bar(
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
-    scm_simple_format(port, scm_from_utf8_string("\nFinished.\n"), SCM_EOL);
-    scm_force_output(port);
+    std::cout << "\nFinished" << std::endl;
 }
 
 SCM render_scene(
