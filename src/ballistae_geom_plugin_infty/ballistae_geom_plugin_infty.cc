@@ -27,7 +27,7 @@ public:
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
         std::mt19937 &thread_rng
-    );
+    ) const;
 };
 
 bl::span<double> infty_priv::ray_intersect(
@@ -35,7 +35,7 @@ bl::span<double> infty_priv::ray_intersect(
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
         std::mt19937 &thread_rng
-)
+) const
 {
     auto infty = std::numeric_limits<double>::infinity();
 
@@ -64,4 +64,11 @@ bl::span<double> infty_priv::ray_intersect(
     {
         return bl::span<double>::nan();
     }
+}
+
+std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(
+    SCM config_alist
+)
+{
+    return std::make_shared<infty_priv>();
 }

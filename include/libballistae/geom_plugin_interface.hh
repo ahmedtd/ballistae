@@ -17,10 +17,13 @@
 
 #include <cstddef>
 
+#include <memory>
 #include <random>
+#include <vector>
 
 #include <armadillo>
 
+#include <libballistae/affine_transform.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
@@ -28,7 +31,13 @@
 namespace ballistae
 {
 
-class geom_priv
+struct flattened_geom
+{
+    std::vector<affine_transform<double, 3>> tfrms;
+    std::vector<std::shared_ptr<geom_priv>>  geoms;
+};
+
+class geom_priv : public std::enable_shared_from_this<geom_priv>
 {
 public:
     virtual ~geom_priv() {}

@@ -74,6 +74,7 @@ bl::span<double> plane_priv::ray_intersect(
         {
             // There is no normal at infinity.
             test.hi_normal = normal;
+
             return test;
         }
         else

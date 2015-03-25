@@ -32,7 +32,8 @@ SCM render_scene(
     SCM img_rows_scm,
     SCM img_cols_scm,
     SCM ss_factor_scm,
-    SCM sample_profile_scm
+    SCM sample_profile_scm,
+    SCM lambda_nm_profile_scm
 );
 
 size_t subsmob_free(SCM obj);

@@ -86,10 +86,11 @@ bl::shade_info<double> phong_priv::shade(
 
     bl::uniform_hemisphere_dist<double, 3> propagation_dist(1.0, n);
     
-    result.incident_ray.point = point;
     result.incident_ray.slope = propagation_dist(thread_rng);
-
-    result.propagation_k = propagation_peak_k
+    result.incident_ray.point = point + 1e-3 * n;
+    
+    result.propagation_k = arma::dot(result.incident_ray.slope, n)
+        * propagation_peak_k
         * normalized_gaussian_density(
             propagation_wavelength_mean,
             propagation_wavelength_stddev,

@@ -1,8 +1,11 @@
 #include <libguile_ballistae/geom_instance.hh>
 
+#include <memory>
+
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
+#include <libguile_ballistae/affine_transform.hh>
 #include <libguile_ballistae/geom_plugin_interface.hh>
 #include <libguile_ballistae/utility.hh>
 
@@ -14,6 +17,8 @@ scm_t_bits geom_instance_subsmob_flags;
 namespace geom_instance
 {
 
+namespace bl = ballistae;
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Init procedure for geom_instance subsmob.
 ////////////////////////////////////////////////////////////////////////////////
@@ -21,7 +26,7 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
 {
     geom_instance_subsmob_flags = ss_dispatch.size();
 
-    scm_c_define_gsubr("ballistae/geom/make", 2, 0, 0, (scm_t_subr) make);
+    scm_c_define_gsubr("ballistae/geom/make", 3, 0, 0, (scm_t_subr) make);
     scm_c_define_gsubr("ballistae/geom?", 1, 0, 0, (scm_t_subr) geom_p);
     
     scm_c_export(
@@ -36,9 +41,10 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
 ////////////////////////////////////////////////////////////////////////////////
 /// Create a geometry instance.
 ////////////////////////////////////////////////////////////////////////////////
-SCM make(SCM plug_soname, SCM config_alist)
+SCM make(SCM plug_soname, SCM transform, SCM config_alist)
 {
     namespace b = ballistae;
+    namespace at = ballistae_guile::affine_transform;
 
     plug_soname = scm_string_append(
         scm_list_2(
@@ -58,9 +64,10 @@ SCM make(SCM plug_soname, SCM config_alist)
         )
     );
 
-    auto geom_p = new std::shared_ptr<ballistae::geom_priv>(
-        create_fn(config_alist)
-    );
+    auto geom_p = new geom_wrapper();
+
+    geom_p->geom = create_fn(config_alist);
+    geom_p->tform = at::scm_to_affine_transform(transform);
     
     SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(geom_p));
     SCM_SET_SMOB_FLAGS(result, geom_instance_subsmob_flags);
@@ -92,7 +99,7 @@ SCM assert_type(SCM obj)
 
 size_t subsmob_free(SCM obj)
 {
-    auto geom = smob_get_data<std::shared_ptr<ballistae::geom_priv>*>(obj);
+    auto geom = smob_get_data<std::shared_ptr<ballistae_guile::geom_wrapper>*>(obj);
     delete geom;
     return 0;
 }

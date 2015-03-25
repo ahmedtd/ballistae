@@ -4,6 +4,9 @@
 #include <memory>
 #include <vector>
 
+#include <libballistae/affine_transform.hh>
+#include <libballistae/vector.hh>
+
 namespace ballistae
 {
 
@@ -14,6 +17,9 @@ struct scene
 {
     std::vector<std::shared_ptr<matr_priv>> materials;
     std::vector<std::shared_ptr<geom_priv>> geometries;
+
+    std::vector<affine_transform<double, 3>> trans_for;
+    std::vector<affine_transform<double, 3>> trans_inv;
 };
 
 }

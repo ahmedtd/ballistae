@@ -12,12 +12,20 @@ template<class Field>
 struct span final
 {
     using vec_type = typename arma::Col<Field>::template fixed<3>;
+    using uv_type  = typename arma::Col<Field>::template fixed<2>;
+    using uvw_type = typename arma::Col<Field>::template fixed<3>;
 
     Field lo;
     Field hi;
 
     vec_type lo_normal;
     vec_type hi_normal;
+
+    uv_type lo_uv;
+    uv_type hi_uv;
+
+    uvw_type lo_uvw;
+    uvw_type hi_uvw;
 
     static span<Field> pos_half()
     {

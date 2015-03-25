@@ -17,7 +17,7 @@
 namespace ballistae
 {
 
-std::tuple<span<double>, size_t> scene_ray_intersect(
+std::tuple<span<double>, size_t, ray<double, 3>> scene_ray_intersect(
     const scene &the_scene,
     const dray3 &query,
     const span<double> &must_overlap,
@@ -27,26 +27,32 @@ std::tuple<span<double>, size_t> scene_ray_intersect(
     span<double> min_span = span<double>::inf();
     size_t min_geomind = the_scene.geometries.size();
 
+    ray<double, 3> tform_query;
+
     for(std::size_t cur_geomind = 0;
         cur_geomind < the_scene.geometries.size();
         ++cur_geomind)
     {
+        tform_query = the_scene.trans_for[cur_geomind] * query;
+
         span<double> cur_span
             = the_scene.geometries[cur_geomind]->ray_intersect(
                 the_scene,
-                query,
+                tform_query,
                 must_overlap,
                 thread_rng
             );
 
-        if(cur_span < min_span)
+        if(cur_span < min_span
+           || (cur_span.lo == std::numeric_limits<double>::infinity()
+               && min_span.lo == std::numeric_limits<double>::infinity()))
         {
             min_span = cur_span;
             min_geomind = cur_geomind;
         }
     }
 
-    return std::make_tuple(min_span, min_geomind);
+    return std::make_tuple(min_span, min_geomind, tform_query);
 }
 
 static inline arma::vec3 scan_plane_to_image_space(
@@ -80,7 +86,8 @@ shade_info<double> shade_ray(
 {
     span<double> c_span;
     size_t c_geomind;
-    std::tie(c_span, c_geomind) = scene_ray_intersect(
+    ray<double, 3> tform_refl_ray;
+    std::tie(c_span, c_geomind, tform_refl_ray) = scene_ray_intersect(
         the_scene,
         reflected_ray,
         span<double>::pos_half(),
@@ -89,13 +96,18 @@ shade_info<double> shade_ray(
 
     if(c_geomind < the_scene.materials.size())
     {
-        return the_scene.materials[c_geomind]->shade(
+        auto shade_result = the_scene.materials[c_geomind]->shade(
             the_scene,
-            reflected_ray,
+            tform_refl_ray,
             c_span,
             lambda_nm,
             thread_rng
         );
+
+        shade_result.incident_ray
+            = the_scene.trans_inv[c_geomind] * shade_result.incident_ray;
+
+        return shade_result;
     }
     else
     {
@@ -175,7 +187,7 @@ double sample_ray(
             if(scratch.c_stack[i] == 0)
                 scratch.p_stack[i] = 0.0;
 
-            scratch.p_stack[i] += shading.emitted_power / l_stack[i];
+            scratch.p_stack[i] += shading.emitted_power /*/ l_stack[i]*/;
             scratch.k_stack[i] = shading.propagation_k;
             scratch.r_stack[i] = shading.incident_ray;
 
@@ -194,7 +206,7 @@ double sample_ray(
         else
         {
             scratch.p_stack[i-1]
-                += (scratch.k_stack[i-1] * scratch.p_stack[i]) / l_stack[i-1];
+                += (scratch.k_stack[i-1] * scratch.p_stack[i]) /* / l_stack[i-1]*/;
             scratch.c_stack[i] = 0;
             --i;
             continue;
@@ -215,16 +227,11 @@ color_d_XYZ shade_pixel(
     unsigned int ss_factor,
     std::mt19937 &rng,
     const std::vector<size_t> &sampling_profile,
+    const std::vector<double> &lambda_nm_profile,
     sample_scratch &scratch
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
-
-    size_t lambda_bins = 16;
-    double lambda_src = 390;
-    double lambda_lim = 835;
-    double lambda_step = (lambda_lim - lambda_src) / (double) lambda_bins;
-    //std::uniform_real_distribution<double> lambda_dist(0, lambda_step);
 
     color_d_XYZ result = {{{0, 0, 0}}};
 
@@ -241,21 +248,18 @@ color_d_XYZ shade_pixel(
 
             dray3 cur_query = the_camera->image_to_ray(image_coords);
 
-            for(size_t lambda_i = 0; lambda_i < 128; ++lambda_i)
+            for(double lambda_nm : lambda_nm_profile)
             {
-                double cur_lambda_nm = lambda_src
-                    + lambda_i * lambda_step /*+ lambda_dist(rng)*/;
-
                 double sampled_power = sample_ray(
                     cur_query,
                     the_scene,
-                    cur_lambda_nm,
+                    lambda_nm,
                     rng,
                     sampling_profile,
                     scratch
                 );
 
-                result += spectral_to_XYZ(cur_lambda_nm, sampled_power);
+                result += spectral_to_XYZ(lambda_nm, sampled_power);
             }
         }
     }
@@ -271,7 +275,8 @@ image<float> render_scene(
     const scene &the_scene,
     unsigned int ss_factor,
     std::atomic_size_t &cur_progress,
-    const std::vector<size_t> &sampling_profile
+    const std::vector<size_t> &sampling_profile,
+    const std::vector<double> &lambda_nm_profile
 )
 {
     std::mt19937 thread_rng(1235);
@@ -294,6 +299,7 @@ image<float> render_scene(
                 ss_factor,
                 thread_rng,
                 sampling_profile,
+                lambda_nm_profile,
                 scratch
             );
 

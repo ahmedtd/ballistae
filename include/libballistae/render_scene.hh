@@ -23,7 +23,8 @@ image<float> render_scene(
     const scene &scene,
     unsigned int supersample_factor,
     std::atomic_size_t &cur_progress,
-    const std::vector<size_t> &sampling_profile
+    const std::vector<size_t> &sampling_profile,
+    const std::vector<double> &lambda_nm_profile
 );
 
 }

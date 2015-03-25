@@ -14,6 +14,7 @@
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
+#include <libballistae/vector.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
 
@@ -60,6 +61,8 @@ bl::span<double> sphere_priv::ray_intersect(
     std::mt19937 &thread_rng
 ) const
 {
+    using std::acos;
+    using std::atan2;
     using std::sqrt;
 
     auto offset = query.point - this->center;
@@ -75,11 +78,19 @@ bl::span<double> sphere_priv::ray_intersect(
 
     if(ballistae::overlaps(must_overlap, covered))
     {
-        auto point_min = ballistae::eval_ray(query, t_min);
-        auto point_max = ballistae::eval_ray(query, t_max);
+        bl::fixvec<double, 3> p_min = ballistae::eval_ray(query, t_min)
+            - this->center;
+        bl::fixvec<double, 3> p_max = ballistae::eval_ray(query, t_max)
+            - this->center;
 
-        covered.lo_normal = arma::normalise(point_min - this->center);
-        covered.hi_normal = arma::normalise(point_max - this->center);
+        covered.lo_normal = arma::normalise(p_min);
+        covered.hi_normal = arma::normalise(p_max);
+
+        covered.lo_uv = {atan2(p_min(0), p_min(1)), acos(p_min(2))};
+        covered.hi_uv = {atan2(p_max(0), p_max(1)), acos(p_max(2))};
+
+        covered.lo_uvw = p_min;
+        covered.hi_uvw = p_max;
 
         return covered;
     }

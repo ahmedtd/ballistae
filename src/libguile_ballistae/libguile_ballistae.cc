@@ -4,6 +4,7 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
+#include <libguile_ballistae/affine_transform.hh>
 #include <libguile_ballistae/camera_instance.hh>
 #include <libguile_ballistae/geom_instance.hh>
 #include <libguile_ballistae/matr_instance.hh>
@@ -90,7 +91,8 @@ extern "C" void libguile_ballistae_init()
         &bg::scene::init,
         &bg::camera_instance::init,
         &bg::geom_instance::init,
-        &bg::matr_instance::init
+        &bg::matr_instance::init,
+        &bg::affine_transform::init
     };
 
     // Loop through our compiled list of subsmob init functions, invoking each

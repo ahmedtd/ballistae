@@ -46,7 +46,7 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
     scene_subsmob_flags = ss_dispatch.size();
 
     scm_c_define_gsubr("ballistae/scene/crush", 1, 0, 0, (scm_t_subr) crush);
-    scm_c_define_gsubr("ballistae/render-scene", 7, 0, 0, (scm_t_subr) render_scene);
+    scm_c_define_gsubr("ballistae/render-scene", 8, 0, 0, (scm_t_subr) render_scene);
     scm_c_define_gsubr("ballistae/scene?", 1, 0, 0, (scm_t_subr) scene_p);
 
     scm_c_export(
@@ -105,12 +105,22 @@ SCM crush(SCM geometry_material_alist)
         SCM cur_matr = scm_cdar(cur_head);
         cur_head = scm_cdr(cur_head);
 
+        auto geom_p = smob_get_data<geom_wrapper*>(cur_geom);
+
         the_scene->materials.push_back(
             *smob_get_data<std::shared_ptr<ballistae::matr_priv>*>(cur_matr)
         );
 
+        the_scene->trans_for.push_back(
+            geom_p->tform
+        );
+
+        the_scene->trans_inv.push_back(
+            bl::inverse(geom_p->tform)
+        );
+
         the_scene->geometries.push_back(
-            *smob_get_data<std::shared_ptr<ballistae::geom_priv>*>(cur_geom)
+            geom_p->geom
         );
     }
 
@@ -162,7 +172,8 @@ SCM render_scene(
     SCM img_rows_scm,
     SCM img_cols_scm,
     SCM ss_factor_scm,
-    SCM sample_profile_scm
+    SCM sample_profile_scm,
+    SCM lambda_nm_profile_scm
 )
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
@@ -180,6 +191,12 @@ SCM render_scene(
     for(SCM cur = sample_profile_scm; !scm_is_null(cur); cur = scm_cdr(cur))
     {
         sample_profile.push_back(scm_to_size_t(scm_car(cur)));
+    }
+
+    std::vector<double> lambda_nm_profile;
+    for(SCM cur = lambda_nm_profile_scm; !scm_is_null(cur); cur = scm_cdr(cur))
+    {
+        lambda_nm_profile.push_back(scm_to_double(scm_car(cur)));
     }
 
     //
@@ -209,7 +226,8 @@ SCM render_scene(
         *the_scene,
         ss_factor,
         cur_progress,
-        sample_profile
+        sample_profile,
+        lambda_nm_profile
     );
 
     // Stop the progress printer.
