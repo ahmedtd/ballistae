@@ -33,9 +33,9 @@ struct affine_transform
     affine_transform(affine_transform &&other) = default;
 
     affine_transform<Field, Dim>& operator=(const affine_transform<Field, Dim> &other) = default;
-        affine_transform<Field, Dim>& operator=(affine_transform<Field, Dim> &other) = default;
+    affine_transform<Field, Dim>& operator=(affine_transform<Field, Dim> &&other) = default;
 
-        fixmat<Field, Dim, Dim> linear;
+    fixmat<Field, Dim, Dim> linear;
     fixvec<Field, Dim>      offset;
 
 };
