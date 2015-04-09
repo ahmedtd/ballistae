@@ -18,7 +18,7 @@
                   `((emission-peak-power . 0)
                     (prop-wavelength-mean . 710)
                     (prop-wavelength-stddev . 100)
-                    (prop-peak-k . 0.5))))
+                    (prop-peak-k . 1.0))))
 
 (define scene (bsta/scene/make))
 
@@ -36,8 +36,8 @@
                 (bsta/geom/make "surface_mesh" `((file . "dodecahedron.obj")))
                 red-matr
                 (bsta/aff-t/*
-                 (bsta/aff-t/scaling 1)
-                 (bsta/aff-t/translation (arma/dvec '(0 0 1)))))
+                 (bsta/aff-t/scaling 3)
+                 (bsta/aff-t/translation (arma/dvec '(0 0 3)))))
 
 ;; Add the sky, without a transform.
 (bsta/scene/add scene
@@ -68,7 +68,7 @@
  "simple-phong-scene.pfm"
  864 1296
  '(1 16 16)
- ;;(linspace 390 835 10)
+ ;;(linspace 390 835 5)
  '(700)
  0
  )

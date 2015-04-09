@@ -66,7 +66,7 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
     bl::kd_tree<double, 3, tri_face_crunched> result(
         std::begin(facets),
         std::end(facets),
-        32,
+        16,
         get_aabox
     );
 
