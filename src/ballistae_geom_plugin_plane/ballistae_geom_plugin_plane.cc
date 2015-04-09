@@ -11,6 +11,7 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
+#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
@@ -22,30 +23,25 @@ namespace bl = ballistae;
 class plane_priv : public ballistae::geom_priv
 {
 public:
-    arma::vec3 center;
-    arma::vec3 normal;
-
-    plane_priv(
-        const arma::vec3 &center_in,
-        const arma::vec3 &normal_in
-    );
-
+    plane_priv();
     virtual ~plane_priv();
 
-    virtual bl::span<double> ray_intersect(
+    virtual bl::contact<double> ray_into(
         const bl::scene &the_scene,
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+    ) const;
+
+    virtual bl::contact<double> ray_exit(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::ranlux24 &thread_rng
     ) const;
 };
 
-plane_priv::plane_priv(
-    const arma::vec3 &center_in,
-    const arma::vec3 &normal_in
-)
-    : center(center_in),
-      normal(arma::normalise(normal_in))
+plane_priv::plane_priv()
 {
 }
 
@@ -53,54 +49,65 @@ plane_priv::~plane_priv()
 {
 }
 
-bl::span<double> plane_priv::ray_intersect(
+bl::contact<double> plane_priv::ray_into(
     const bl::scene &the_scene,
     const bl::dray3 &query,
     const bl::span<double> &must_overlap,
-    std::mt19937 &thread_rng
+    std::ranlux24 &thread_rng
 ) const
 {
-    constexpr auto infty = std::numeric_limits<double>::infinity();
+    auto height = query.point(0);
+    auto slope = query.slope(0);
+    auto t = -height / slope;
 
-    auto height = arma::dot(center - query.point, normal);
-    auto slope = arma::dot(query.slope, normal);
-    auto t = height / slope;
-
-    if(slope > double(0))
+    if(slope < double(0) && contains(must_overlap, t))
     {
-        auto test = bl::span<double>::undecorated(-infty, t);
+        bl::contact<double> result;
 
-        if(overlaps(must_overlap, test))
-        {
-            // There is no normal at infinity.
-            test.hi_normal = normal;
+        result.t = t;
+        result.r = query;
+        result.p = ballistae::eval_ray(query, t);
+        result.n = {1, 0, 0};
+        result.uv = {result.p(1), result.p(2)};
+        result.uvw = result.p;
 
-            return test;
-        }
-        else
-        {
-            return bl::span<double>::nan();
-        }
-    }
-    else if(slope < double(0))
-    {
-        auto test = bl::span<double>::undecorated(t, infty);
-
-        if(overlaps(must_overlap, test))
-        {
-            // There is no normal at infinity.
-            test.lo_normal = normal;
-            return test;
-        }
-        else
-        {
-            return bl::span<double>::nan();
-        }
+        return result;
     }
     else
     {
         // Ray never intersects plane.
-        return bl::span<double>::nan();
+        return bl::contact<double>::nan();
+    }
+}
+
+bl::contact<double> plane_priv::ray_exit(
+    const bl::scene &the_scene,
+    const bl::dray3 &query,
+    const bl::span<double> &must_overlap,
+    std::ranlux24 &thread_rng
+) const
+{
+    auto height = query.point(0);
+    auto slope = query.slope(0);
+    auto t = -height / slope;
+
+    if(slope > double(0) && contains(must_overlap, t))
+    {
+        bl::contact<double> result;
+
+        result.t = t;
+        result.r = query;
+        result.p = ballistae::eval_ray(query, t);
+        result.n = {1, 0, 0};
+        result.uv = {result.p(1), result.p(2)};
+        result.uvw = result.p;
+
+        return result;
+    }
+    else
+    {
+        // Ray never intersects plane.
+        return bl::contact<double>::nan();
     }
 }
 
@@ -166,5 +173,5 @@ std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(
         normal = *col_p;
     }
 
-    return std::make_shared<plane_priv>(center, normal);
+    return std::make_shared<plane_priv>();
 }

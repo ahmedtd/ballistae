@@ -1,24 +1,9 @@
 (use-modules (armadillo))
 (use-modules (ballistae))
 
-(define cam
-  (ballistae/camera
-   "pinhole"
-   `((center . ,(arma/list->b64col '(-10 0 3)))
-     (aperture-vec . ,(arma/list->b64col '(1 1.6 .9))))))
-
-(define light-matr
-  (ballistae/matr/make
-   "phong"
-   `((emission-wavelength-mean   . 500)
-     (emission-wavelength-stddev . 1000)
-     (emission-peak-power        . 100)
-     (prop-wavelength-mean . 500)
-     (prop-wavelength-stddev . 100)
-     (prop-peak-k . 0.0))))
-
+;; A material for the sky.
 (define sky-matr
-  (ballistae/matr/make
+  (bsta/matr/make
    "phong"
    `((emission-wavelength-mean   . 500)
      (emission-wavelength-stddev . 1000)
@@ -27,55 +12,46 @@
      (prop-wavelength-stddev . 100)
      (prop-peak-k . 0.0))))
 
+;; A material that will appear matte red.
 (define red-matr
-  (ballistae/matr/make "phong"
-                       `((emission-peak-power . 0)
-                         (prop-wavelength-mean . 710)
-                         (prop-wavelength-stddev . 100)
-                         (prop-peak-k . 0.5))))
+  (bsta/matr/make "phong"
+                  `((emission-peak-power . 0)
+                    (prop-wavelength-mean . 710)
+                    (prop-wavelength-stddev . 100)
+                    (prop-peak-k . 0.5))))
 
-(define my-geom
-  (ballistae/geom/make
-   "sphere"
-   (ballistae/affine-transform/identity)
-   `((center . ,(arma/list->b64col '(10 1 5)))
-     (radius . 4))))
+(define scene (bsta/scene/make))
 
-(define ground-plane
-  (ballistae/geom/make
-   "plane"
-   (ballistae/affine-transform/identity)
-   `((center . ,(arma/list->b64col '(0 0 -1)))
-     (normal . ,(arma/list->b64col '(0 0 1))))))
+;; Add a ground plane.
+(bsta/scene/add scene
+                (bsta/geom/make "plane" `())
+                red-matr
+                (bsta/aff-t/basis-mapping
+                 (arma/dvec '(0 0 1))
+                 (arma/dvec '(1 0 0))
+                 (arma/dvec '(0 1 0))))
 
-(define back-plane
-  (ballistae/geom/make
-   "plane"
-   (ballistae/affine-transform/identity)
-   `((center . ,(arma/list->b64col '(20 0 0)))
-     (normal . ,(arma/list->b64col '(0 0 1))))))
+;; Add a mesh define from an obj file.
+(bsta/scene/add scene
+                (bsta/geom/make "surface_mesh" `((file . "dodecahedron.obj")))
+                red-matr
+                (bsta/aff-t/*
+                 (bsta/aff-t/scaling 1)
+                 (bsta/aff-t/translation (arma/dvec '(0 0 1)))))
 
-(define light-sphere
-  (ballistae/geom/make
-   "sphere"
-   (ballistae/affine-transform/identity)
-   `((center . ,(arma/list->b64col '(10 -10 10)))
-     (radius . 4))))
+;; Add the sky, without a transform.
+(bsta/scene/add scene
+                (bsta/geom/make "infty"'())
+                sky-matr)
 
-(define sky
-  (ballistae/geom/make
-   "infty"
-   (ballistae/affine-transform/identity)
-   '()
-   ))
+(define cam
+  (bsta/cam/make
+   "pinhole"
+   `((center . ,(arma/dvec '(-8 -8 6)))
+     (eye . ,(arma/dvec '(1 1 -0.75)))
+     (aperture-vec . ,(arma/dvec '(0.04 0.018 0.012))))))
 
-(define my-scene
-  (ballistae/scene/crush
-   `((,my-geom      . ,red-matr)
-     (,ground-plane . ,red-matr)
-     (,light-sphere . ,light-matr)
-     ;;(,sky          . ,sky-matr)
-     )))
+(bsta/scene/crush scene)
 
 (define (linspace src lim n)
   (let* ((result-list `(,src))
@@ -87,12 +63,12 @@
     result-list))
 
 ;; Visible wavelengths run from about 390 nm to 835 nm
-(ballistae/render-scene
- cam my-scene
+(bsta/scene/render
+ scene cam
  "simple-phong-scene.pfm"
- 450 800
- 0
- '(1 16 16 16)
+ 864 1296
+ '(1 16 16)
  ;;(linspace 390 835 10)
- (linspace 700 700 1)
+ '(700)
+ 0
  )

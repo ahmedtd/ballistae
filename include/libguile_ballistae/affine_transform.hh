@@ -15,11 +15,10 @@ extern scm_t_bits affine_transform_subsmob_flags;
 namespace affine_transform
 {
 
-namespace bl = ballistae;
-
 void init(std::vector<subsmob_fns> &ss_dispatch);
 
-bl::affine_transform<double, 3> scm_to_affine_transform(SCM t_scm);
+SCM ensure_type(SCM trans);
+ballistae::affine_transform<double, 3> from_scm(SCM t_scm);
 
 }
 

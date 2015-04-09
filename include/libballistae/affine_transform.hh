@@ -5,7 +5,6 @@
 
 #include <armadillo>
 
-#include <libballistae/ray.hh>
 #include <libballistae/vector.hh>
 
 namespace ballistae
@@ -63,23 +62,13 @@ fixvec<Field, Dim> operator*(
 }
 
 template<class Field, size_t Dim>
-ray<Field, Dim> operator*(
-    const affine_transform<Field, Dim> &a,
-    const ray<Field, Dim> &b
-)
-{
-    return {
-        a.linear * b.point + a.offset,
-        arma::normalise(a.linear * b.slope)
-    };
-}
-
-template<class Field, size_t Dim>
 affine_transform<Field, Dim> inverse(
     const affine_transform<Field, Dim> &a
 )
 {
-    return {arma::inv(a.linear), -a.offset};
+    fixmat<Field, Dim, Dim> linear = arma::inv(a.linear);
+    fixvec<Field, Dim>      offset = -a.offset;
+    return {linear, offset};
 }
 
 template<class Field, size_t Dim>
@@ -128,7 +117,6 @@ affine_transform<Field, 3> rotation(
         y*x*C + z*s, y*y*C + c,   y*z*C - x*s,
         z*x*C - y*s, z*y*C + x*s, z*z*C + c
     };
-    result.linear = arma::trans(result.linear);
 
     result.offset = {0, 0, 0};
 
@@ -146,13 +134,11 @@ affine_transform<Field, 3> basis_mapping(
 {
     affine_transform<Field, 3> result;
 
-    // Armadillo uses column-major layout.
     result.linear = {
         t1(0), t1(1), t1(2),
         t2(0), t2(1), t2(2),
         t3(0), t3(1), t3(2)
     };
-    result.linear = arma::trans(result.linear);
 
     result.offset = {0, 0, 0};
 

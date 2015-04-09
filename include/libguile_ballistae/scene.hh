@@ -18,23 +18,7 @@ namespace scene
 
 void init(std::vector<subsmob_fns> &ss_dispatch);
 
-SCM crush(SCM geometry_material_alist);
-
-SCM scene_p(SCM obj);
-
-////////////////////////////////////////////////////////////////////////////////
-/// Render a scene.
-////////////////////////////////////////////////////////////////////////////////
-SCM render_scene(
-    SCM camera_scm,
-    SCM scene_scm,
-    SCM output_file_scm,
-    SCM img_rows_scm,
-    SCM img_cols_scm,
-    SCM ss_factor_scm,
-    SCM sample_profile_scm,
-    SCM lambda_nm_profile_scm
-);
+ballistae::scene* p_from_scene(SCM scene);
 
 size_t subsmob_free(SCM obj);
 SCM    subsmob_mark(SCM obj);

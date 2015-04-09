@@ -22,47 +22,77 @@ namespace bl = ballistae;
 class infty_priv final : public ballistae::geom_priv
 {
 public:
-    virtual bl::span<double> ray_intersect(
+    virtual bl::contact<double> ray_into(
         const bl::scene &the_scene,
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+    ) const;
+
+    virtual bl::contact<double> ray_exit(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::ranlux24 &thread_rng
     ) const;
 };
 
-bl::span<double> infty_priv::ray_intersect(
+bl::contact<double> infty_priv::ray_into(
         const bl::scene &the_scene,
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+) const
+{
+    using std::acos;
+    using std::atan2;
+
+    auto infty = std::numeric_limits<double>::infinity();
+
+    if(must_overlap.hi == infty)
+    {
+        bl::fixvec<double, 3> p = bl::eval_ray(query, infty);
+        bl::contact<double> result = {
+            infty,
+            query,
+            p,
+            -query.slope,
+            {atan2(query.slope(0), query.slope(1)), acos(query.slope(2))},
+            p
+        };
+        return result;
+    }
+    else
+    {
+        return bl::contact<double>::nan();
+    }
+}
+
+bl::contact<double> infty_priv::ray_exit(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::ranlux24 &thread_rng
 ) const
 {
     auto infty = std::numeric_limits<double>::infinity();
 
     if(must_overlap.lo == -infty)
     {
-        bl::span<double> result = {
+        bl::fixvec<double, 3> p = bl::eval_ray(query, infty);
+        bl::contact<double> result = {
             -infty,
-            -infty,
+            query,
+            p,
             query.slope,
-            -query.slope
-        };
-
-        return result;
-    }
-    else if(must_overlap.hi == infty)
-    {
-        bl::span<double> result = {
-            infty,
-            infty,
-            -query.slope,
-            query.slope
+            {atan2(-query.slope(0), -query.slope(1)), acos(-query.slope(2))},
+            p
         };
         return result;
     }
     else
     {
-        return bl::span<double>::nan();
+        return bl::contact<double>::nan();
     }
 }
 

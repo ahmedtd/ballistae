@@ -22,7 +22,7 @@ $($(augmk_d)_objs) : d := $(augmk_d)
 $($(augmk_d)_objs) : %.o : %.cc
 	$(CXX) -c -o $@ $< $($(d)_CXXFLAGS) $(CXXFLAGS)
 
-$($(augmk_d)_objs) : d := $(augmk_d)
+$(augmk_d)/libguile_armadillo.so : d := $(augmk_d)
 $(augmk_d)/libguile_armadillo.so : $($(augmk_d)_objs)
 	$(CXX) -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 

@@ -19,24 +19,7 @@ scm_t_bits matr_subsmob_flags;
 namespace matr_instance
 {
 
-////////////////////////////////////////////////////////////////////////////////
-/// Initialize the [matr] subsmob/subsystem.
-////////////////////////////////////////////////////////////////////////////////
-void init(std::vector<subsmob_fns> &ss_dispatch)
-{
-    matr_subsmob_flags = ss_dispatch.size();
-
-    scm_c_define_gsubr("ballistae/matr/make", 2, 0, 0, (scm_t_subr) make);
-    scm_c_define_gsubr("ballistae/matr?", 1, 0, 0, (scm_t_subr) matr_p);
-
-    scm_c_export(
-        "ballistae/matr/make",
-        "ballistae/matr?",
-        nullptr
-    );
-
-    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
-}
+namespace bl = ballistae;
 
 SCM make(SCM plug_name, SCM config_alist)
 {
@@ -68,6 +51,23 @@ SCM make(SCM plug_name, SCM config_alist)
     SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(matr_p));
     SCM_SET_SMOB_FLAGS(result, matr_subsmob_flags);
     return result;
+}
+
+SCM ensure_type(SCM matr)
+{
+    scm_assert_smob_type(smob_tag, matr);
+    if(SCM_SMOB_FLAGS(matr) != matr_subsmob_flags)
+    {
+        scm_wrong_type_arg(nullptr, SCM_ARG1, matr);
+    }
+
+    return matr;
+}
+
+std::shared_ptr<bl::matr_priv> sp_from_scm(SCM matr)
+{
+    ensure_type(matr);
+    return *smob_get_data<std::shared_ptr<bl::matr_priv>*>(matr);
 }
 
 SCM matr_p(SCM obj)
@@ -102,6 +102,18 @@ SCM subsmob_equalp(SCM a, SCM b)
     auto b_p = smob_get_data<std::shared_ptr<ballistae::matr_priv>*>(b);
 
     return (a_p == b_p) ? SCM_BOOL_T : SCM_BOOL_F;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Initialize the [matr] subsmob/subsystem.
+////////////////////////////////////////////////////////////////////////////////
+void init(std::vector<subsmob_fns> &ss_dispatch)
+{
+    matr_subsmob_flags = ss_dispatch.size();
+
+    scm_c_define_gsubr("bsta/backend/matr/make", 2, 0, 0, (scm_t_subr) make);
+
+    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
 }
 
 }

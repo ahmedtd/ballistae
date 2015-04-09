@@ -1,10 +1,13 @@
 #ifndef LIBGUILE_BALLISTAE_MATR_INSTANCE_HH
 #define LIBGUILE_BALLISTAE_MATR_INSTANCE_HH
 
+#include <memory>
 #include <vector>
 
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
+
+#include <libballistae/matr_plugin_interface.hh>
 
 #include <libguile_ballistae/libguile_ballistae.hh>
 
@@ -21,12 +24,11 @@ void init(std::vector<subsmob_fns> &ss_dispatch);
 ////////////////////////////////////////////////////////////////////////////////
 /// Make instance of [plug_name], configured using [config_alist].
 ////////////////////////////////////////////////////////////////////////////////
-SCM make(SCM plug_name, SCM config_alist);
+SCM make_backend(SCM plug_name, SCM config_alist);
 
-////////////////////////////////////////////////////////////////////////////////
-/// Predicate: is obj a [matr]?
-////////////////////////////////////////////////////////////////////////////////
-SCM matr_p(SCM obj);
+SCM ensure_type(SCM matr);
+
+std::shared_ptr<ballistae::matr_priv> sp_from_scm(SCM matr);
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Essential functions for the [matr] subsmob.

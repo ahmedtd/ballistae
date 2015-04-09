@@ -21,10 +21,11 @@ SCM compose(SCM rest_scm)
 {
     bl::affine_transform<double, 3> total;
 
+    //rest_scm = scm_reverse(rest_scm);
     for(SCM cur = rest_scm; !scm_is_null(cur); cur = scm_cdr(cur))
     {
-        auto cur_p = smob_get_data<bl::affine_transform<double, 3>*>(cur);
-        total = total * (*cur_p);
+        auto cur_p = smob_get_data<bl::affine_transform<double, 3>*>(scm_car(cur));
+        total = (*cur_p) * total;
         scm_remember_upto_here_1(cur);
     }
 
@@ -119,24 +120,18 @@ SCM affine_transform_p(SCM obj)
     );
 }
 
-SCM assert_type(SCM obj)
+SCM ensure_type(SCM obj)
 {
     scm_assert_smob_type(smob_tag, obj);
     if(SCM_SMOB_FLAGS(obj) != affine_transform_subsmob_flags)
-    {
-        scm_wrong_type_arg(
-            "libguile_ballistae::affine_transform::assert_type",
-            SCM_ARG1,
-            obj
-        );
-    }
+        scm_wrong_type_arg(nullptr, SCM_ARG1, obj);
 
-    return SCM_BOOL_T;
+    return obj;
 }
 
-bl::affine_transform<double, 3> scm_to_affine_transform(SCM t_scm)
+bl::affine_transform<double, 3> from_scm(SCM t_scm)
 {
-    assert_type(t_scm);
+    ensure_type(t_scm);
     return *smob_get_data<bl::affine_transform<double, 3>*>(t_scm);
 }
 
@@ -171,24 +166,12 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
 {
     affine_transform_subsmob_flags = ss_dispatch.size();
 
-    scm_c_define_gsubr("ballistae/affine-transform/identity", 0, 0, 0, (scm_t_subr) identity);
-    scm_c_define_gsubr("ballistae/affine-transform/translation", 1, 0, 0, (scm_t_subr) translation);
-    scm_c_define_gsubr("ballistae/affine-transform/scaling", 1, 0, 0, (scm_t_subr) scaling);
-    scm_c_define_gsubr("ballistae/affine-transform/rotation", 2, 0, 0, (scm_t_subr) rotation);
-    scm_c_define_gsubr("ballistae/affine-transform/basis_mapping", 3, 0, 0, (scm_t_subr) basis_mapping);
-    scm_c_define_gsubr("ballistae/affine-transform/*", 0, 0, 1, (scm_t_subr) compose);
-    scm_c_define_gsubr("ballistae/affine-transform?", 1, 0, 0, (scm_t_subr) affine_transform_p);
-
-    scm_c_export(
-        "ballistae/affine-transform/identity",
-        "ballistae/affine-transform/translation",
-        "ballistae/affine-transform/scaling",
-        "ballistae/affine-transform/rotation",
-        "ballistae/affine-transform/basis_mapping",
-        "ballistae/affine-transform/*",
-        "ballistae/affine-transform?",
-        nullptr
-    );
+    scm_c_define_gsubr("bsta/backend/aff-t/identity",      0, 0, 0, (scm_t_subr) identity);
+    scm_c_define_gsubr("bsta/backend/aff-t/translation",   1, 0, 0, (scm_t_subr) translation);
+    scm_c_define_gsubr("bsta/backend/aff-t/scaling",       1, 0, 0, (scm_t_subr) scaling);
+    scm_c_define_gsubr("bsta/backend/aff-t/rotation",      2, 0, 0, (scm_t_subr) rotation);
+    scm_c_define_gsubr("bsta/backend/aff-t/basis-mapping", 3, 0, 0, (scm_t_subr) basis_mapping);
+    scm_c_define_gsubr("bsta/backend/aff-t/compose",       0, 0, 1, (scm_t_subr) compose);
 
     ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
 }

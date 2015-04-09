@@ -9,9 +9,9 @@
 
 #include <armadillo>
 
+#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
-#include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 
 namespace ballistae
@@ -32,11 +32,11 @@ public:
     virtual ~matr_priv() {}
 
     virtual shade_info<double> shade(
-        const ballistae::scene &the_scene,
-        const ballistae::dray3 &reflected_ray,
-        const ballistae::span<double> &contact_span,
+        const scene &the_scene,
+        const contact<double> &glb_contact,
         double lambda_nm,
-        std::mt19937 &thread_rng
+        size_t sample_index,
+        std::ranlux24 &thread_rng
     ) const = 0;
 
 };

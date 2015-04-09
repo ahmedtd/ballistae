@@ -11,6 +11,7 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
+#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
@@ -36,11 +37,18 @@ public:
 
     virtual ~cylinder_priv();
 
-    virtual bl::span<double> ray_intersect(
+    virtual bl::contact<double> ray_into(
         const bl::scene &the_scene,
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+    ) const;
+
+    virtual bl::contact<double> ray_exit(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::ranlux24 &thread_rng
     ) const;
 };
 
@@ -59,13 +67,14 @@ cylinder_priv::~cylinder_priv()
 {
 }
 
-bl::span<double> cylinder_priv::ray_intersect(
+bl::contact<double> cylinder_priv::ray_into(
     const bl::scene &the_scene,
     const bl::dray3 &query,
     const bl::span<double> &must_overlap,
-    std::mt19937 &thread_rng
+    std::ranlux24 &thread_rng
 ) const
 {
+    using std::atan2;
     using std::sqrt;
 
     arma::vec3 foil_a = bl::reject<double, 3>(axis, query.slope);
@@ -76,46 +85,106 @@ bl::span<double> cylinder_priv::ray_intersect(
     double c = arma::dot(foil_b, foil_b) - radius_squared;
 
     double t_min = (-b - sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-    double t_max = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
-
-    auto covered = bl::span<double>::undecorated(t_min, t_max);
 
     if(!std::isnan(t_min))
     {
-        // The ray hits the cylinder.
-        if(overlaps(must_overlap, covered))
+        // Ray hits cylinder.
+
+        if(contains(must_overlap, t_min))
         {
-            arma::vec3 p_min = ballistae::eval_ray(query, t_min);
-            arma::vec3 p_max = ballistae::eval_ray(query, t_max);
+            bl::contact<double> result;
 
-            covered.lo_normal = bl::reject<double, 3>(axis, p_min - center);
-            covered.hi_normal = bl::reject<double, 3>(axis, p_max - center);
+            result.t = t_min;
+            result.r = query;
+            result.p = bl::eval_ray(query, t_min);
+            result.n = bl::reject<double, 3>(axis, result.p - center);
+            result.uv = {result.p(0), std::atan2(result.p(1), result.p(2))};
+            result.uvw = result.p;
 
-            return covered;
+            return result;
         }
         else
         {
-            return ballistae::span<double>::nan();
+            return bl::contact<double>::nan();
         }
     }
     else
     {
-        // The ray is parallel to the cylinder axis.
+        // Ray misses cylinder.  It could miss outside or inside.
 
         if(c > double(0))
         {
-            return ballistae::span<double>::nan();
+            return ballistae::contact<double>::nan();
         }
         else
         {
-            double inf = std::numeric_limits<double>::infinity();
-            auto test = ballistae::span<double>::undecorated(-inf, inf);
-
-            if(overlaps(must_overlap, test))
-                return test;
+            if(contains(must_overlap, -std::numeric_limits<double>::infinity()))
+            {
+                bl::contact<double> result;
+                result.t = -std::numeric_limits<double>::infinity();
+                result.r = query;
+                return result;
+            }
             else
-                return bl::span<double>::nan();
+                return bl::contact<double>::nan();
         }
+    }
+}
+
+bl::contact<double> cylinder_priv::ray_exit(
+    const bl::scene &the_scene,
+    const bl::dray3 &query,
+    const bl::span<double> &must_overlap,
+    std::ranlux24 &thread_rng
+) const
+{
+    using std::atan2;
+    using std::sqrt;
+
+    arma::vec3 foil_a = bl::reject<double, 3>(axis, query.slope);
+    arma::vec3 foil_b = bl::reject<double, 3>(axis, query.point - center);
+
+    double a = arma::dot(foil_a, foil_a);
+    double b = 2.0 * arma::dot(foil_a, foil_b);
+    double c = arma::dot(foil_b, foil_b) - radius_squared;
+
+    double t_max = (-b + sqrt(b * b - 4.0 * a * c)) / (2.0 * a);
+
+    if(!std::isnan(t_max))
+    {
+        // The ray hits the cylinder.
+
+        if(contains(must_overlap, t_max))
+        {
+            bl::contact<double> result;
+
+            result.t = t_max;
+            result.r = query;
+            result.p = bl::eval_ray(query, t_max);
+            result.n = bl::reject<double, 3>(axis, result.p - center);
+            result.uv = {result.p(0), std::atan2(result.p(1), result.p(2))};
+            result.uvw = result.p;
+
+            return result;
+        }
+        else
+        {
+            return bl::contact<double>::nan();
+        }
+    }
+    else
+    {
+        // Ray misses cylinder.  It could miss inside or outside.
+
+        if(contains(must_overlap, std::numeric_limits<double>::infinity()))
+        {
+            bl::contact<double> result;
+            result.t = std::numeric_limits<double>::infinity();
+            result.r = query;
+            return result;
+        }
+        else
+            return bl::contact<double>::nan();
     }
 }
 

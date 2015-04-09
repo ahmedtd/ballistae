@@ -23,30 +23,26 @@ namespace bl = ballistae;
 class sphere_priv : public ballistae::geom_priv
 {
 public:
-    arma::vec3 center;
-    double radius_squared;
-
-    sphere_priv(
-        const arma::vec3 &center_in,
-        const double &radius_squared_in
-    );
+    sphere_priv();
 
     virtual ~sphere_priv();
 
-    virtual bl::span<double> ray_intersect(
+    virtual bl::contact<double> ray_into(
         const bl::scene &the_scene,
         const bl::dray3 &query,
         const bl::span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+    ) const;
+
+    virtual bl::contact<double> ray_exit(
+        const bl::scene &the_scene,
+        const bl::dray3 &query,
+        const bl::span<double> &must_overlap,
+        std::ranlux24 &thread_rng
     ) const;
 };
 
-sphere_priv::sphere_priv(
-    const arma::vec3 &center_in,
-    const double &radius_squared_in
-)
-    : center(center_in),
-      radius_squared(radius_squared_in)
+sphere_priv::sphere_priv()
 {
 }
 
@@ -54,49 +50,76 @@ sphere_priv::~sphere_priv()
 {
 }
 
-bl::span<double> sphere_priv::ray_intersect(
+bl::contact<double> sphere_priv::ray_into(
     const bl::scene &the_scene,
     const bl::dray3 &query,
     const bl::span<double> &must_overlap,
-    std::mt19937 &thread_rng
+    std::ranlux24 &thread_rng
 ) const
 {
     using std::acos;
     using std::atan2;
     using std::sqrt;
 
-    auto offset = query.point - this->center;
-
-    auto b = arma::dot(query.slope, offset);
-    auto c = arma::dot(offset, offset) - this->radius_squared;
+    auto b = arma::dot(query.slope, query.point);
+    auto c = arma::dot(query.point, query.point) - 1.0;
 
     // We rely on std::sqrt's mandated NaN behavior.
     auto t_min = -b - sqrt(b * b - c);
-    auto t_max = -b + sqrt(b * b - c);
 
-    auto covered = bl::span<double>::undecorated(t_min, t_max);
-
-    if(ballistae::overlaps(must_overlap, covered))
+    if(ballistae::contains(must_overlap, t_min))
     {
-        bl::fixvec<double, 3> p_min = ballistae::eval_ray(query, t_min)
-            - this->center;
-        bl::fixvec<double, 3> p_max = ballistae::eval_ray(query, t_max)
-            - this->center;
+        bl::contact<double> result;
 
-        covered.lo_normal = arma::normalise(p_min);
-        covered.hi_normal = arma::normalise(p_max);
+        auto p = ballistae::eval_ray(query, t_min);
+        result.t = t_min;
+        result.p = p;
+        result.n = arma::normalise(p);
+        result.uv = {atan2(p(0), p(1)), acos(p(2))};
+        result.uvw = p;
+        result.r = query;
 
-        covered.lo_uv = {atan2(p_min(0), p_min(1)), acos(p_min(2))};
-        covered.hi_uv = {atan2(p_max(0), p_max(1)), acos(p_max(2))};
-
-        covered.lo_uvw = p_min;
-        covered.hi_uvw = p_max;
-
-        return covered;
+        return result;
     }
     else
     {
-        return bl::span<double>::nan();
+        return bl::contact<double>::nan();
+    }
+}
+
+bl::contact<double> sphere_priv::ray_exit(
+    const bl::scene &the_scene,
+    const bl::dray3 &query,
+    const bl::span<double> &must_overlap,
+    std::ranlux24 &thread_rng
+) const
+{
+    using std::acos;
+    using std::atan2;
+    using std::sqrt;
+
+    auto b = arma::dot(query.slope, query.point);
+    auto c = arma::dot(query.point, query.point) - 1.0;
+
+    // We rely on std::sqrt's mandated NaN behavior.
+    auto t_max = -b + sqrt(b * b - c);
+
+    if(ballistae::contains(must_overlap, t_max))
+    {
+        bl::contact<double> result;
+        auto p = ballistae::eval_ray(query, t_max);
+        result.t = t_max;
+        result.p = p;
+        result.n = arma::normalise(p);
+        result.uv = {atan2(p(0), p(1)), acos(p(2))};
+        result.uvw = p;
+        result.r = query;
+
+        return result;
+    }
+    else
+    {
+        return bl::contact<double>::nan();
     }
 }
 
@@ -104,70 +127,5 @@ std::shared_ptr<ballistae::geom_priv> ballistae_geom_create_from_alist(
     SCM config_alist
 )
 {
-    constexpr const char* const subr = "ballistae_geom_create_from_alist(sphere)";
-
-    SCM sym_center = scm_from_utf8_symbol("center");
-    SCM sym_radius = scm_from_utf8_symbol("radius");
-
-    SCM cur_head = config_alist;
-    while(! scm_is_null(cur_head))
-    {
-        SCM cur_key = scm_caar(cur_head);
-        SCM cur_val = scm_cdar(cur_head);
-        cur_head = scm_cdr(cur_head);
-
-        if(scm_is_true(scm_eq_p(sym_center, cur_key)))
-        {
-            SCM_ASSERT_TYPE(
-                scm_is_true(
-                    arma_guile::generic_col_dim_p<double>(
-                        cur_val,
-                        scm_from_int(3)
-                    )
-                ),
-                cur_val,
-                SCM_ARGn,
-                subr,
-                "Key 'center requires arma/b64col[3] argument."
-            );
-        }
-        else if(scm_is_true(scm_eq_p(sym_radius, cur_key)))
-        {
-            SCM_ASSERT_TYPE(
-                scm_is_true(scm_real_p(cur_val)),
-                cur_val,
-                SCM_ARGn,
-                subr,
-                "Key 'radius requires real argument."
-            );
-        }
-        else
-        {
-            scm_wrong_type_arg_msg(subr, SCM_ARGn, cur_key, "Unknown key.");
-        }
-    }
-
-    // No guile errors below this point.
-
-    arma::vec3 center(arma::fill::zeros);
-    double radius_squared = 1.0;
-
-    SCM center_lookup = scm_assq_ref(config_alist, sym_center);
-    SCM radius_lookup = scm_assq_ref(config_alist, sym_radius);
-
-    if(scm_is_true(center_lookup))
-    {
-        auto col_p = arma_guile::smob_get_data<arma::Col<double>*>(
-            center_lookup
-        );
-        center = *col_p;
-    }
-
-    if(scm_is_true(radius_lookup))
-    {
-        auto radius = scm_to_double(radius_lookup);
-        radius_squared = radius * radius;
-    }
-
-    return std::make_shared<sphere_priv>(center, radius_squared);
+    return std::make_shared<sphere_priv>();
 }

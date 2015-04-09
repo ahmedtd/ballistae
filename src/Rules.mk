@@ -10,6 +10,7 @@ $(guile (augmk/enter "ballistae_geom_plugin_cylinder"))
 $(guile (augmk/enter "ballistae_geom_plugin_infty"))
 $(guile (augmk/enter "ballistae_geom_plugin_plane"))
 $(guile (augmk/enter "ballistae_geom_plugin_sphere"))
+$(guile (augmk/enter "ballistae_geom_plugin_surface_mesh"))
 
 # Material plugins
 $(guile (augmk/enter "ballistae_matr_plugin_phong"))

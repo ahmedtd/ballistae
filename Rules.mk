@@ -2,7 +2,7 @@ CC  := gcc
 CXX := g++
 
 # We use C++14, with GNU extensions, across the board.
-override CXXFLAGS += -std=gnu++11 -Wall -Werror
+override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fassociative-math
 
 # Find armadillo.
 #
@@ -44,3 +44,6 @@ $(guile (augmk/create-clean-target "clean" "$(CLEAN_TARGETS)"))
 # The "install" target.  Respects DESTDIR.
 .PHONY: install
 install: $(INSTALL_TARGETS)
+
+test-uniform-sphere-dist: test-uniform-sphere-dist.cc
+	g++ $(CXXFLAGS) $(guile2_CFLAGS) -Iinclude -larmadillo -o $@ $<

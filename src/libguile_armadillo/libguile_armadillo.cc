@@ -123,8 +123,8 @@ extern "C" void libguile_armadillo_init()
     scm_set_smob_print(ag::arma_smob_tag, &ag::smob_print);
     scm_set_smob_equalp(ag::arma_smob_tag, &ag::smob_equalp);
 
-    scm_c_define_gsubr("arma/list->b64col", 1, 0, 0, (scm_t_subr) &ag::generic_list_to_col<double>);
-    scm_c_export("arma/list->b64col", nullptr);
+    scm_c_define_gsubr("arma/dvec", 1, 0, 0, (scm_t_subr) &ag::generic_list_to_col<double>);
+    scm_c_export("arma/dvec", nullptr);
 
     scm_c_define_gsubr("arma/b64col?", 1, 0, 0, (scm_t_subr) &ag::generic_col_p<double>);
     scm_c_export("arma/b64col?", nullptr);

@@ -26,6 +26,7 @@
 #include <libballistae/render_scene.hh>
 #include <libballistae/scene.hh>
 
+#include <libguile_ballistae/affine_transform.hh>
 #include <libguile_ballistae/camera_instance.hh>
 #include <libguile_ballistae/geom_instance.hh>
 #include <libguile_ballistae/matr_instance.hh>
@@ -41,92 +42,38 @@ namespace scene
 
 namespace bl = ballistae;
 
-void init(std::vector<subsmob_fns> &ss_dispatch)
+SCM make_backend()
 {
-    scene_subsmob_flags = ss_dispatch.size();
-
-    scm_c_define_gsubr("ballistae/scene/crush", 1, 0, 0, (scm_t_subr) crush);
-    scm_c_define_gsubr("ballistae/render-scene", 8, 0, 0, (scm_t_subr) render_scene);
-    scm_c_define_gsubr("ballistae/scene?", 1, 0, 0, (scm_t_subr) scene_p);
-
-    scm_c_export(
-        "ballistae/scene/crush",
-        "ballistae/render-scene",
-        "ballistae/scene?",
-        nullptr
-    );
-
-    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
+    // The pointer will be deleted when the smob is freed.
+    auto scene_p = new ballistae::scene();
+    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(scene_p));
+    SCM_SET_SMOB_FLAGS(result, scene_subsmob_flags);
+    return result;
 }
 
-SCM crush(SCM geometry_material_alist)
+bl::scene* p_from_scm(SCM scene)
 {
-    constexpr const char* const subr = "ballistae::scene::crush";
+    return smob_get_data<bl::scene*>(scene);
+}
 
-    // Verify the geometry.
-    SCM cur_head = geometry_material_alist;
-    while(!scm_is_null(cur_head))
-    {
-        SCM cur_geom = scm_caar(cur_head);
-        SCM cur_matr = scm_cdar(cur_head);
-        cur_head = scm_cdr(cur_head);
+SCM add_backend(SCM scene, SCM geometry, SCM material, SCM transform)
+{
+    auto scene_p = scene::p_from_scm(scene);
+    auto geometry_p = geom_instance::sp_from_scm(geometry);
+    auto material_p = matr_instance::sp_from_scm(material);
+    auto transform_v = affine_transform::from_scm(transform);
 
-        SCM_ASSERT_TYPE(
-            scm_is_true(geom_instance::geom_p(cur_geom)),
-            cur_geom,
-            SCM_ARGn,
-            subr,
-            "ballistae/geom"
-        );
+    scene_p->geometries.push_back(geometry_p);
+    scene_p->materials.push_back(material_p);
+    scene_p->trans_for.push_back(bl::inverse(transform_v));
+    scene_p->trans_inv.push_back(transform_v);
 
-        SCM_ASSERT_TYPE(
-            scm_is_true(matr_instance::matr_p(cur_matr)),
-            cur_matr,
-            SCM_ARGn,
-            subr,
-            "ballistae/matr"
-        );
-    }
+    return scene;
+}
 
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(nullptr));
-    SCM_SET_SMOB_FLAGS(result, scene_subsmob_flags);
-
-    //
-    // Below this point, no code may result in a scheme error, since we rely on
-    // c++ stack unwinding.
-    //
-
-    auto the_scene = new ballistae::scene();
-
-    cur_head = geometry_material_alist;
-    while(!scm_is_null(cur_head))
-    {
-        SCM cur_geom = scm_caar(cur_head);
-        SCM cur_matr = scm_cdar(cur_head);
-        cur_head = scm_cdr(cur_head);
-
-        auto geom_p = smob_get_data<geom_wrapper*>(cur_geom);
-
-        the_scene->materials.push_back(
-            *smob_get_data<std::shared_ptr<ballistae::matr_priv>*>(cur_matr)
-        );
-
-        the_scene->trans_for.push_back(
-            geom_p->tform
-        );
-
-        the_scene->trans_inv.push_back(
-            bl::inverse(geom_p->tform)
-        );
-
-        the_scene->geometries.push_back(
-            geom_p->geom
-        );
-    }
-
-    smob_set_data(result, the_scene);
-
-    return result;
+SCM crush_backend(SCM scene)
+{
+    return scene;
 }
 
 void print_progress_bar(
@@ -165,9 +112,9 @@ void print_progress_bar(
     std::cout << "\nFinished" << std::endl;
 }
 
-SCM render_scene(
-    SCM camera_scm,
+SCM render_backend(
     SCM scene_scm,
+    SCM camera_scm,
     SCM output_file_scm,
     SCM img_rows_scm,
     SCM img_cols_scm,
@@ -253,14 +200,6 @@ SCM render_scene(
     return SCM_BOOL_F;
 }
 
-SCM scene_p(SCM obj)
-{
-    return scm_from_bool(
-        scm_is_true(ballistae_p(obj))
-        && SCM_SMOB_FLAGS(obj) == scene_subsmob_flags
-    );
-}
-
 size_t subsmob_free(SCM obj)
 {
     auto scene = smob_get_data<ballistae::scene*>(obj);
@@ -289,6 +228,18 @@ SCM subsmob_equalp(SCM a, SCM b)
     auto b_p = smob_get_data<ballistae::scene*>(b);
 
     return scm_from_bool(a_p == b_p);
+}
+
+void init(std::vector<subsmob_fns> &ss_dispatch)
+{
+    scene_subsmob_flags = ss_dispatch.size();
+
+    scm_c_define_gsubr("bsta/backend/scene/make", 0, 0, 0, (scm_t_subr) make_backend);
+    scm_c_define_gsubr("bsta/backend/scene/add", 4, 0, 0, (scm_t_subr) add_backend);
+    scm_c_define_gsubr("bsta/backend/scene/crush", 1, 0, 0, (scm_t_subr) crush_backend);
+    scm_c_define_gsubr("bsta/backend/scene/render", 8, 0, 0, (scm_t_subr) render_backend);
+
+    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
 }
 
 }

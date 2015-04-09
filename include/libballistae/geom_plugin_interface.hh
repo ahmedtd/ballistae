@@ -24,6 +24,7 @@
 #include <armadillo>
 
 #include <libballistae/affine_transform.hh>
+#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
@@ -42,11 +43,18 @@ class geom_priv : public std::enable_shared_from_this<geom_priv>
 public:
     virtual ~geom_priv() {}
 
-    virtual span<double> ray_intersect(
+    virtual contact<double> ray_into(
         const scene &the_scene,
         const dray3 &query,
         const span<double> &must_overlap,
-        std::mt19937 &thread_rng
+        std::ranlux24 &thread_rng
+    ) const = 0;
+
+    virtual contact<double> ray_exit(
+        const scene &the_scene,
+        const dray3 &query,
+        const span<double> &must_overlap,
+        std::ranlux24 &thread_rng
     ) const = 0;
 };
 

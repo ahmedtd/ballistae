@@ -3,6 +3,8 @@
 
 #include <armadillo>
 
+#include <libballistae/affine_transform.hh>
+
 namespace ballistae
 {
 
@@ -30,6 +32,18 @@ using dray3 = ray<double, 3>;
 ///
 ///   (arma::vec3) The point along the ray with parameter value T.
 arma::vec3 eval_ray(const dray3 &r, const double &t) __attribute__((pure));
+
+template<class Field, size_t Dim>
+ray<Field, Dim> operator*(
+    const affine_transform<Field, Dim> &a,
+    const ray<Field, Dim> &b
+)
+{
+    return {
+        a.linear * b.point + a.offset,
+            arma::normalise(a.linear * b.slope)
+    };
+}
 
 }
 

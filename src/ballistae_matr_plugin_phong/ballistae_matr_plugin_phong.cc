@@ -13,9 +13,10 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
+#include <libballistae/affine_transform.hh>
+#include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
-#include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 #include <libballistae/uniform_sphere_dist.hh>
 
@@ -34,22 +35,32 @@ public:
     double propagation_wavelength_mean;
     double propagation_wavelength_stddev;
     double propagation_peak_k;
-    
+
+    std::vector<bl::fixvec<double, 3>> prop_dirs;
+
 public:
     phong_priv();
     virtual ~phong_priv();
 
     virtual bl::shade_info<double> shade(
-        const ballistae::scene &the_scene,
-        const ballistae::dray3 &reflected_ray,
-        const ballistae::span<double> &contact_span,
+        const bl::scene &the_scene,
+        const bl::contact<double> &glb_contact,
         double lambda_nm,
-        std::mt19937 &thread_rng
+        size_t sample_index,
+        std::ranlux24 &thread_rng
     ) const;
 };
 
 phong_priv::phong_priv()
+    : prop_dirs(1337)
 {
+    std::mt19937 rng(12345);
+    bl::uniform_hemisphere_dist<double, 3> prop_dist(1.0, {1, 0, 0});
+
+    for(size_t i = 0; i < prop_dirs.size(); ++i)
+    {
+        prop_dirs[i] = prop_dist(rng);
+    }
 }
 
 phong_priv::~phong_priv()
@@ -70,26 +81,30 @@ static double normalized_gaussian_density(
 }
 
 bl::shade_info<double> phong_priv::shade(
-    const ballistae::scene &the_scene,
-    const ballistae::dray3 &reflected_ray,
-    const ballistae::span<double> &contact_span,
+    const bl::scene &the_scene,
+    const bl::contact<double> &glb_contact,
     double lambda_nm,
-    std::mt19937 &thread_rng
+    size_t sample_index,
+    std::ranlux24 &thread_rng
 ) const
 {
     bl::shade_info<double> result;
 
-    const double     &t = contact_span.lo;
-    const arma::vec3 &n = contact_span.lo_normal;
+    const arma::vec3 &n = glb_contact.n;
 
-    arma::vec3 point = ballistae::eval_ray(reflected_ray, t);
+    arma::vec3 point = glb_contact.p;
 
-    bl::uniform_hemisphere_dist<double, 3> propagation_dist(1.0, n);
-    
-    result.incident_ray.slope = propagation_dist(thread_rng);
+    arma::vec3 refl_slope = glb_contact.r.slope;
+    arma::vec3 local_y = arma::normalise(bl::reject<double, 3>(n, refl_slope));
+    arma::vec3 local_z = arma::cross(n, local_y);
+    auto tform = bl::basis_mapping<double>(n, local_y, local_z);
+
+    auto untform_prop_dir = prop_dirs[thread_rng() % prop_dirs.size()];
+
+    result.incident_ray.slope = tform.linear * untform_prop_dir;
     result.incident_ray.point = point + 1e-3 * n;
-    
-    result.propagation_k = arma::dot(result.incident_ray.slope, n)
+
+    result.propagation_k = untform_prop_dir(0) // This is the cosine term.
         * propagation_peak_k
         * normalized_gaussian_density(
             propagation_wavelength_mean,
@@ -129,7 +144,7 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
     result->propagation_wavelength_mean   = 1.0;
     result->propagation_wavelength_stddev = 1.0;
     result->propagation_peak_k            = 1.0;
-   
+
     SCM ewm_lu = scm_assq_ref(config_alist, sym_ewm);
     SCM ews_lu = scm_assq_ref(config_alist, sym_ews);
     SCM epp_lu = scm_assq_ref(config_alist, sym_epp);
@@ -137,7 +152,7 @@ std::shared_ptr<ballistae::matr_priv> ballistae_matr_create_from_alist(
     SCM pwm_lu = scm_assq_ref(config_alist, sym_pwm);
     SCM pws_lu = scm_assq_ref(config_alist, sym_pws);
     SCM ppk_lu = scm_assq_ref(config_alist, sym_ppk);
-   
+
     if(scm_is_true(ewm_lu))
         result->emission_wavelength_mean = scm_to_double(ewm_lu);
 

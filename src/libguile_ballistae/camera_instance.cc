@@ -19,18 +19,13 @@ scm_t_bits camera_subsmob_flags;
 namespace camera_instance
 {
 
+namespace bl = ballistae;
+
 void init(std::vector<subsmob_fns> &ss_dispatch)
 {
     camera_subsmob_flags = ss_dispatch.size();
 
-    scm_c_define_gsubr("ballistae/camera", 2, 0, 0, (scm_t_subr) make);
-    scm_c_define_gsubr("ballistae/camera?", 1, 0, 0, (scm_t_subr) camera_p);
-
-    scm_c_export(
-        "ballistae/camera",
-        "ballistae/camera?",
-        nullptr
-    );
+    scm_c_define_gsubr("bsta/backend/cam/make", 2, 0, 0, (scm_t_subr) make);
 
     ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
 }
@@ -66,12 +61,19 @@ SCM make(SCM plug_name, SCM config_alist)
     return result;
 }
 
-SCM camera_p(SCM obj)
+SCM ensure_type(SCM obj)
 {
-    return scm_from_bool(
-        scm_is_true(ballistae_p(obj))
-        && SCM_SMOB_FLAGS(obj) == camera_subsmob_flags
-    );
+    scm_assert_smob_type(smob_tag, obj);
+    if(SCM_SMOB_FLAGS(obj) != camera_subsmob_flags)
+        scm_wrong_type_arg(nullptr, SCM_ARG1, obj);
+
+    return obj;
+}
+
+std::shared_ptr<bl::camera_priv> sp_from_scm(SCM obj)
+{
+    ensure_type(obj);
+    return *smob_get_data<std::shared_ptr<bl::camera_priv>*>(obj);
 }
 
 size_t subsmob_free(SCM obj)

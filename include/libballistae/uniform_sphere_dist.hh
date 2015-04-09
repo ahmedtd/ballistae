@@ -42,7 +42,7 @@ fixvec<Field, D> uniform_sphere_dist<Field, D>::operator()(Gen &g)
     do
     {
         result = {elt_dist(g), elt_dist(g), elt_dist(g)};
-    } while(arma::norm(result) > Field(1));
+    } while(arma::norm(result) > Field(1) || arma::norm(result) == Field(0));
 
     return radius * arma::normalise(result);
 }

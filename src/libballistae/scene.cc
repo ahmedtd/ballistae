@@ -8,24 +8,29 @@
 #include <armadillo>
 
 #include <libballistae/camera_plugin_interface.hh>
+#include <libballistae/contact.hh>
 #include <libballistae/geom_plugin_interface.hh>
 #include <libballistae/image.hh>
 #include <libballistae/matr_plugin_interface.hh>
 #include <libballistae/ray.hh>
+#include <libballistae/span.hh>
 #include <libballistae/spectrum.hh>
 
 namespace ballistae
 {
 
-std::tuple<span<double>, size_t, ray<double, 3>> scene_ray_intersect(
+std::tuple<contact<double>, size_t> scene_ray_intersect(
     const scene &the_scene,
     const dray3 &query,
     const span<double> &must_overlap,
-    std::mt19937 &thread_rng
+    std::ranlux24 &thread_rng
 )
 {
-    span<double> min_span = span<double>::inf();
+    contact<double> min_contact;
+    min_contact.t = std::numeric_limits<double>::infinity();
     size_t min_geomind = the_scene.geometries.size();
+
+    // TODO: scale must_overlap properly by the forward transform.
 
     ray<double, 3> tform_query;
 
@@ -33,26 +38,25 @@ std::tuple<span<double>, size_t, ray<double, 3>> scene_ray_intersect(
         cur_geomind < the_scene.geometries.size();
         ++cur_geomind)
     {
-        tform_query = the_scene.trans_for[cur_geomind] * query;
-
-        span<double> cur_span
-            = the_scene.geometries[cur_geomind]->ray_intersect(
+        contact<double> mdl_contact
+            = the_scene.geometries[cur_geomind]->ray_into(
                 the_scene,
-                tform_query,
+                the_scene.trans_for[cur_geomind] * query,
                 must_overlap,
                 thread_rng
             );
 
-        if(cur_span < min_span
-           || (cur_span.lo == std::numeric_limits<double>::infinity()
-               && min_span.lo == std::numeric_limits<double>::infinity()))
+        contact<double> glb_contact
+            = the_scene.trans_inv[cur_geomind] * mdl_contact;
+
+        if(glb_contact.t <= min_contact.t)
         {
-            min_span = cur_span;
+            min_contact = glb_contact;
             min_geomind = cur_geomind;
         }
     }
 
-    return std::make_tuple(min_span, min_geomind, tform_query);
+    return std::make_tuple(min_contact, min_geomind);
 }
 
 static inline arma::vec3 scan_plane_to_image_space(
@@ -60,7 +64,7 @@ static inline arma::vec3 scan_plane_to_image_space(
     std::size_t img_rows,
     std::size_t cur_col,
     std::size_t img_cols,
-    std::mt19937 ss_pert_engn,
+    std::ranlux24 ss_pert_engn,
     std::uniform_real_distribution<double> ss_pert_dist
 ) {
     double d_cur_col = static_cast<double>(cur_col);
@@ -81,16 +85,16 @@ shade_info<double> shade_ray(
     const scene &the_scene,
     const dray3 &reflected_ray,
     double lambda_nm,
-    std::mt19937 &thread_rng
+    size_t sample_index,
+    std::ranlux24 &thread_rng
 )
 {
-    span<double> c_span;
+    contact<double> glb_contact;
     size_t c_geomind;
-    ray<double, 3> tform_refl_ray;
-    std::tie(c_span, c_geomind, tform_refl_ray) = scene_ray_intersect(
+    std::tie(glb_contact, c_geomind) = scene_ray_intersect(
         the_scene,
         reflected_ray,
-        span<double>::pos_half(),
+        {0.0, std::numeric_limits<double>::infinity()},
         thread_rng
     );
 
@@ -98,14 +102,11 @@ shade_info<double> shade_ray(
     {
         auto shade_result = the_scene.materials[c_geomind]->shade(
             the_scene,
-            tform_refl_ray,
-            c_span,
+            glb_contact,
             lambda_nm,
+            sample_index,
             thread_rng
         );
-
-        shade_result.incident_ray
-            = the_scene.trans_inv[c_geomind] * shade_result.incident_ray;
 
         return shade_result;
     }
@@ -133,13 +134,15 @@ struct sample_scratch
     std::vector<ray<double, 3>> r_stack;
     std::vector<double>         p_stack;
     std::vector<double>         k_stack;
+
+    size_t sample_idx;
 };
 
 double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
     double lambda_nm,
-    std::mt19937 &thread_rng,
+    std::ranlux24 &thread_rng,
     const std::vector<size_t> &l_stack,
     sample_scratch &scratch
 )
@@ -167,13 +170,13 @@ double sample_ray(
                 the_scene,
                 scratch.r_stack[i-1],
                 lambda_nm,
+                scratch.sample_idx,
                 thread_rng
             );
 
             scratch.p_stack[i-1]
-                += scratch.k_stack[i-1] * shading.emitted_power;
+                += scratch.k_stack[i-1] * shading.emitted_power / l_stack[i-1];
             --i;
-            continue;
         }
         else if(scratch.c_stack[i] < l_stack[i])
         {
@@ -181,13 +184,14 @@ double sample_ray(
                 the_scene,
                 scratch.r_stack[i-1],
                 lambda_nm,
+                scratch.sample_idx,
                 thread_rng
             );
 
             if(scratch.c_stack[i] == 0)
                 scratch.p_stack[i] = 0.0;
 
-            scratch.p_stack[i] += shading.emitted_power /*/ l_stack[i]*/;
+            scratch.p_stack[i] += shading.emitted_power;
             scratch.k_stack[i] = shading.propagation_k;
             scratch.r_stack[i] = shading.incident_ray;
 
@@ -196,21 +200,19 @@ double sample_ray(
             if(scratch.k_stack[i] == 0.0)
             {
                 ++scratch.c_stack[i];
-                continue;
             }
 
             ++scratch.c_stack[i];
             ++i;
-            continue;
         }
         else
         {
             scratch.p_stack[i-1]
-                += (scratch.k_stack[i-1] * scratch.p_stack[i]) /* / l_stack[i-1]*/;
+                += (scratch.k_stack[i-1] * scratch.p_stack[i]) / l_stack[i-1];
             scratch.c_stack[i] = 0;
             --i;
-            continue;
         }
+        ++scratch.sample_idx;
     }
     while(i != 0);
 
@@ -225,7 +227,7 @@ color_d_XYZ shade_pixel(
     const std::shared_ptr<const camera_priv> &the_camera,
     const scene &the_scene,
     unsigned int ss_factor,
-    std::mt19937 &rng,
+    std::ranlux24 &rng,
     const std::vector<size_t> &sampling_profile,
     const std::vector<double> &lambda_nm_profile,
     sample_scratch &scratch
@@ -279,16 +281,17 @@ image<float> render_scene(
     const std::vector<double> &lambda_nm_profile
 )
 {
-    std::mt19937 thread_rng(1235);
+    std::ranlux24 thread_rng(1235);
     sample_scratch scratch(sampling_profile.size());
 
     image<float> result({img_rows, img_cols, 3}, 0.0f);
 
-# pragma omp parallel for             \
+# pragma omp parallel for              \
     firstprivate(thread_rng, scratch) \
     schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)
     {
+        scratch.sample_idx = thread_rng();
         for(size_t cc = 0; cc < img_cols; ++cc)
         {
             color_d_XYZ cur_XYZ = shade_pixel(
