@@ -47,8 +47,8 @@
 (define cam
   (bsta/cam/make
    "pinhole"
-   `((center . ,(arma/dvec '(-8 -8 6)))
-     (eye . ,(arma/dvec '(1 1 -0.75)))
+   `((center . ,(arma/dvec '(-10 -10 6)))
+     (eye . ,(arma/dvec '(1 1 -0.3)))
      (aperture-vec . ,(arma/dvec '(0.04 0.018 0.012))))))
 
 (bsta/scene/crush scene)
