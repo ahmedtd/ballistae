@@ -5,43 +5,32 @@
 
 #include <libballistae/affine_transform.hh>
 
-#include <libguile_ballistae/utility.hh>
+#include <libguile_ballistae/libguile_ballistae.hh>
 
 namespace ballistae_guile
 {
 
-scm_t_bits affine_transform_subsmob_flags;
-
 namespace affine_transform
 {
-
-namespace bl = ballistae;
 
 SCM compose(SCM rest_scm)
 {
     bl::affine_transform<double, 3> total;
 
-    //rest_scm = scm_reverse(rest_scm);
     for(SCM cur = rest_scm; !scm_is_null(cur); cur = scm_cdr(cur))
     {
-        auto cur_p = smob_get_data<bl::affine_transform<double, 3>*>(scm_car(cur));
-        total = (*cur_p) * total;
-        scm_remember_upto_here_1(cur);
+        SCM aff = ensure_smob(scm_car(cur), flag_affine_transform);
+        total = from_scm(aff) * total;
     }
 
     auto affine_p = new bl::affine_transform<double, 3>(total);
-
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 SCM identity()
 {
     auto affine_p = new bl::affine_transform<double, 3>();
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 SCM translation(SCM t_scm)
@@ -55,9 +44,7 @@ SCM translation(SCM t_scm)
 
     scm_remember_upto_here_1(t_scm);
 
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 SCM scaling(SCM s_scm)
@@ -68,9 +55,7 @@ SCM scaling(SCM s_scm)
         bl::scaling<double, 3>(s)
     );
 
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 SCM rotation(SCM axis_scm, SCM angle_scm)
@@ -85,9 +70,7 @@ SCM rotation(SCM axis_scm, SCM angle_scm)
 
     scm_remember_upto_here_1(axis_scm);
 
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 SCM basis_mapping(SCM t0_scm, SCM t1_scm, SCM t2_scm)
@@ -107,31 +90,12 @@ SCM basis_mapping(SCM t0_scm, SCM t1_scm, SCM t2_scm)
         bl::basis_mapping<double>(t0, t1, t2)
     );
 
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(affine_p));
-    SCM_SET_SMOB_FLAGS(result, affine_transform_subsmob_flags);
-    return result;
-}
-
-SCM affine_transform_p(SCM obj)
-{
-    return scm_from_bool(
-        scm_is_true(ballistae_p(obj))
-        && SCM_SMOB_FLAGS(obj) == affine_transform_subsmob_flags
-    );
-}
-
-SCM ensure_type(SCM obj)
-{
-    scm_assert_smob_type(smob_tag, obj);
-    if(SCM_SMOB_FLAGS(obj) != affine_transform_subsmob_flags)
-        scm_wrong_type_arg(nullptr, SCM_ARG1, obj);
-
-    return obj;
+    return new_smob(flag_affine_transform, affine_p);
 }
 
 bl::affine_transform<double, 3> from_scm(SCM t_scm)
 {
-    ensure_type(t_scm);
+    ensure_smob(t_scm, flag_affine_transform);
     return *smob_get_data<bl::affine_transform<double, 3>*>(t_scm);
 }
 
@@ -162,10 +126,8 @@ SCM subsmob_equalp(SCM a, SCM b)
     return (a_p == b_p) ? SCM_BOOL_T : SCM_BOOL_F;
 }
 
-void init(std::vector<subsmob_fns> &ss_dispatch)
+subsmob_fns init()
 {
-    affine_transform_subsmob_flags = ss_dispatch.size();
-
     scm_c_define_gsubr("bsta/backend/aff-t/identity",      0, 0, 0, (scm_t_subr) identity);
     scm_c_define_gsubr("bsta/backend/aff-t/translation",   1, 0, 0, (scm_t_subr) translation);
     scm_c_define_gsubr("bsta/backend/aff-t/scaling",       1, 0, 0, (scm_t_subr) scaling);
@@ -173,7 +135,7 @@ void init(std::vector<subsmob_fns> &ss_dispatch)
     scm_c_define_gsubr("bsta/backend/aff-t/basis-mapping", 3, 0, 0, (scm_t_subr) basis_mapping);
     scm_c_define_gsubr("bsta/backend/aff-t/compose",       0, 0, 1, (scm_t_subr) compose);
 
-    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
+    return {&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp};
 }
 
 }

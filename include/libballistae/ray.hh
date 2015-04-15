@@ -4,6 +4,7 @@
 #include <armadillo>
 
 #include <libballistae/affine_transform.hh>
+#include <libballistae/span.hh>
 
 namespace ballistae
 {
@@ -16,9 +17,8 @@ namespace ballistae
 template<class Field, size_t Dim>
 struct ray
 {
-    using vec_type = typename arma::Col<Field>::template fixed<Dim>;
-    vec_type point;
-    vec_type slope;
+    fixvec<double, 3> point;
+    fixvec<double, 3> slope;
 };
 
 template<size_t Dim>
@@ -43,6 +43,33 @@ ray<Field, Dim> operator*(
         a.linear * b.point + a.offset,
             arma::normalise(a.linear * b.slope)
     };
+}
+
+template<class Field, size_t D>
+struct ray_segment
+{
+    ray<Field, D> the_ray;
+    span<Field> the_segment;
+};
+
+template<class Field, size_t Dim>
+ray_segment<Field, Dim> operator*(
+    const affine_transform<Field, Dim> &a,
+    const ray_segment<Field, Dim> &b
+)
+{
+    ray_segment<Field, Dim> result;
+
+    result.the_ray.point = a * b.the_ray.point;
+    result.the_ray.slope = a.linear * b.the_ray.slope;
+
+    // Assume that the input ray has unit slope.
+    double scale_factor = arma::norm(result.the_ray.slope);
+    result.the_ray.slope /= scale_factor;
+
+    result.the_segment = scale_factor * b.the_segment;
+
+    return result;
 }
 
 }

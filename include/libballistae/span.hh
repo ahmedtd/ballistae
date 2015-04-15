@@ -1,6 +1,7 @@
 #ifndef LIBBALLISTAE_SPAN_HH
 #define LIBBALLISTAE_SPAN_HH
 
+#include <array>
 #include <limits>
 
 namespace ballistae
@@ -110,6 +111,14 @@ std::array<span<Field>, 2> cut(const span<Field> &a, const Field &cut)
     hi.lo = cut;
 
     return {lo, hi};
+}
+
+template<class FieldA, class FieldB>
+auto operator*(const FieldA &a, const span<FieldB> b)
+{
+    // TODO: think carefully about multiplication by a negative number.
+    span<decltype(a * b.lo)> result = {a * b.lo, a * b.hi};
+    return result;
 }
 
 }

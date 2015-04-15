@@ -7,56 +7,53 @@
 
 #include <armadillo>
 
-#include <libballistae/camera_plugin_interface.hh>
+#include <libballistae/camera.hh>
+#include <libballistae/color.hh>
 #include <libballistae/contact.hh>
-#include <libballistae/geom_plugin_interface.hh>
+#include <libballistae/geometry.hh>
+#include <libballistae/illuminator.hh>
 #include <libballistae/image.hh>
-#include <libballistae/matr_plugin_interface.hh>
+#include <libballistae/material.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/span.hh>
-#include <libballistae/spectrum.hh>
 
 namespace ballistae
 {
 
 std::tuple<contact<double>, size_t> scene_ray_intersect(
     const scene &the_scene,
-    const dray3 &query,
-    const span<double> &must_overlap,
+    const ray_segment<double, 3> &query,
     std::ranlux24 &thread_rng
 )
 {
     contact<double> min_contact;
     min_contact.t = std::numeric_limits<double>::infinity();
-    size_t min_geomind = the_scene.geometries.size();
+    size_t min_ind = the_scene.elements.size();
 
-    // TODO: scale must_overlap properly by the forward transform.
-
-    ray<double, 3> tform_query;
-
-    for(std::size_t cur_geomind = 0;
-        cur_geomind < the_scene.geometries.size();
-        ++cur_geomind)
+    for(size_t i = 0; i < the_scene.elements.size(); ++i)
     {
-        contact<double> mdl_contact
-            = the_scene.geometries[cur_geomind]->ray_into(
-                the_scene,
-                the_scene.trans_for[cur_geomind] * query,
-                must_overlap,
-                thread_rng
-            );
+        const auto &geom  = the_scene.elements[i].the_geometry;
+        const auto &ftran = the_scene.elements[i].forward_transform;
+        const auto &rtran = the_scene.elements[i].reverse_transform;
 
-        contact<double> glb_contact
-            = the_scene.trans_inv[cur_geomind] * mdl_contact;
+        auto mdl_query = ftran * query;
+
+        contact<double> mdl_contact = geom->ray_into(
+            the_scene,
+            mdl_query,
+            thread_rng
+        );
+
+        contact<double> glb_contact = rtran * mdl_contact;
 
         if(glb_contact.t <= min_contact.t)
         {
             min_contact = glb_contact;
-            min_geomind = cur_geomind;
+            min_ind = i;
         }
     }
 
-    return std::make_tuple(min_contact, min_geomind);
+    return std::make_tuple(min_contact, min_ind);
 }
 
 static inline arma::vec3 scan_plane_to_image_space(
@@ -89,18 +86,24 @@ shade_info<double> shade_ray(
     std::ranlux24 &thread_rng
 )
 {
-    contact<double> glb_contact;
-    size_t c_geomind;
-    std::tie(glb_contact, c_geomind) = scene_ray_intersect(
-        the_scene,
+    ray_segment<double, 3> refl_query = {
         reflected_ray,
-        {0.0, std::numeric_limits<double>::infinity()},
+        {epsilon<double>(), std::numeric_limits<double>::infinity()}
+    };
+
+    contact<double> glb_contact;
+    size_t element_index;
+    std::tie(glb_contact, element_index) = scene_ray_intersect(
+        the_scene,
+        refl_query,
         thread_rng
     );
 
-    if(c_geomind < the_scene.materials.size())
+    if(element_index < the_scene.elements.size())
     {
-        auto shade_result = the_scene.materials[c_geomind]->shade(
+        const auto &matr = the_scene.elements[element_index].the_material;
+
+        auto shade_result = matr->shade(
             the_scene,
             glb_contact,
             lambda_nm,
@@ -114,7 +117,7 @@ shade_info<double> shade_ray(
     {
         return shade_info<double> {
             0.0,
-            0.0,
+            0,
             {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}
         };
     }
@@ -195,15 +198,15 @@ double sample_ray(
             scratch.k_stack[i] = shading.propagation_k;
             scratch.r_stack[i] = shading.incident_ray;
 
-            // Terminate this branch early if we won't use any power from lower
-            // levels.
-            if(scratch.k_stack[i] == 0.0)
-            {
-                ++scratch.c_stack[i];
-            }
-
             ++scratch.c_stack[i];
-            ++i;
+
+            // Only move down a level if we will actually use any of the power.
+            // Also, any material that returns a 0.0 for propagation_k probably
+            // did not provide a real ray to recurse on.
+            if(scratch.k_stack[i] != 0.0)
+            {
+                ++i;
+            }
         }
         else
         {
@@ -224,7 +227,7 @@ color_d_XYZ shade_pixel(
     const std::size_t cur_col,
     const std::size_t img_rows,
     const std::size_t img_cols,
-    const std::shared_ptr<const camera_priv> &the_camera,
+    const camera &the_camera,
     const scene &the_scene,
     unsigned int ss_factor,
     std::ranlux24 &rng,
@@ -248,7 +251,7 @@ color_d_XYZ shade_pixel(
                 ss_pert_dist
             );
 
-            dray3 cur_query = the_camera->image_to_ray(image_coords);
+            dray3 cur_query = the_camera.image_to_ray(image_coords);
 
             for(double lambda_nm : lambda_nm_profile)
             {
@@ -273,7 +276,7 @@ color_d_XYZ shade_pixel(
 image<float> render_scene(
     const std::size_t img_rows,
     const std::size_t img_cols,
-    const std::shared_ptr<const camera_priv> &the_camera,
+    const camera &the_camera,
     const scene &the_scene,
     unsigned int ss_factor,
     std::atomic_size_t &cur_progress,

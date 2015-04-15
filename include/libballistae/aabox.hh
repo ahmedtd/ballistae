@@ -74,8 +74,7 @@ std::array<aabox<Field, D>, 2> cut(
 
 template<typename Field, size_t D>
 bool ray_test(
-    const ray<Field, D> &r,
-    const span<double> &must_overlap,
+    const ray_segment<Field, D> &r,
     const aabox<Field, D> &b)
 {
     using std::swap;
@@ -88,20 +87,20 @@ bool ray_test(
     for(size_t i = 0; i < D; ++i)
     {
         span<double> cur = {
-            -(r.point(i) - b.spans[i].lo) / r.slope(i),
-            (r.point(i) - b.spans[i].hi) / r.slope(i)
+            (b.spans[i].lo - r.the_ray.point(i)) / r.the_ray.slope(i),
+            (b.spans[i].hi - r.the_ray.point(i)) / r.the_ray.slope(i)
         };
 
         if(cur.hi < cur.lo)
             swap(cur.lo, cur.hi);
 
-        if(!(overlaps(cover, cur)))
+        if(!(overlaps(r.the_segment, cur)))
             return false;
 
         cover = max_intersecting(cover, cur);
     }
 
-    return overlaps(cover, must_overlap);
+    return overlaps(cover, r.the_segment);
 }
 
 }

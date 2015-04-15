@@ -14,7 +14,7 @@ libguile_ballistae_LFLAGS :=
 libguile_ballistae_LFLAGS += $(armadillo4_LIBS)
 libguile_ballistae_LFLAGS += $(guile2_LIBS)
 libguile_ballistae_LFLAGS += -Lsrc/libballistae/ -lballistae
-libfuile_ballistae_LFLAGS += -Lsrc/libguile_armadillo -lguile_armadillo
+libguile_ballistae_LFLAGS += -Lsrc/libguile_armadillo -lguile_armadillo
 
 # Load auto dependencies
 $(guile (augmk/gcc/autodep-cc "$(libguile_ballistae_srcs)" \

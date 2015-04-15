@@ -5,9 +5,11 @@
 #include <libguile.h>
 
 #include <libguile_ballistae/affine_transform.hh>
-#include <libguile_ballistae/camera_instance.hh>
-#include <libguile_ballistae/geom_instance.hh>
-#include <libguile_ballistae/matr_instance.hh>
+#include <libguile_ballistae/camera.hh>
+#include <libguile_ballistae/dense_signal.hh>
+#include <libguile_ballistae/geometry.hh>
+#include <libguile_ballistae/illuminator.hh>
+#include <libguile_ballistae/material.hh>
 #include <libguile_ballistae/scene.hh>
 
 namespace ballistae_guile
@@ -16,27 +18,64 @@ namespace ballistae_guile
 scm_t_bits smob_tag;
 std::vector<subsmob_fns> subsmob_dispatch_table;
 
+SCM ensure_smob(SCM obj, scm_t_bits flag)
+{
+    scm_assert_smob_type(smob_tag, obj);
+    if(get_subsmob_type(obj) != flag)
+        scm_wrong_type_arg(nullptr, SCM_ARG1, obj);
+    return obj;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Functions related to registration with a scene.
+////////////////////////////////////////////////////////////////////////////////
+
+bool is_registered(SCM obj)
+{
+    return SCM_SMOB_FLAGS(obj) & mask_registered;
+}
+
+SCM set_registered(SCM obj, bool registered)
+{
+    scm_t_bits bits = SCM_SMOB_FLAGS(obj);
+    if(registered)
+        bits = (bits | mask_registered) & 0xffff;
+    else
+        bits = (bits & ~mask_registered) & 0xffff;
+    SCM_SET_SMOB_FLAGS(obj, bits);
+    return obj;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Functions for getting/setting subsmob type.
+////////////////////////////////////////////////////////////////////////////////
+
+scm_t_bits get_subsmob_type(SCM obj)
+{
+    return SCM_SMOB_FLAGS(obj) & mask_subsmob_type;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Forwarders for essential subsmob functions.
 ////////////////////////////////////////////////////////////////////////////////
 
 size_t smob_free(SCM obj)
 {
-    scm_t_bits flags = SCM_SMOB_FLAGS(obj);
+    scm_t_bits flags = get_subsmob_type(obj);
     smob_free_t free_fn = subsmob_dispatch_table[flags].free_fn;
     return (*free_fn)(obj);
 }
 
 SCM smob_mark(SCM obj)
 {
-    scm_t_bits flags = SCM_SMOB_FLAGS(obj);
+    scm_t_bits flags = get_subsmob_type(obj);
     smob_mark_t mark_fn = subsmob_dispatch_table[flags].mark_fn;
     return (*mark_fn)(obj);
 }
 
 int smob_print(SCM obj, SCM port, scm_print_state *pstate)
 {
-    scm_t_bits flags = SCM_SMOB_FLAGS(obj);
+    scm_t_bits flags = get_subsmob_type(obj);
     smob_print_t print_fn = subsmob_dispatch_table[flags].print_fn;
     return (*print_fn)(obj, port, pstate);
 }
@@ -46,8 +85,8 @@ SCM smob_equalp(SCM a, SCM b)
     // The equalp forwarder is a little more complex -- it needs to ensure the
     // two provided smobs are of the same subsmob type before dispatching.
 
-    scm_t_bits flags_a = SCM_SMOB_FLAGS(a);
-    scm_t_bits flags_b = SCM_SMOB_FLAGS(b);
+    scm_t_bits flags_a = get_subsmob_type(a);
+    scm_t_bits flags_b = get_subsmob_type(b);
 
     if(flags_a != flags_b)
     {
@@ -87,22 +126,15 @@ extern "C" void libguile_ballistae_init()
     scm_set_smob_print( bg::smob_tag, &bg::smob_print );
     scm_set_smob_equalp(bg::smob_tag, &bg::smob_equalp);
    
-    std::vector<bg::init_t> subsmob_inits = {
-        &bg::scene::init,
-        &bg::camera_instance::init,
-        &bg::geom_instance::init,
-        &bg::matr_instance::init,
-        &bg::affine_transform::init
+    bg::subsmob_dispatch_table = {
+        bg::scene::init(),
+        bg::camera::init(),
+        bg::geometry::init(),
+        bg::material::init(),
+        bg::illuminator::init(),
+        bg::affine_transform::init(),
+        bg::dense_signal::init()
     };
-
-    // Loop through our compiled list of subsmob init functions, invoking each
-    // and recording the essential subsmob functions it hands back.
-    for(auto cur_init_fn : subsmob_inits)
-    {
-        // The sub-init function will take as many flag values as it needs, and
-        // register its subsmob into the dispatch table.
-        (*cur_init_fn)(bg::subsmob_dispatch_table);
-    }
 
     scm_c_define_gsubr(
         "ballistae?", 1, 0, 0,

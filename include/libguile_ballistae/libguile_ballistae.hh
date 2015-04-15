@@ -10,13 +10,13 @@
 /// Entry point for the library.
 ////////////////////////////////////////////////////////////////////////////////
 ///
-/// The library should be loaded from the guile interpreter using the form
-///
-///     (load-extension "libballistae_guile" "libballistae_guile_init")
+/// The library has a corresponding scheme file that should be used for loading.
 extern "C" void libguile_ballistae_init() __attribute__((visibility("default")));
 
 namespace ballistae_guile
 {
+
+namespace bl = ballistae;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Is [obj] a ballistae smob?
@@ -37,6 +37,71 @@ using smob_equalp_t = SCM (*)(SCM, SCM);
 /// extension will define.  Sub-types can be identified using the smob's 16-bit
 /// flag field, accessed using SCM_SMOB_FLAGS.
 extern scm_t_bits smob_tag;
+
+////////////////////////////////////////////////////////////////////////////////
+/// Subsmob tags.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Values used in the 16-bit flag field.
+constexpr scm_t_bits flag_scene            = 0;
+constexpr scm_t_bits flag_camera           = 1;
+constexpr scm_t_bits flag_geometry         = 2;
+constexpr scm_t_bits flag_material         = 3;
+constexpr scm_t_bits flag_illuminator      = 4;
+constexpr scm_t_bits flag_affine_transform = 5;
+constexpr scm_t_bits flag_dense_signal     = 6;
+
+////////////////////////////////////////////////////////////////////////////////
+/// Manipulation of subsmob types.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// The MSB of the flags field is used to track whether or not the subsmob has
+/// been registered with a scene.  If it is, then the scene controls the
+/// lifetime of the allocated object, not the smob.
+
+constexpr scm_t_bits mask_subsmob_type = 0x0fff;
+constexpr scm_t_bits mask_registered = 0x8000;
+
+bool is_registered(SCM obj);
+SCM set_registered(SCM obj, bool status);
+
+SCM set_subsmob_type(SCM obj, scm_t_bits type);
+scm_t_bits get_subsmob_type(SCM obj);
+
+////////////////////////////////////////////////////////////////////////////////
+/// Create a ballistae smob with given flags and data.
+////////////////////////////////////////////////////////////////////////////////
+template<class Data>
+SCM new_smob(scm_t_bits flag, Data data)
+{
+    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(data));
+    SCM_SET_SMOB_FLAGS(result, flag);
+    return result;
+}
+
+SCM ensure_smob(SCM obj, scm_t_bits flag);
+
+template<typename T>
+T smob_get_data(SCM obj)
+{
+    static_assert(
+        sizeof(T) == sizeof(scm_t_bits),
+        "Type to retrieve must be the same size as scm_t_bits."
+    );
+
+    return reinterpret_cast<T>(SCM_SMOB_DATA(obj));
+}
+
+template<typename T>
+SCM smob_set_data(SCM obj, T data)
+{
+    static_assert(
+        sizeof(T) == sizeof(scm_t_bits),
+        "Type to store must be the same size as scm_t_bits."
+    );
+
+    return SCM_SET_SMOB_DATA(obj, reinterpret_cast<scm_t_bits>(data));
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 /// The required functions for a subsmob.

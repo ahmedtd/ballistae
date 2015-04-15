@@ -31,6 +31,32 @@
     realpath))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Functions for generating sampling distributions.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (bsta/linspace src lim n)
+  (let* ((result-list `(,src))
+         (step (/ (- lim src) n))
+         (cur-val (+ src step)))
+    (while (< cur-val lim)
+           (set! result-list (append! result-list `(,cur-val)))
+           (set! cur-val (+ cur-val step)))
+    result-list))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Functions for dense signals.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (bsta/dsig/from-list src-val lim-val val-list)
+  (bsta/backend/dense-signal/from-list src-val lim-val val-list))
+
+(define-public (bsta/dsig/pulse pulse-src pulse-lim pulse-power)
+  (bsta/backend/dense-signal/pulse pulse-src pulse-lim pulse-power))
+
+(define-public (bsta/dsig/rgb-to-spectral red green blue)
+  (bsta/backend/dense-signal/rgb-to-spectral red green blue))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions dealing with affine transform subsmobs.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -57,8 +83,11 @@ AXIS does not need to be normalized."
   "A transform that maps the current principle axes to E0,E1,E2."
   (bsta/backend/aff-t/basis-mapping e0 e1 e2))
 
-(define*-public (bsta/aff-t/* #:rest tform-list)
-  "Compose TFORM-LIST to a single transform, from left to right."
+(define*-public (bsta/aff-t/compose #:rest tform-list)
+  "Compose TFORM-LIST to a single transform.
+
+Multiplication proceeds in list order, with the first element forming the base
+transform and every subsequent element left-multiplied in."
   (apply bsta/backend/aff-t/compose tform-list))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -76,6 +105,13 @@ AXIS does not need to be normalized."
   (bsta/backend/matr/make plug-soname config-alist))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Functions for illuminators
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (bsta/illum/make name config-alist)
+  (bsta/backend/illum/make name config-alist))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions dealing with cameras.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -91,7 +127,10 @@ AXIS does not need to be normalized."
     "Create a new scene."
     (bsta/backend/scene/make)))
 
-(define*-public (bsta/scene/add scene geometry material #:optional transform)
+(define*-public (bsta/scene/add-element scene
+                                        geometry
+                                        material
+                                        #:optional transform)
   "Add GEOMETRY to SCENE.
 
 It will be rendered with the specified MATERIAL, and TRANSFORM, if
@@ -99,7 +138,11 @@ present, specifies the affine mapping from world space to model space.
 "
   ;; If the user didn't specify a transform, use identity.
   (unless transform (set! transform (bsta/aff-t/identity)))
-  (bsta/backend/scene/add scene geometry material transform))
+  (bsta/backend/scene/add-element scene geometry material transform))
+
+(define*-public (bsta/scene/add-illuminator scene illuminator)
+  "Add ILLUMINATOR to SCENE."
+  (bsta/backend/scene/add-illuminator scene illuminator))
 
 (define*-public (bsta/scene/crush scene)
   "Make SCENE ready for rendering."

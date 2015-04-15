@@ -3,14 +3,15 @@ $(guile (augmk/enter "libguile_armadillo"))
 $(guile (augmk/enter "libguile_ballistae"))
 
 # Camera plugins
-$(guile (augmk/enter "ballistae_camera_plugin_pinhole"))
+$(guile (augmk/enter "ballistae_camera_pinhole"))
 
 # Geometry plugins
-$(guile (augmk/enter "ballistae_geom_plugin_cylinder"))
-$(guile (augmk/enter "ballistae_geom_plugin_infty"))
-$(guile (augmk/enter "ballistae_geom_plugin_plane"))
-$(guile (augmk/enter "ballistae_geom_plugin_sphere"))
-$(guile (augmk/enter "ballistae_geom_plugin_surface_mesh"))
+$(guile (augmk/enter "ballistae_geometry_cylinder"))
+$(guile (augmk/enter "ballistae_geometry_infinity"))
+$(guile (augmk/enter "ballistae_geometry_plane"))
+$(guile (augmk/enter "ballistae_geometry_sphere"))
+$(guile (augmk/enter "ballistae_geometry_surface_mesh"))
 
 # Material plugins
-$(guile (augmk/enter "ballistae_matr_plugin_phong"))
+$(guile (augmk/enter "ballistae_material_phong"))
+$(guile (augmk/enter "ballistae_material_nonconductive_smooth"))

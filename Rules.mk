@@ -2,7 +2,7 @@ CC  := gcc
 CXX := g++
 
 # We use C++14, with GNU extensions, across the board.
-override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fassociative-math
+override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fassociative-math -Wno-free-nonheap-object
 
 # Find armadillo.
 #

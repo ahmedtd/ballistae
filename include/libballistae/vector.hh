@@ -26,6 +26,22 @@ fixvec<Field, Dim> reject(const fixvec<Field, Dim> &a, const fixvec<Field, Dim> 
     return b - arma::normalise(a) * (arma::dot(a, b) / arma::norm(a));
 }
 
+template<class Field, size_t Dim>
+fixvec<Field, Dim> reflect(
+    const fixvec<Field, Dim> &a,
+    const fixvec<Field, Dim> &n
+)
+{
+    using arma::dot;
+    return a - Field(2) * dot(a, n) * n;
+}
+
+template<class Field>
+constexpr Field epsilon()
+{
+    return Field(1) / Field(10000);
+}
+
 }
 
 #endif

@@ -19,36 +19,32 @@
 
 #include <armadillo>
 
-#include <libballistae/camera_plugin_interface.hh>
-#include <libballistae/geom_plugin_interface.hh>
+#include <libballistae/camera.hh>
+#include <libballistae/geometry.hh>
+#include <libballistae/illuminator.hh>
 #include <libballistae/image.hh>
-#include <libballistae/matr_plugin_interface.hh>
+#include <libballistae/material.hh>
 #include <libballistae/render_scene.hh>
 #include <libballistae/scene.hh>
 
+#include <libguile_ballistae/libguile_ballistae.hh>
 #include <libguile_ballistae/affine_transform.hh>
-#include <libguile_ballistae/camera_instance.hh>
-#include <libguile_ballistae/geom_instance.hh>
-#include <libguile_ballistae/matr_instance.hh>
-#include <libguile_ballistae/utility.hh>
+#include <libguile_ballistae/camera.hh>
+#include <libguile_ballistae/geometry.hh>
+#include <libguile_ballistae/illuminator.hh>
+#include <libguile_ballistae/material.hh>
 
 namespace ballistae_guile
 {
 
-scm_t_bits scene_subsmob_flags;
-
 namespace scene
 {
-
-namespace bl = ballistae;
 
 SCM make_backend()
 {
     // The pointer will be deleted when the smob is freed.
     auto scene_p = new ballistae::scene();
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(scene_p));
-    SCM_SET_SMOB_FLAGS(result, scene_subsmob_flags);
-    return result;
+    return new_smob(flag_scene, scene_p);
 }
 
 bl::scene* p_from_scm(SCM scene)
@@ -56,18 +52,78 @@ bl::scene* p_from_scm(SCM scene)
     return smob_get_data<bl::scene*>(scene);
 }
 
-SCM add_backend(SCM scene, SCM geometry, SCM material, SCM transform)
+////////////////////////////////////////////////////////////////////////////////
+/// Functions for registering components into a scene.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// These functions are idempotent, and should be safe against garbage
+/// collection running during their extent.
+
+SCM register_geometry(SCM scene, SCM geometry)
 {
-    auto scene_p = scene::p_from_scm(scene);
-    auto geometry_p = geom_instance::sp_from_scm(geometry);
-    auto material_p = matr_instance::sp_from_scm(material);
-    auto transform_v = affine_transform::from_scm(transform);
+    if(! is_registered(geometry))
+    {
+        set_registered(geometry, true);
 
-    scene_p->geometries.push_back(geometry_p);
-    scene_p->materials.push_back(material_p);
-    scene_p->trans_for.push_back(bl::inverse(transform_v));
-    scene_p->trans_inv.push_back(transform_v);
+        auto scene_p = scene::p_from_scm(scene);
+        auto geom_p = geometry::p_from_scm(geometry);
 
+        scene_p->geometries.push_back(std::unique_ptr<bl::geometry>(geom_p));
+    }
+
+    return scene;
+}
+
+SCM register_material(SCM scene, SCM material)
+{
+    if(! is_registered(material))
+    {
+        set_registered(material, true);
+
+        auto scene_p = scene::p_from_scm(scene);
+        auto matr_p = material::p_from_scm(material);
+
+        scene_p->materials.push_back(std::unique_ptr<bl::material>(matr_p));
+    }
+
+    return scene;
+}
+
+SCM register_illuminator(SCM scene, SCM illuminator)
+{
+    if(! is_registered(illuminator))
+    {
+        set_registered(illuminator, true);
+
+        auto scene_p = scene::p_from_scm(scene);
+        auto illum_p = illuminator::p_from_scm(illuminator);
+
+        scene_p->illuminators.push_back(std::unique_ptr<bl::illuminator>(illum_p));
+    }
+
+    return scene;
+}
+
+SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
+{
+    register_geometry(scene, geometry);
+    register_material(scene, material);
+
+    bl::scene_element elt = {
+        geometry::p_from_scm(geometry),
+        material::p_from_scm(material),
+        bl::inverse(affine_transform::from_scm(transform)),
+        affine_transform::from_scm(transform)
+    };
+
+    scene::p_from_scm(scene)->elements.push_back(elt);
+
+    return scene;
+}
+
+SCM add_illuminator(SCM scene, SCM illuminator)
+{
+    register_illuminator(scene, illuminator);
     return scene;
 }
 
@@ -113,8 +169,8 @@ void print_progress_bar(
 }
 
 SCM render_backend(
-    SCM scene_scm,
-    SCM camera_scm,
+    SCM scene,
+    SCM camera,
     SCM output_file_scm,
     SCM img_rows_scm,
     SCM img_cols_scm,
@@ -125,9 +181,6 @@ SCM render_backend(
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
 
-    auto cam_p
-        = *smob_get_data<std::shared_ptr<ballistae::camera_priv>*>(camera_scm);
-    auto the_scene = smob_get_data<ballistae::scene*>(scene_scm);
     auto output_file = scm_to_utf8_stringn(output_file_scm, nullptr);
     scm_dynwind_free(output_file);
     std::size_t img_rows = scm_to_size_t(img_rows_scm);
@@ -169,8 +222,8 @@ SCM render_backend(
     bl::image<float> hdr_img = ballistae::render_scene(
         img_rows,
         img_cols,
-        cam_p,
-        *the_scene,
+        *camera::p_from_scm(camera),
+        *scene::p_from_scm(scene),
         ss_factor,
         cur_progress,
         sample_profile,
@@ -191,9 +244,6 @@ SCM render_backend(
 
     // Wait for the progress bar to finish
     progress_bar_future.get();
-
-    scm_remember_upto_here_1(camera_scm);
-    scm_remember_upto_here_1(scene_scm);
 
     scm_dynwind_end();
 
@@ -230,16 +280,15 @@ SCM subsmob_equalp(SCM a, SCM b)
     return scm_from_bool(a_p == b_p);
 }
 
-void init(std::vector<subsmob_fns> &ss_dispatch)
+subsmob_fns init()
 {
-    scene_subsmob_flags = ss_dispatch.size();
-
     scm_c_define_gsubr("bsta/backend/scene/make", 0, 0, 0, (scm_t_subr) make_backend);
-    scm_c_define_gsubr("bsta/backend/scene/add", 4, 0, 0, (scm_t_subr) add_backend);
+    scm_c_define_gsubr("bsta/backend/scene/add-element", 4, 0, 0, (scm_t_subr) add_element);
+    scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush", 1, 0, 0, (scm_t_subr) crush_backend);
     scm_c_define_gsubr("bsta/backend/scene/render", 8, 0, 0, (scm_t_subr) render_backend);
 
-    ss_dispatch.push_back({&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp});
+    return {&subsmob_free, &subsmob_mark, &subsmob_print, &subsmob_equalp};
 }
 
 }

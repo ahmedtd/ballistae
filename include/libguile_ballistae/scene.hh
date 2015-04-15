@@ -16,7 +16,7 @@ extern scm_t_bits scene_subsmob_flags;
 namespace scene
 {
 
-void init(std::vector<subsmob_fns> &ss_dispatch);
+subsmob_fns init();
 
 ballistae::scene* p_from_scene(SCM scene);
 
