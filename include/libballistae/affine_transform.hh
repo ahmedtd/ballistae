@@ -63,12 +63,30 @@ fixvec<Field, Dim> operator*(
 
 template<class Field, size_t Dim>
 affine_transform<Field, Dim> inverse(
-    const affine_transform<Field, Dim> &a
+    const affine_transform<Field, Dim> &t
 )
 {
-    fixmat<Field, Dim, Dim> linear = arma::inv(a.linear);
-    fixvec<Field, Dim>      offset = -a.offset;
+    using arma::inv;
+    using arma::span;
+
+    fixmat<Field, Dim+1, Dim+1> total(arma::fill::eye);
+    total(span(0, Dim-1), span(0, Dim-1)) = t.linear;
+    total(span(0, Dim-1), span(Dim, Dim)) = t.offset;
+
+    fixmat<Field, Dim+1, Dim+1> inv_total = inv(total);
+
+    fixmat<Field, Dim, Dim> linear = inv_total(span(0, Dim-1), span(0, Dim-1));
+    fixvec<Field, Dim>      offset = inv_total(span(0, Dim-1), span(Dim, Dim));
     return {linear, offset};
+}
+
+template<class Field, size_t Dim>
+affine_transform<Field, Dim> identity()
+{
+    return {
+        fixmat<Field, Dim, Dim>(arma::fill::eye),
+        fixvec<Field, Dim>(arma::fill::zeros)
+    };
 }
 
 template<class Field, size_t Dim>
