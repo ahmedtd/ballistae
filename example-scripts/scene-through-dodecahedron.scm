@@ -65,5 +65,5 @@
                    "scene-through-dodecahedron.pfm"  ;; output file
                    864 1296                          ;; rows, columns
                    '(1 1 1 1 1 1)                    ;; depth profile
-                   (bsta/linspace 390 835 10)        ;; spectral profile
-                   0)                                ;; supersampling factor
+                   '(390 . 835)                      ;; spectral profile
+                   3)                                ;; supersampling factor

@@ -248,13 +248,16 @@ color_d_XYZ shade_pixel(
     unsigned int ss_factor,
     std::ranlux24 &rng,
     const std::vector<size_t> &sampling_profile,
-    const std::vector<double> &lambda_nm_profile,
+    const span<double> &sample_bandwidth,
     sample_scratch &scratch
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
 
     color_d_XYZ result = {{{0, 0, 0}}};
+
+    double lambda_step = measure(sample_bandwidth) / (1u << ss_factor);
+    double cur_lambda = sample_bandwidth.lo;
 
     for(size_t sr = 0; sr < (1u << ss_factor); ++sr)
     {
@@ -269,20 +272,19 @@ color_d_XYZ shade_pixel(
 
             dray3 cur_query = the_camera.image_to_ray(image_coords);
 
-            for(double lambda_nm : lambda_nm_profile)
-            {
-                double sampled_power = sample_ray(
-                    cur_query,
-                    the_scene,
-                    lambda_nm,
-                    rng,
-                    sampling_profile,
-                    scratch
-                );
+            double sampled_power = sample_ray(
+                cur_query,
+                the_scene,
+                cur_lambda,
+                rng,
+                sampling_profile,
+                scratch
+            ) / (1u << (ss_factor*2));
 
-                result += spectral_to_XYZ(lambda_nm, sampled_power);
-            }
+            result += spectral_to_XYZ(cur_lambda, sampled_power);
         }
+
+        cur_lambda += lambda_step;
     }
 
     return result;
@@ -297,7 +299,7 @@ image<float> render_scene(
     unsigned int ss_factor,
     std::atomic_size_t &cur_progress,
     const std::vector<size_t> &sampling_profile,
-    const std::vector<double> &lambda_nm_profile
+    const span<double> &sample_bandwidth
 )
 {
     std::ranlux24 thread_rng(1235);
@@ -321,7 +323,7 @@ image<float> render_scene(
                 ss_factor,
                 thread_rng,
                 sampling_profile,
-                lambda_nm_profile,
+                sample_bandwidth,
                 scratch
             );
 

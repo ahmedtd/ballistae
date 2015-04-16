@@ -176,7 +176,7 @@ SCM render_backend(
     SCM img_cols_scm,
     SCM ss_factor_scm,
     SCM sample_profile_scm,
-    SCM lambda_nm_profile_scm
+    SCM bandwidth_scm
 )
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
@@ -193,11 +193,10 @@ SCM render_backend(
         sample_profile.push_back(scm_to_size_t(scm_car(cur)));
     }
 
-    std::vector<double> lambda_nm_profile;
-    for(SCM cur = lambda_nm_profile_scm; !scm_is_null(cur); cur = scm_cdr(cur))
-    {
-        lambda_nm_profile.push_back(scm_to_double(scm_car(cur)));
-    }
+    bl::span<double> bandwidth = {
+        scm_to_double(scm_car(bandwidth_scm)),
+        scm_to_double(scm_cdr(bandwidth_scm))
+    };
 
     //
     // Below this point, no scheme exceptions may be thrown.
@@ -227,7 +226,7 @@ SCM render_backend(
         ss_factor,
         cur_progress,
         sample_profile,
-        lambda_nm_profile
+        bandwidth
     );
 
     // Stop the progress printer.
