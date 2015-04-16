@@ -1,5 +1,7 @@
 #include "tri_mesh.hh"
 
+#include <cmath>
+
 #include <libballistae/aabox.hh>
 #include <libballistae/kd_tree.hh>
 #include <libballistae/ray.hh>
@@ -22,8 +24,34 @@ tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx)
     return {mesh.m[idx.mi[0]], mesh.m[idx.mi[1]], mesh.m[idx.mi[2]]};
 }
 
-bl::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
+ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f)
 {
+    using std::minmax_element;
+
+    bl::fixvec<double, 3> v0 = f.v0;
+    bl::fixvec<double, 3> v1 = f.v0 + f.u;
+    bl::fixvec<double, 3> v2 = f.v0 + f.v;
+
+    std::array<double, 3> x = {v0(0), v1(0), v2(0)};
+    std::array<double, 3> y = {v0(1), v1(1), v2(1)};
+    std::array<double, 3> z = {v0(2), v1(2), v2(2)};
+
+    bl::aabox<double, 3> result = {
+        bl::from_ptr_pair(minmax_element(x.begin(), x.end())),
+        bl::from_ptr_pair(minmax_element(y.begin(), y.end())),
+        bl::from_ptr_pair(minmax_element(z.begin(), z.end()))
+    };
+
+    return result;
+}
+
+bl::kd_tree<double, 3, tri_face_crunched> crunch(
+    const tri_mesh &m,
+    size_t bucket_hint
+)
+{
+    using std::log;
+
     std::vector<tri_face_crunched> facets(m.f.size());
 
     for(size_t i = 0; i < m.f.size(); ++i)
@@ -47,22 +75,13 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
 
         cf.recip_denom = 1.0 / (cf.uu * cf.vv - cf.uv * cf.uv);
 
-        cf.bounds.spans[0] = {min(min(v.v0(0), v.v1(0)), v.v2(0)), max(max(v.v0(0), v.v1(0)), v.v2(0))};
-        cf.bounds.spans[1] = {min(min(v.v0(1), v.v1(1)), v.v2(1)), max(max(v.v0(1), v.v1(1)), v.v2(1))};
-        cf.bounds.spans[2] = {min(min(v.v0(2), v.v1(2)), v.v2(2)), max(max(v.v0(2), v.v1(2)), v.v2(2))};
-
         facets[i] = cf;
     }
-
-    // kd_tree uses get_aabox to compute aaboxes as it generates the tree.
-    auto get_aabox = [](const tri_face_crunched &f) -> bl::aabox<double, 3> {
-        return f.bounds;
-    };
 
     bl::kd_tree<double, 3, tri_face_crunched> result(
         std::begin(facets),
         std::end(facets),
-        64,
+        bucket_hint,
         get_aabox
     );
 
@@ -129,8 +148,6 @@ bl::contact<double> tri_mesh_contact(
     // When any stored object is indicated suspected to be relevant,
     // the kd_tree will call computor on it.
     auto computor = [&](const tri_face_crunched &face) -> void {
-        // if(! ray_test(r, face.bounds))
-        //     return;
         tri_contact c = tri_face_contact(r.the_ray, face, want_type);
         if((c.type & CONTACT_HIT)
            && bl::contains(r.the_segment, c.ray_t)

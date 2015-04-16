@@ -56,8 +56,6 @@ tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx);
 
 struct tri_face_crunched
 {
-    ballistae::aabox<double, 3> bounds;
-
     ballistae::fixvec<double, 3> v0;
     ballistae::fixvec<double, 3> u;
     ballistae::fixvec<double, 3> v;
@@ -69,7 +67,12 @@ struct tri_face_crunched
     double recip_denom;
 };
 
-ballistae::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m);
+ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f);
+
+ballistae::kd_tree<double, 3, tri_face_crunched> crunch(
+    const tri_mesh &m,
+    size_t bucket_hint
+);
 
 constexpr int CONTACT_INTO = (1 << 0);
 constexpr int CONTACT_EXIT = (1 << 1);

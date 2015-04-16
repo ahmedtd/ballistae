@@ -3,12 +3,14 @@
 
 #include <array>
 #include <limits>
+#include <type_traits>
+#include <utility>
 
 namespace ballistae
 {
 
 template<class Field>
-struct span final
+struct span
 {
     Field lo;
     Field hi;
@@ -27,6 +29,14 @@ struct span final
         };
     }
 };
+
+template<class FieldPtr>
+auto from_ptr_pair(const std::pair<FieldPtr, FieldPtr> &p)
+{
+    using Field = typename std::remove_pointer<FieldPtr>::type;
+    span<Field> result = {*(p.first), *(p.second)};
+    return result;
+}
 
 template<class Field>
 Field measure(const span<Field> &a)
