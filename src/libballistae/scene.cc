@@ -51,6 +51,22 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
             min_contact = glb_contact;
             min_ind = i;
         }
+
+        // Now check if there is a closer exit.
+
+        mdl_contact = geom->ray_exit(
+            the_scene,
+            mdl_query,
+            thread_rng
+        );
+
+        glb_contact = rtran * mdl_contact;
+
+        if(glb_contact.t <= min_contact.t)
+        {
+            min_contact = glb_contact;
+            min_ind = i;
+        }
     }
 
     return std::make_tuple(min_contact, min_ind);
