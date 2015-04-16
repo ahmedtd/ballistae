@@ -101,11 +101,9 @@ bl::shade_info<double> nc_smooth::shade(
     double coeff_refl = pow((1 - ab) / (1 + ab), 2);
     double coeff_tran = ab_i * pow(2 / (1 + ab_i), 2);
 
-    std::uniform_real_distribution<double> dist(0.0, coeff_refl + coeff_tran);
-
     bl::shade_info<double> result;
     result.emitted_power = 0.0;
-    if(dist(thread_rng) < coeff_refl)
+    if(thread_rng() % 2 == 0)
     {
         // Give the ray that contributed by reflection.
         result.propagation_k = coeff_refl;

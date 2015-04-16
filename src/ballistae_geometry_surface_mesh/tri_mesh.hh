@@ -56,6 +56,8 @@ tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx);
 
 struct tri_face_crunched
 {
+    ballistae::aabox<double, 3> bounds;
+
     ballistae::fixvec<double, 3> v0;
     ballistae::fixvec<double, 3> u;
     ballistae::fixvec<double, 3> v;

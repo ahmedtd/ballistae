@@ -67,4 +67,4 @@
                    864 1296                   ;; rows, columns
                    '(1 1 1)                   ;; depth profile
                    (bsta/linspace 390 835 10) ;; spectral profile
-                   2)                         ;; supersampling factor
+                   1)                         ;; supersampling factor

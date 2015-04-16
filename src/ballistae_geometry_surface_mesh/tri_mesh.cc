@@ -28,6 +28,9 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
 
     for(size_t i = 0; i < m.f.size(); ++i)
     {
+        using std::min;
+        using std::max;
+
         tri_face_verts v = load_face_v(m, m.f[i]);
         tri_face_crunched cf;
 
@@ -44,23 +47,16 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
 
         cf.recip_denom = 1.0 / (cf.uu * cf.vv - cf.uv * cf.uv);
 
+        cf.bounds.spans[0] = {min(min(v.v0(0), v.v1(0)), v.v2(0)), max(max(v.v0(0), v.v1(0)), v.v2(0))};
+        cf.bounds.spans[1] = {min(min(v.v0(1), v.v1(1)), v.v2(1)), max(max(v.v0(1), v.v1(1)), v.v2(1))};
+        cf.bounds.spans[2] = {min(min(v.v0(2), v.v1(2)), v.v2(2)), max(max(v.v0(2), v.v1(2)), v.v2(2))};
+
         facets[i] = cf;
     }
 
     // kd_tree uses get_aabox to compute aaboxes as it generates the tree.
     auto get_aabox = [](const tri_face_crunched &f) -> bl::aabox<double, 3> {
-        using std::min;
-        using std::max;
-
-        ballistae::fixvec<double, 3> v0 = f.v0;
-        ballistae::fixvec<double, 3> v1 = f.v0 + f.u;
-        ballistae::fixvec<double, 3> v2 = f.v0 + f.v;
-
-        bl::aabox<double, 3> result;
-        result.spans[0] = {min(min(v0(0), v1(0)), v2(0)), max(max(v0(0), v1(0)), v2(0))};
-        result.spans[1] = {min(min(v0(1), v1(1)), v2(1)), max(max(v0(1), v1(1)), v2(1))};
-        result.spans[2] = {min(min(v0(2), v1(2)), v2(2)), max(max(v0(2), v1(2)), v2(2))};
-        return result;
+        return f.bounds;
     };
 
     bl::kd_tree<double, 3, tri_face_crunched> result(
@@ -133,6 +129,8 @@ bl::contact<double> tri_mesh_contact(
     // When any stored object is indicated suspected to be relevant,
     // the kd_tree will call computor on it.
     auto computor = [&](const tri_face_crunched &face) -> void {
+        // if(! ray_test(r, face.bounds))
+        //     return;
         tri_contact c = tri_face_contact(r.the_ray, face, want_type);
         if((c.type & CONTACT_HIT)
            && bl::contains(r.the_segment, c.ray_t)

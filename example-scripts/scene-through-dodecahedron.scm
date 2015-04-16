@@ -18,13 +18,16 @@
 ;; The swapyz setting corrects for maya-style axes.
 (bsta/scene/add-element
  scene
- (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
+ (bsta/geom/make "surface_mesh" `((file . "dodecahedron.obj") (swapyz . #t)))
  (bsta/matr/make "nonconductive_smooth"
                   `((n-interior . 2.41)
                     (n-exterior . 1)))
  (bsta/aff-t/compose
-  (bsta/aff-t/scaling 40)
-  (bsta/aff-t/translation (arma/dvec '(0 0 0)))))
+  ;;(bsta/aff-t/scaling 40)
+  (bsta/aff-t/scaling 5)
+  ;;(bsta/aff-t/translation (arma/dvec '(0 0 0)))
+  (bsta/aff-t/translation (arma/dvec '(0 0 7)))
+  ))
 
 ;; Add a blue sphere
 (bsta/scene/add-element
@@ -59,8 +62,8 @@
 (bsta/scene/crush scene)
 
 (bsta/scene/render scene cam
-                   "scene-through-bunny.pfm"  ;; output file
-                   864 1296                   ;; rows, columns
-                   '(1 1 1)                   ;; depth profile
-                   (bsta/linspace 390 835 10) ;; spectral profile
-                   1)                         ;; supersampling factor
+                   "scene-through-dodecahedron.pfm"  ;; output file
+                   864 1296                          ;; rows, columns
+                   '(1 1 1 1 1 1)                    ;; depth profile
+                   (bsta/linspace 390 835 10)        ;; spectral profile
+                   0)                                ;; supersampling factor
