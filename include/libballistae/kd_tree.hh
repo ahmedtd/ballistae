@@ -227,15 +227,20 @@ kd_tree<Field, D, Stored>::kd_tree(
 
 template<typename Field, size_t D, typename Stored>
 template<typename Selector, typename Computor>
-void kd_tree<Field, D, Stored>::query(Selector selector, Computor computor)
+void kd_tree<Field, D, Stored>::query(
+    Selector selector,
+    Computor computor
+)
     const
 {
     static thread_local std::vector<size_t> work_stack(depth_lim);
     auto top = work_stack.begin();
     auto base = work_stack.begin();
 
-    *top = 0;
-    ++top;
+    auto bounds = [this](auto idx){return cuts[idx].bounds;};
+    auto select = [&top](auto idx){*top = idx; ++top;};
+
+    selector(select, bounds, 0, 0);
 
     while(top != base)
     {
@@ -244,35 +249,25 @@ void kd_tree<Field, D, Stored>::query(Selector selector, Computor computor)
 
         auto cur_cut = cuts[cur_idx];
 
-        if(selector(cur_cut.bounds))
+        if(cur_cut.link == std::numeric_limits<size_t>::max())
         {
-            if(cur_cut.link == std::numeric_limits<size_t>::max())
-            {
-                std::for_each(
-                    cur_cut.partitions[0],
-                    cur_cut.partitions[3],
-                    computor
-                );
-            }
-            else
-            {
-                // Push right child.
-                assert(cur_cut.link < cuts.size());
-                *top = cur_cut.link;
-                ++top;
+            std::for_each(
+                cur_cut.partitions[0],
+                cur_cut.partitions[3],
+                computor
+            );
+        }
+        else
+        {
+            // Ask the caller to test the left and right link.
+            selector(select, bounds, cur_idx + 1, cur_cut.link);
 
-                // Push left child (will be processed right now).
-                assert(cur_idx + 1 < cuts.size());
-                *top = cur_idx + 1;
-                ++top;
-
-                // Process elements that fall directly on the cut.
-                std::for_each(
-                    cur_cut.partitions[1],
-                    cur_cut.partitions[2],
-                    computor
-                );
-            }
+            // Process elements that fall directly on the cut.
+            std::for_each(
+                cur_cut.partitions[1],
+                cur_cut.partitions[2],
+                computor
+            );
         }
     }
 }

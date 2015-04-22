@@ -256,7 +256,9 @@ color_d_XYZ shade_pixel(
 
     color_d_XYZ result = {{{0, 0, 0}}};
 
-    double lambda_step = measure(sample_bandwidth) / (1u << ss_factor);
+    size_t n_samples = (1u << (ss_factor*2));
+
+    double lambda_step = measure(sample_bandwidth) / n_samples;
     double cur_lambda = sample_bandwidth.lo;
 
     for(size_t sr = 0; sr < (1u << ss_factor); ++sr)
@@ -282,9 +284,9 @@ color_d_XYZ shade_pixel(
             ) / (1u << (ss_factor*2));
 
             result += spectral_to_XYZ(cur_lambda, sampled_power);
-        }
 
-        cur_lambda += lambda_step;
+            cur_lambda += lambda_step;
+        }
     }
 
     return result;

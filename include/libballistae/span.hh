@@ -30,6 +30,13 @@ struct span
     }
 };
 
+template<class Field>
+bool isnan(const span<Field> &s)
+{
+    using std::isnan;
+    return isnan(s.lo) || isnan(s.hi);
+}
+
 template<class FieldPtr>
 auto from_ptr_pair(const std::pair<FieldPtr, FieldPtr> &p)
 {
@@ -49,7 +56,6 @@ bool overlaps(const span<Field> &a, const span<Field> &b)
 {
     return !(a.lo > b.hi || a.hi < b.lo);
 }
-
 
 template<class Field>
 bool contains(const span<Field> &a, const span<Field> &b)

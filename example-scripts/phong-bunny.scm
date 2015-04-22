@@ -33,7 +33,7 @@
  (bsta/illum/make "dir" `((spectrum  . ,(bsta/dsig/pulse 390 835 100))
                           (direction . ,(arma/dvec '(1 0 -1))))))
 
-(define cam (bsta/cam/make "pinhole" `((center . ,(arma/dvec '(-20 -20    12)))
+(define cam (bsta/cam/make "pinhole" `((center . ,(arma/dvec '(-20 -20    8)))
                                        (eye    . ,(arma/dvec '(  1   1 -0.3)))
                                        (aperture-vec . ,(arma/dvec '(0.05 0.018 0.012))))))
 
@@ -44,4 +44,4 @@
                    864 1296                          ;; rows, columns
                    '(1 1 1 1 1 1)                    ;; depth profile
                    '(390 . 835)                      ;; spectral profile
-                   0)                                ;; supersampling factor
+                   2)                                ;; supersampling factor

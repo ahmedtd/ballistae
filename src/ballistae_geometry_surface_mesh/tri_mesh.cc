@@ -141,8 +141,42 @@ bl::contact<double> tri_mesh_contact(
     least_contact.ray_t = std::numeric_limits<double>::infinity();
 
     // The kd_tree uses selector to drive the search.
-    auto selector = [&](const bl::aabox<double, 3> &bounds) -> bool {
-        return ray_test(r, bounds);
+    auto selector = [&](
+        auto &push,
+        auto &bounds,
+        size_t idxl,
+        size_t idxh
+    ) -> void {
+        using std::isnan;
+
+        // Handle root case.
+        if(idxl == 0 && ! isnan(ray_test(r, bounds(idxl))))
+        {
+            push(idxl);
+            return;
+        }
+
+        auto t_l = ray_test(r, bounds(idxl));
+        auto t_h = ray_test(r, bounds(idxh));
+
+        bool viable_l = (!isnan(t_l)) && (t_l.lo <= least_contact.ray_t);
+        bool viable_h = (!isnan(t_h)) && (t_h.lo <= least_contact.ray_t);
+
+        if(viable_l && viable_h)
+        {
+            if(t_l.lo < t_h.lo)
+            {
+                push(idxh); push(idxl);
+            }
+            else
+            {
+                push(idxl); push(idxh);
+            }
+        }
+        else if(viable_l)
+            push(idxl);
+        else if(viable_h)
+            push(idxh);
     };
 
     // When any stored object is indicated suspected to be relevant,

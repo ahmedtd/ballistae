@@ -23,9 +23,7 @@
                   `((n-interior . 2.41)
                     (n-exterior . 1)))
  (bsta/aff-t/compose
-  ;;(bsta/aff-t/scaling 40)
   (bsta/aff-t/scaling 5)
-  ;;(bsta/aff-t/translation (arma/dvec '(0 0 0)))
   (bsta/aff-t/translation (arma/dvec '(0 0 7)))
   ))
 
@@ -66,4 +64,4 @@
                    864 1296                          ;; rows, columns
                    '(1 1 1 1 1 1)                    ;; depth profile
                    '(390 . 835)                      ;; spectral profile
-                   3)                                ;; supersampling factor
+                   2)                                ;; supersampling factor
