@@ -10,7 +10,8 @@
 
 namespace bl = ballistae;
 
-class surface_mesh_priv : public ballistae::geometry
+class __attribute__((visibility("default")))
+surface_mesh_priv : public ballistae::geometry
 {
     bl::kd_tree<double, 3, tri_face_crunched> mesh;
 

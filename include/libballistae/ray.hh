@@ -31,7 +31,11 @@ using dray3 = ray<double, 3>;
 /// Return Value:
 ///
 ///   (arma::vec3) The point along the ray with parameter value T.
-arma::vec3 eval_ray(const dray3 &r, const double &t) __attribute__((pure));
+template<class Field, size_t Dim>
+fixvec<Field, Dim> eval_ray(const ray<Field, Dim> &r, const Field &t)
+{
+    return r.point + t * r.slope;
+}
 
 template<class Field, size_t Dim>
 ray<Field, Dim> operator*(

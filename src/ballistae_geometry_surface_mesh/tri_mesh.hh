@@ -50,9 +50,12 @@ struct tri_mesh
     std::vector<tri_face_idx> f;
 };
 
-tri_face_verts load_face_v(const tri_mesh &mesh, const tri_face_idx &idx);
-tri_face_normals load_face_n(const tri_mesh &mesh, const tri_face_idx &idx);
-tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx);
+tri_face_verts load_face_v(const tri_mesh &mesh, const tri_face_idx &idx)
+    __attribute__((visibility("hidden")));
+tri_face_normals load_face_n(const tri_mesh &mesh, const tri_face_idx &idx)
+    __attribute__((visibility("hidden")));
+tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx)
+    __attribute__((visibility("hidden")));
 
 struct tri_face_crunched
 {
@@ -67,12 +70,13 @@ struct tri_face_crunched
     double recip_denom;
 };
 
-ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f);
+ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f)
+    __attribute__((visibility("hidden")));
 
 ballistae::kd_tree<double, 3, tri_face_crunched> crunch(
     const tri_mesh &m,
     size_t bucket_hint
-);
+) __attribute__((visibility("hidden")));
 
 constexpr int CONTACT_INTO = (1 << 0);
 constexpr int CONTACT_EXIT = (1 << 1);
@@ -99,16 +103,17 @@ struct tri_contact
 };
 
 tri_contact tri_face_contact(
-    const ballistae::ray<double, 3> &r,
+    const ballistae::ray_segment<double, 3> &r,
     const tri_face_crunched &f
-);
+) __attribute__((visibility("hidden")));
 
 ballistae::contact<double> tri_mesh_contact(
-    const ballistae::ray_segment<double, 3> &r,
+    ballistae::ray_segment<double, 3> r,
     const ballistae::kd_tree<double, 3, tri_face_crunched> &mesh_kd_tree,
     const int want_type
-);
+) __attribute__((visibility("hidden")));
 
-bool tri_mesh_sanity_check(const tri_mesh &the_mesh);
+bool tri_mesh_sanity_check(const tri_mesh &the_mesh)
+    __attribute__((visibility("hidden")));
 
 #endif

@@ -101,21 +101,20 @@ bl::shade_info<double> nc_smooth::shade(
     double coeff_refl = pow((1 - ab) / (1 + ab), 2);
     double coeff_tran = ab_i * pow(2 / (1 + ab_i), 2);
 
-    // Multiplication by 2 is to compensate for the fact that each branch is
-    // only chosen half the time.
+    std::uniform_real_distribution<> dist(0, coeff_refl + coeff_tran);
 
     bl::shade_info<double> result;
     result.emitted_power = 0.0;
-    if(thread_rng() % 2 == 0)
+    if(dist(thread_rng) < coeff_refl)
     {
         // Give the ray that contributed by reflection.
-        result.propagation_k = 2 * coeff_refl;
+        result.propagation_k = 1;
         result.incident_ray.slope = bl::reflect<double, 3>(refl, n);
     }
     else
     {
         // Give the ray that contributed by refraction.
-        result.propagation_k = 2 * coeff_tran;
+        result.propagation_k = 1;
         result.incident_ray.slope = (b_cos - n_r * a_cos) * n + n_r * refl;
     }
 

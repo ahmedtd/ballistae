@@ -1,7 +1,7 @@
-#ifndef LIBBALLISTAE_CAMERA_PLUGIN_INTERFACE_HH
-#define LIBBALLISTAE_CAMERA_PLUGIN_INTERFACE_HH
+#ifndef LIBBALLISTAE_CAMERA_HH
+#define LIBBALLISTAE_CAMERA_HH
 
-#include <armadillo>
+#include <random>
 
 #include <libballistae/ray.hh>
 #include <libballistae/vector.hh>
@@ -15,7 +15,8 @@ public:
     virtual ~camera() {}
 
     virtual ray<double, 3> image_to_ray(
-        const fixvec<double, 3> &image_coords
+        const fixvec<double, 3> &image_coords,
+        std::ranlux24 &thread_rng
     ) const = 0;
 };
 

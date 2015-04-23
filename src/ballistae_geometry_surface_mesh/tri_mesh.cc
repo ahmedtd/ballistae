@@ -89,16 +89,25 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(
 }
 
 tri_contact tri_face_contact(
-    const bl::ray<double, 3> &r,
+    const bl::ray_segment<double, 3> &query,
     const tri_face_crunched &f,
     const int want_type
 )
 {
-    using arma::dot;
+    using bl::dot;
 
-    double cosine = dot(f.n, r.slope);
-    double offset = dot(f.n, r.point - f.v0);
+    const bl::ray<double, 3> &r = query.the_ray;
+
+    double cosine = dot<double, 3>(f.n, r.slope);
+    double offset = dot<double, 3>(f.n, r.point - f.v0);
     double ray_t = -offset / cosine;
+
+    if(!bl::contains(query.the_segment, ray_t))
+    {
+        tri_contact result;
+        result.type = 0;
+        return result;
+    }
 
     int contact_type = 0;
     if(cosine < 0.0)
@@ -118,8 +127,8 @@ tri_contact tri_face_contact(
     bl::fixvec<double, 3> p = bl::eval_ray(r, ray_t);
     bl::fixvec<double, 3> w = p - f.v0;
 
-    double tri_s = (f.vv * dot(f.u,w) - dot(f.v,w) * f.uv) * f.recip_denom;
-    double tri_t = (f.uu * dot(f.v,w) - dot(f.u,w) * f.uv) * f.recip_denom;
+    double tri_s = (f.vv * dot<double, 3>(f.u,w) - dot<double, 3>(f.v,w) * f.uv) * f.recip_denom;
+    double tri_t = (f.uu * dot<double, 3>(f.v,w) - dot<double, 3>(f.u,w) * f.uv) * f.recip_denom;
 
     if(bl::contains({0.0, 1.0}, tri_s)
        && bl::contains({0.0, 1.0}, tri_t)
@@ -132,7 +141,7 @@ tri_contact tri_face_contact(
 }
 
 bl::contact<double> tri_mesh_contact(
-    const bl::ray_segment<double, 3> &r,
+    bl::ray_segment<double, 3> r,
     const bl::kd_tree<double, 3, tri_face_crunched> &mesh_kd_tree,
     const int want_type
 )
@@ -159,8 +168,8 @@ bl::contact<double> tri_mesh_contact(
         auto t_l = ray_test(r, bounds(idxl));
         auto t_h = ray_test(r, bounds(idxh));
 
-        bool viable_l = (!isnan(t_l)) && (t_l.lo <= least_contact.ray_t);
-        bool viable_h = (!isnan(t_h)) && (t_h.lo <= least_contact.ray_t);
+        bool viable_l = (!isnan(t_l)) && (t_l.lo < least_contact.ray_t);
+        bool viable_h = (!isnan(t_h)) && (t_h.lo < least_contact.ray_t);
 
         if(viable_l && viable_h)
         {
@@ -182,11 +191,10 @@ bl::contact<double> tri_mesh_contact(
     // When any stored object is indicated suspected to be relevant,
     // the kd_tree will call computor on it.
     auto computor = [&](const tri_face_crunched &face) -> void {
-        tri_contact c = tri_face_contact(r.the_ray, face, want_type);
-        if((c.type & CONTACT_HIT)
-           && bl::contains(r.the_segment, c.ray_t)
-           && c.ray_t < least_contact.ray_t)
+        tri_contact c = tri_face_contact(r, face, want_type);
+        if((c.type & CONTACT_HIT) && bl::contains(r.the_segment, c.ray_t))
         {
+            r.the_segment.hi = c.ray_t;
             least_contact = c;
         }
     };

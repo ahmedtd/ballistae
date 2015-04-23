@@ -1,6 +1,8 @@
 #include <libballistae/camera.hh>
 #include <libguile_ballistae/camera_plugin_interface.hh>
 
+#include <random>
+
 #include <libballistae/vector.hh>
 
 #include <libguile_armadillo/libguile_armadillo.hh>
@@ -24,7 +26,8 @@ public:
     ~pinhole_priv();
 
     virtual bl::dray3 image_to_ray(
-        const arma::vec3 &image_coords
+        const arma::vec3 &image_coords,
+        std::ranlux24 &rng
     ) const override;
 
     bl::fixvec<double, 3> eye() const;
@@ -58,7 +61,8 @@ pinhole_priv::~pinhole_priv()
 }
 
 ballistae::dray3 pinhole_priv::image_to_ray(
-    const bl::fixvec<double, 3> &image_coords
+    const bl::fixvec<double, 3> &image_coords,
+    std::ranlux24 &rng
 ) const
 {
     bl::fixvec<double, 3> aperture_coords = image_coords % aperture;

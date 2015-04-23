@@ -77,8 +77,8 @@ static inline arma::vec3 scan_plane_to_image_space(
     std::size_t img_rows,
     std::size_t cur_col,
     std::size_t img_cols,
-    std::ranlux24 ss_pert_engn,
-    std::uniform_real_distribution<double> ss_pert_dist
+    std::ranlux24 &ss_pert_engn,
+    std::uniform_real_distribution<double> &ss_pert_dist
 ) {
     double d_cur_col = static_cast<double>(cur_col);
     double d_cur_row = static_cast<double>(cur_row);
@@ -272,7 +272,7 @@ color_d_XYZ shade_pixel(
                 ss_pert_dist
             );
 
-            dray3 cur_query = the_camera.image_to_ray(image_coords);
+            dray3 cur_query = the_camera.image_to_ray(image_coords, rng);
 
             double sampled_power = sample_ray(
                 cur_query,

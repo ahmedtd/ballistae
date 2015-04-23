@@ -42,6 +42,17 @@ constexpr Field epsilon()
     return Field(1) / Field(10000);
 }
 
+template<class Field, size_t Dim>
+Field dot(const fixvec<Field, Dim> &a, const fixvec<Field, Dim> &b)
+{
+    Field accum = Field(0);
+    for(size_t i = 0; i < Dim; ++i)
+    {
+        accum += a(i) * b(i);
+    }
+    return accum;
+}
+
 }
 
 #endif

@@ -7,7 +7,7 @@ override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-z
 # Find armadillo.
 #
 # We don't actually find it.
-armadillo4_CFLAGS := -DARMA_MAT_PREALLOC=3
+armadillo4_CFLAGS := -DARMA_MAT_PREALLOC=3 -DARMA_NO_DEBUG
 armadillo4_LIBS   := -larmadillo
 
 GUILE_INSTALL_VERSION := 2.0
