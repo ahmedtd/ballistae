@@ -5,35 +5,35 @@
 
 #include <random>
 
-#include <armadillo>
-
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
+
+#include <frustum-0/indicial/fixed.hh>
+#include <libguile_frustum0/libguile_frustum0.hh>
 
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 
-#include <libguile_armadillo/libguile_armadillo.hh>
+using namespace frustum;
+using namespace ballistae;
 
-namespace bl = ballistae;
-
-class plane_priv : public ballistae::geometry
+class plane_priv : public geometry
 {
 public:
     plane_priv();
     virtual ~plane_priv();
 
-    virtual bl::contact<double> ray_into(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_into(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const;
 
-    virtual bl::contact<double> ray_exit(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_exit(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const;
 };
@@ -46,9 +46,9 @@ plane_priv::~plane_priv()
 {
 }
 
-bl::contact<double> plane_priv::ray_into(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> plane_priv::ray_into(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
@@ -58,11 +58,11 @@ bl::contact<double> plane_priv::ray_into(
 
     if(slope < double(0) && contains(query.the_segment, t))
     {
-        bl::contact<double> result;
+        contact<double> result;
 
         result.t = t;
         result.r = query.the_ray;
-        result.p = ballistae::eval_ray(query.the_ray, t);
+        result.p = eval_ray(query.the_ray, t);
         result.n = {1, 0, 0};
         result.uv = {result.p(1), result.p(2)};
         result.uvw = result.p;
@@ -72,13 +72,13 @@ bl::contact<double> plane_priv::ray_into(
     else
     {
         // Ray never intersects plane.
-        return bl::contact<double>::nan();
+        return contact<double>::nan();
     }
 }
 
-bl::contact<double> plane_priv::ray_exit(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> plane_priv::ray_exit(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
@@ -88,11 +88,11 @@ bl::contact<double> plane_priv::ray_exit(
 
     if(slope > double(0) && contains(query.the_segment, t))
     {
-        bl::contact<double> result;
+        contact<double> result;
 
         result.t = t;
         result.r = query.the_ray;
-        result.p = ballistae::eval_ray(query.the_ray, t);
+        result.p = eval_ray(query.the_ray, t);
         result.n = {1, 0, 0};
         result.uv = {result.p(1), result.p(2)};
         result.uvw = result.p;
@@ -102,11 +102,11 @@ bl::contact<double> plane_priv::ray_exit(
     else
     {
         // Ray never intersects plane.
-        return bl::contact<double>::nan();
+        return contact<double>::nan();
     }
 }
 
-ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
+geometry* guile_ballistae_geometry(SCM config_alist)
 {
     return new plane_priv();
 }

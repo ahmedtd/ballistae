@@ -1,135 +1,67 @@
 #ifndef LIBBALLISTAE_GUILE_LIBBALLISTAE_GUILE_HH
 #define LIBBALLISTAE_GUILE_LIBBALLISTAE_GUILE_HH
 
-#include <vector>
-
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
+
+#include <libballistae/affine_transform.hh>
+#include <libballistae/camera.hh>
+#include <libballistae/dense_signal.hh>
+#include <libballistae/geometry.hh>
+#include <libballistae/illuminator.hh>
+#include <libballistae/material.hh>
+#include <libballistae/scene.hh>
+#include <libballistae/render_scene.hh>
+
+#define BG_PUBLIC __attribute__((visibility("default")));
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Entry point for the library.
 ////////////////////////////////////////////////////////////////////////////////
 ///
 /// The library has a corresponding scheme file that should be used for loading.
-extern "C" void libguile_ballistae_init() __attribute__((visibility("default")));
+extern "C" void libguile_ballistae_init() BG_PUBLIC;
 
 namespace ballistae_guile
 {
 
-namespace bl = ballistae;
+ballistae::affine_transform<double, 3> affine_from_scm(SCM t_scm) BG_PUBLIC;
+SCM compose(SCM rest_scm) BG_PUBLIC;
+SCM identity() BG_PUBLIC;
+SCM translation(SCM t_scm) BG_PUBLIC;
+SCM scaling(SCM s_scm) BG_PUBLIC;
+SCM rotation(SCM axis_scm, SCM angle_scm) BG_PUBLIC;
+SCM basis_mapping(SCM t0_scm, SCM t1_scm, SCM t2_scm) BG_PUBLIC;
 
-////////////////////////////////////////////////////////////////////////////////
-/// Is [obj] a ballistae smob?
-////////////////////////////////////////////////////////////////////////////////
-SCM ballistae_p(SCM obj);
+ballistae::camera* camera_from_scm(SCM obj) BG_PUBLIC;
+SCM camera_make(SCM plug_name, SCM config_alist) BG_PUBLIC;
 
-using smob_free_t = size_t (*)(SCM);
-using smob_mark_t = SCM (*)(SCM);
-using smob_print_t = int (*)(SCM, SCM, scm_print_state*);
-using smob_equalp_t = SCM (*)(SCM, SCM);
+ballistae::dense_signal<double> signal_from_scm(SCM obj) BG_PUBLIC;
+SCM signal_from_list(SCM lo, SCM hi, SCM val_list) BG_PUBLIC;
+SCM pulse(SCM pulse_src, SCM pulse_lim, SCM pulse_power) BG_PUBLIC;
+SCM red(SCM intensity) BG_PUBLIC;
+SCM green(SCM intensity) BG_PUBLIC;
+SCM blue(SCM intensity) BG_PUBLIC;
+SCM rgb_to_spectral(SCM red, SCM green, SCM blue) BG_PUBLIC;
 
-////////////////////////////////////////////////////////////////////////////////
-/// The smob tag.
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Guile assigns each new smob type an 8-bit tag.  Since there are so few
-/// available tags, it's best to use one smob for all the object types an
-/// extension will define.  Sub-types can be identified using the smob's 16-bit
-/// flag field, accessed using SCM_SMOB_FLAGS.
-extern scm_t_bits smob_tag;
+ballistae::geometry* geometry_from_scm(SCM geom) BG_PUBLIC;
+SCM geometry_make(SCM plug_soname, SCM config_alist) BG_PUBLIC;
 
-////////////////////////////////////////////////////////////////////////////////
-/// Subsmob tags.
-////////////////////////////////////////////////////////////////////////////////
-///
-/// Values used in the 16-bit flag field.
-constexpr scm_t_bits flag_scene            = 0;
-constexpr scm_t_bits flag_camera           = 1;
-constexpr scm_t_bits flag_geometry         = 2;
-constexpr scm_t_bits flag_material         = 3;
-constexpr scm_t_bits flag_illuminator      = 4;
-constexpr scm_t_bits flag_affine_transform = 5;
-constexpr scm_t_bits flag_dense_signal     = 6;
+ballistae::illuminator* illuminator_from_scm(SCM geom) BG_PUBLIC;
+SCM dir_illuminator_make(SCM config_alist) BG_PUBLIC;
+SCM point_isotropic_illuminator_make(SCM config_alist) BG_PUBLIC;
+SCM illuminator_make(SCM name, SCM config_alist) BG_PUBLIC;
 
-////////////////////////////////////////////////////////////////////////////////
-/// Manipulation of subsmob types.
-////////////////////////////////////////////////////////////////////////////////
-///
-/// The MSB of the flags field is used to track whether or not the subsmob has
-/// been registered with a scene.  If it is, then the scene controls the
-/// lifetime of the allocated object, not the smob.
+ballistae::material* material_from_scm(SCM matr) BG_PUBLIC;
+SCM material_make(SCM create_fn_scm, SCM config_alist) BG_PUBLIC;
 
-constexpr scm_t_bits mask_subsmob_type = 0x0fff;
-constexpr scm_t_bits mask_registered = 0x8000;
-
-bool is_registered(SCM obj);
-SCM set_registered(SCM obj, bool status);
-
-SCM set_subsmob_type(SCM obj, scm_t_bits type);
-scm_t_bits get_subsmob_type(SCM obj);
-
-////////////////////////////////////////////////////////////////////////////////
-/// Create a ballistae smob with given flags and data.
-////////////////////////////////////////////////////////////////////////////////
-template<class Data>
-SCM new_smob(scm_t_bits flag, Data data)
-{
-    SCM result = scm_new_smob(smob_tag, reinterpret_cast<scm_t_bits>(data));
-    SCM_SET_SMOB_FLAGS(result, flag);
-    return result;
-}
-
-SCM ensure_smob(SCM obj, scm_t_bits flag);
-
-template<typename T>
-T smob_get_data(SCM obj)
-{
-    static_assert(
-        sizeof(T) == sizeof(scm_t_bits),
-        "Type to retrieve must be the same size as scm_t_bits."
-    );
-
-    return reinterpret_cast<T>(SCM_SMOB_DATA(obj));
-}
-
-template<typename T>
-SCM smob_set_data(SCM obj, T data)
-{
-    static_assert(
-        sizeof(T) == sizeof(scm_t_bits),
-        "Type to store must be the same size as scm_t_bits."
-    );
-
-    return SCM_SET_SMOB_DATA(obj, reinterpret_cast<scm_t_bits>(data));
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// The required functions for a subsmob.
-////////////////////////////////////////////////////////////////////////////////
-struct subsmob_fns
-{
-    smob_free_t   free_fn;
-    smob_mark_t   mark_fn;
-    smob_print_t  print_fn;
-    smob_equalp_t equalp_fn;
-};
-
-////////////////////////////////////////////////////////////////////////////////
-/// The signature for each subsystem's initialization function.
-////////////////////////////////////////////////////////////////////////////////
-///
-/// In the init function, each subsystem should set up subsmob types
-/// (registering them into the provided table), register guile subroutines, etc.
-using init_t = void (*)(std::vector<subsmob_fns>&);
-
-////////////////////////////////////////////////////////////////////////////////
-/// Tag dispatch table for smob subtypes.
-////////////////////////////////////////////////////////////////////////////////
-///
-/// If guile sends us a ballistae smob, we dispatch it to the appropriate
-/// subsmob functions by treating the flag bits as an index into this table.
-extern std::vector<subsmob_fns> subsmob_dispatch_table;
+ballistae::scene* scene_from_scm(SCM scene) BG_PUBLIC;
+SCM scene_make() BG_PUBLIC;
+SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform) BG_PUBLIC;
+SCM add_illuminator(SCM scene, SCM illuminator) BG_PUBLIC;
 
 }
+
+#undef BG_PUBLIC
 
 #endif

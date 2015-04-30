@@ -7,8 +7,6 @@
 
 #include <random>
 
-#include <armadillo>
-
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>

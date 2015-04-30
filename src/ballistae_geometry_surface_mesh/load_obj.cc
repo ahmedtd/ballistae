@@ -6,6 +6,7 @@
 
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <cinttypes>
 
 #include <algorithm>
@@ -38,6 +39,7 @@ std::tuple<bool, const char*> parse_literal(
     const char *const lit
 )
 {
+    using std::strlen;
     if(begins_with(src, lim, lit, lit + strlen(lit)))
         return std::make_tuple(true, src + strlen(lit));
     else

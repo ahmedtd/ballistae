@@ -1,10 +1,9 @@
 #ifndef LIBBALLISTAE_RAY_HH
 #define LIBBALLISTAE_RAY_HH
 
-#include <armadillo>
-
 #include <libballistae/affine_transform.hh>
 #include <libballistae/span.hh>
+#include <libballistae/vector.hh>
 
 namespace ballistae
 {
@@ -45,7 +44,7 @@ ray<Field, Dim> operator*(
 {
     return {
         a.linear * b.point + a.offset,
-            arma::normalise(a.linear * b.slope)
+        normalise(a.linear * b.slope)
     };
 }
 
@@ -68,7 +67,7 @@ ray_segment<Field, Dim> operator*(
     result.the_ray.slope = a.linear * b.the_ray.slope;
 
     // Assume that the input ray has unit slope.
-    double scale_factor = arma::norm(result.the_ray.slope);
+    double scale_factor = norm(result.the_ray.slope);
     result.the_ray.slope /= scale_factor;
 
     result.the_segment = scale_factor * b.the_segment;

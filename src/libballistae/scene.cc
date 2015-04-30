@@ -5,8 +5,6 @@
 #include <random>
 #include <vector>
 
-#include <armadillo>
-
 #include <libballistae/camera.hh>
 #include <libballistae/color.hh>
 #include <libballistae/contact.hh>
@@ -72,7 +70,7 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
     return std::make_tuple(min_contact, min_ind);
 }
 
-static inline arma::vec3 scan_plane_to_image_space(
+static fixvec<double, 3> scan_plane_to_image_space(
     std::size_t cur_row,
     std::size_t img_rows,
     std::size_t cur_col,
@@ -248,24 +246,21 @@ color_d_XYZ shade_pixel(
     unsigned int ss_factor,
     std::ranlux24 &rng,
     const std::vector<size_t> &sampling_profile,
-    const span<double> &sample_bandwidth,
+    const std::vector<double> &lambdas,
     sample_scratch &scratch
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
 
-    color_d_XYZ result = {{{0, 0, 0}}};
-
-    size_t n_samples = (1u << (ss_factor*2));
-
-    double lambda_step = measure(sample_bandwidth) / n_samples;
-    double cur_lambda = sample_bandwidth.lo;
+    color_d_XYZ result = {0, 0, 0};
 
     for(size_t sr = 0; sr < (1u << ss_factor); ++sr)
     {
         for(size_t sc = 0; sc < (1u << ss_factor); ++sc)
         {
-            arma::vec3 image_coords = scan_plane_to_image_space(
+            double cur_lambda = lambdas[sr * (1u << ss_factor) + sc];
+
+            auto image_coords = scan_plane_to_image_space(
                 (cur_row << ss_factor) | sr, img_rows << ss_factor,
                 (cur_col << ss_factor) | sc, img_cols << ss_factor,
                 rng,
@@ -284,8 +279,6 @@ color_d_XYZ shade_pixel(
             ) / (1u << (ss_factor*2));
 
             result += spectral_to_XYZ(cur_lambda, sampled_power);
-
-            cur_lambda += lambda_step;
         }
     }
 
@@ -309,14 +302,21 @@ image<float> render_scene(
 
     image<float> result({img_rows, img_cols, 3}, 0.0f);
 
-# pragma omp parallel for              \
-    firstprivate(thread_rng, scratch) \
-    schedule(dynamic, 16)
+    size_t n_samples = 1u << (ss_factor*2);
+    double lambda_step = (sample_bandwidth.hi - sample_bandwidth.lo) / n_samples;
+    std::vector<double> lambdas(n_samples);
+    for(size_t i = 0; i < lambdas.size(); ++i)
+        lambdas[i] = sample_bandwidth.lo + i * lambda_step;
+
+# pragma omp parallel for firstprivate(thread_rng, lambdas, scratch) schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)
     {
         scratch.sample_idx = thread_rng();
         for(size_t cc = 0; cc < img_cols; ++cc)
         {
+            using std::shuffle;
+            shuffle(lambdas.begin(), lambdas.end(), thread_rng);
+
             color_d_XYZ cur_XYZ = shade_pixel(
                 cr, cc,
                 img_rows, img_cols,
@@ -325,7 +325,7 @@ image<float> render_scene(
                 ss_factor,
                 thread_rng,
                 sampling_profile,
-                sample_bandwidth,
+                lambdas,
                 scratch
             );
 

@@ -4,15 +4,16 @@ $(augmk_d)_objs := $($(augmk_d)_srcs:.cc=.o)
 CLEAN_TARGETS += $($(augmk_d)_objs)
 
 $(augmk_d)_CXXFLAGS :=
-$(augmk_d)_CXXFLAGS += -fPIC -fvisibility=hidden
-$(augmk_d)_CXXFLAGS += $(armadillo4_CFLAGS)
+$(augmk_d)_CXXFLAGS += -fPIC
+$(augmk_d)_CXXFLAGS += $(frustum0_CFLAGS)
+$(augmk_d)_CXXFLAGS += $(libguile_frustum0_CFLAGS)
 $(augmk_d)_CXXFLAGS += -Iinclude
 $(augmk_d)_CXXFLAGS += $(guile2_CFLAGS)
 
 $(augmk_d)_LFLAGS :=
 $(augmk_d)_LFLAGS += -Lsrc/libballistae/ -lballistae
-$(augmk_d)_LFLAGS += -Lsrc/libguile_armadillo/ -lguile_armadillo
-$(augmk_d)_LFLAGS += $(armadillo4_LIBS)
+$(augmk_d)_LFLAGS += $(frustum0_LIBS)
+$(augmk_d)_LFLAGS += $(libguile_frustum0_LIBS)
 $(augmk_d)_LFLAGS += $(guile2_LIBS)
 
 # Load automatically-generated dependencies.
@@ -23,9 +24,10 @@ $($(augmk_d)_objs): d := $(augmk_d)
 $($(augmk_d)_objs): %.o : %.cc
 	$(CXX) -c -o $@ $< $($(d)_CXXFLAGS) $(CXXFLAGS)
 
+# The dependency on libballistae is order-only to prevent it from part of the $^
+# argument, and thus getting linked into the plugin library.
 $(augmk_d)/ballistae_geometry_surface_mesh.so : d := $(augmk_d)
 $(augmk_d)/ballistae_geometry_surface_mesh.so : | src/libballistae/libballistae.so
-$(augmk_d)/ballistae_geometry_surface_mesh.so : | src/libguile_armadillo/libguile_armadillo.so
 $(augmk_d)/ballistae_geometry_surface_mesh.so : $($(augmk_d)_objs)
 	$(CXX) -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 

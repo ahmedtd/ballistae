@@ -1,7 +1,7 @@
 (define-module (ballistae))
 
 (use-modules (ice-9 optargs))
-(use-modules (armadillo))
+(use-modules (frustum0))
 
 ;; Most of our functions are defined in the adapter library.
 (load-extension "libguile_ballistae" "libguile_ballistae_init")
@@ -48,13 +48,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (bsta/dsig/from-list src-val lim-val val-list)
-  (bsta/backend/dense-signal/from-list src-val lim-val val-list))
+  (bsta/backend/signal/from-list src-val lim-val val-list))
 
 (define-public (bsta/dsig/pulse pulse-src pulse-lim pulse-power)
-  (bsta/backend/dense-signal/pulse pulse-src pulse-lim pulse-power))
+  (bsta/backend/signal/pulse pulse-src pulse-lim pulse-power))
 
 (define-public (bsta/dsig/rgb-to-spectral red green blue)
-  (bsta/backend/dense-signal/rgb-to-spectral red green blue))
+  (bsta/backend/signal/rgb-to-spectral red green blue))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions dealing with affine transform subsmobs.
@@ -101,8 +101,11 @@ transform and every subsequent element left-multiplied in."
 ;; Functions for dealing with materials.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (bsta/matr/make plug-soname config-alist)
-  (bsta/backend/matr/make plug-soname config-alist))
+(define-public (bsta/matr/make plugname config-alist)
+  (let* ((soname (string-append "ballistae_material_" plugname))
+         (sohndl (dynamic-link soname))
+         (create-fn (dynamic-pointer "guile_ballistae_material" sohndl)))
+    (bsta/backend/matr/make create-fn config-alist)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions for illuminators

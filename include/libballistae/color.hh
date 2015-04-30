@@ -7,8 +7,6 @@
 #include <array>
 #include <vector>
 
-#include <armadillo>
-
 namespace ballistae
 {
 

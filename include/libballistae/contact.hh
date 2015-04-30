@@ -42,11 +42,11 @@ contact<Field> operator*(
     result.r.slope = t.linear * result.r.slope;
 
     // Assume that the incoming ray has normalized slope.
-    double scale_factor = arma::norm(result.r.slope);
+    double scale_factor = norm(result.r.slope);
     result.r.slope /= scale_factor;
 
     result.p = t * result.p;
-    result.n = arma::normalise(t.linear * result.n);
+    result.n = normalise(t.linear * result.n);
     result.t *= scale_factor;
     return result;
 }

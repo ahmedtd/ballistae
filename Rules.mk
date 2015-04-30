@@ -2,13 +2,14 @@ CC  := gcc
 CXX := g++
 
 # We use C++14, with GNU extensions, across the board.
-override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fassociative-math -Wno-free-nonheap-object
+override CXXFLAGS += -std=gnu++1y -Wall -Werror -Wl,--no-undefined -fno-signed-zeros -fno-trapping-math -fno-rounding-math -fassociative-math
 
-# Find armadillo.
-#
-# We don't actually find it.
-armadillo4_CFLAGS := -DARMA_MAT_PREALLOC=3 -DARMA_NO_DEBUG
-armadillo4_LIBS   := -larmadillo
+# Find frustum
+frustum0_CFLAGS :=
+frustum0_LIBS :=
+
+libguile_frustum0_CFLAGS :=
+libguile_frustum0_LIBS := -lguile_frustum0
 
 GUILE_INSTALL_VERSION := 2.0
 
@@ -29,9 +30,23 @@ CLEAN_TARGETS :=
 INSTALL_TARGETS :=
 
 # Visit the include, src, and guile subdirs.
-$(guile (augmk/enter "include"))
 $(guile (augmk/enter "src"))
-$(guile (augmk/enter "guile"))
+
+# Install include files.  Relpath is empty, since install-hdr-phony places the
+# files in $(DESTDIR)/include by default, which is where we want them.
+INSTALL_TARGETS += $(guile (augmk/install-hdr-phony "hdr_install"         \
+													""                    \
+													"$(augmk_d)/include/"))
+
+# Install guile source files.
+#
+# Note that augmk uses rsync to perform installs, so the trailing slash in
+# $(augmk_d)/guile/ IS signficant.  It means that the contents of the folder are
+# copied to the destination, not the folder itself.
+INSTALL_TARGETS += $(guile (augmk/install-phony "guile_src_install" \
+												"/share/guile/"     \
+												"a=r,u=rw"          \
+												"$(augmk_d)/guile/"))
 
 # The "all" target builds everything in the target group ALL_TARGETS.
 .DEFAULT_GOAL := all
@@ -44,6 +59,3 @@ $(guile (augmk/create-clean-target "clean" "$(CLEAN_TARGETS)"))
 # The "install" target.  Respects DESTDIR.
 .PHONY: install
 install: $(INSTALL_TARGETS)
-
-test-uniform-sphere-dist: test-uniform-sphere-dist.cc
-	g++ $(CXXFLAGS) $(guile2_CFLAGS) -Iinclude -larmadillo -o $@ $<

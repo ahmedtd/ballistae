@@ -6,11 +6,13 @@ CLEAN_TARGETS += $(libballistae_objs)
 libballistae_CXXFLAGS :=
 libballistae_CXXFLAGS += -fopenmp
 libballistae_CXXFLAGS += -fPIC
-libballistae_CXXFLAGS += $(armadillo4_CFLAGS)
+libballistae_CXXFLAGS += $(frustum0_CFLAGS)
+libballistae_CXXFLAGS += $(libguile_frustum0_CFLAGS)
 libballistae_CXXFLAGS += -Iinclude
 
 libballistae_LFLAGS :=
-libballistae_LFLAGS += $(armadillo4_LIBS)
+libballistae_LFLAGS += $(frustum0_LIBS)
+libballistae_LFLAGS += $(libguile_frustum0_LIBS)
 
 # Load auto dependencies
 $(guile (augmk/gcc/autodep-cc "$(libballistae_srcs)" \

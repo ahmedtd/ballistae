@@ -1,4 +1,4 @@
-(use-modules (armadillo))
+(use-modules (frustum0))
 (use-modules (ballistae))
 
 ;; A material for the sky.

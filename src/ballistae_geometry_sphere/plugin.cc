@@ -5,36 +5,36 @@
 
 #include <random>
 
-#include <armadillo>
-
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
+
+#include <frustum-0/indicial/fixed.hh>
+#include <libguile_frustum0/libguile_frustum0.hh>
 
 #include <libballistae/ray.hh>
 #include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 
-#include <libguile_armadillo/libguile_armadillo.hh>
+using namespace frustum;
+using namespace ballistae;
 
-namespace bl = ballistae;
-
-class sphere_priv : public ballistae::geometry
+class sphere_priv : public geometry
 {
 public:
     sphere_priv();
 
     virtual ~sphere_priv();
 
-    virtual bl::contact<double> ray_into(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_into(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const;
 
-    virtual bl::contact<double> ray_exit(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_exit(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const;
 };
@@ -47,9 +47,9 @@ sphere_priv::~sphere_priv()
 {
 }
 
-bl::contact<double> sphere_priv::ray_into(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> sphere_priv::ray_into(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
@@ -57,20 +57,20 @@ bl::contact<double> sphere_priv::ray_into(
     using std::atan2;
     using std::sqrt;
 
-    auto b = arma::dot(query.the_ray.slope, query.the_ray.point);
-    auto c = arma::dot(query.the_ray.point, query.the_ray.point) - 1.0;
+    auto b = iprod(query.the_ray.slope, query.the_ray.point);
+    auto c = iprod(query.the_ray.point, query.the_ray.point) - 1.0;
 
     // We rely on std::sqrt's mandated NaN behavior.
     auto t_min = -b - sqrt(b * b - c);
 
-    if(ballistae::contains(query.the_segment, t_min))
+    if(contains(query.the_segment, t_min))
     {
-        bl::contact<double> result;
+        contact<double> result;
 
-        auto p = ballistae::eval_ray(query.the_ray, t_min);
+        auto p = eval_ray(query.the_ray, t_min);
         result.t = t_min;
         result.p = p;
-        result.n = arma::normalise(p);
+        result.n = normalise(p);
         result.uv = {atan2(p(0), p(1)), acos(p(2))};
         result.uvw = p;
         result.r = query.the_ray;
@@ -79,13 +79,13 @@ bl::contact<double> sphere_priv::ray_into(
     }
     else
     {
-        return bl::contact<double>::nan();
+        return contact<double>::nan();
     }
 }
 
-bl::contact<double> sphere_priv::ray_exit(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> sphere_priv::ray_exit(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
@@ -93,19 +93,19 @@ bl::contact<double> sphere_priv::ray_exit(
     using std::atan2;
     using std::sqrt;
 
-    auto b = arma::dot(query.the_ray.slope, query.the_ray.point);
-    auto c = arma::dot(query.the_ray.point, query.the_ray.point) - 1.0;
+    auto b = iprod(query.the_ray.slope, query.the_ray.point);
+    auto c = iprod(query.the_ray.point, query.the_ray.point) - 1.0;
 
     // We rely on std::sqrt's mandated NaN behavior.
     auto t_max = -b + sqrt(b * b - c);
 
-    if(ballistae::contains(query.the_segment, t_max))
+    if(contains(query.the_segment, t_max))
     {
-        bl::contact<double> result;
-        auto p = ballistae::eval_ray(query.the_ray, t_max);
+        contact<double> result;
+        auto p = eval_ray(query.the_ray, t_max);
         result.t = t_max;
         result.p = p;
-        result.n = arma::normalise(p);
+        result.n = normalise(p);
         result.uv = {atan2(p(0), p(1)), acos(p(2))};
         result.uvw = p;
         result.r = query.the_ray;
@@ -114,11 +114,11 @@ bl::contact<double> sphere_priv::ray_exit(
     }
     else
     {
-        return bl::contact<double>::nan();
+        return contact<double>::nan();
     }
 }
 
-ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
+geometry* guile_ballistae_geometry(SCM config_alist)
 {
     return new sphere_priv();
 }

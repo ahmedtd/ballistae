@@ -20,8 +20,6 @@
 #include <random>
 #include <vector>
 
-#include <armadillo>
-
 #include <libballistae/affine_transform.hh>
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>

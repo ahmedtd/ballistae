@@ -1,4 +1,4 @@
-(use-modules (armadillo))
+(use-modules (frustum0))
 (use-modules (ballistae))
 
 (define scene (bsta/scene/make))

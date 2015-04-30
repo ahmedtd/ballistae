@@ -2,6 +2,7 @@
 #define LIBBALLISTAE_KD_TREE_HH
 
 #include <cassert>
+#include <climits>
 #include <cstddef>
 
 #include <array>
@@ -98,7 +99,7 @@ kd_tree<Field, D, Stored>::kd_tree(
       depth_lim(
           std::distance(src_in, lim_in) == 0
           ? 0
-          : sizeof(size_t)*CHAR_BIT - __builtin_clz(std::distance(src_in, lim_in))
+          : sizeof(size_t) * CHAR_BIT - __builtin_clz(std::distance(src_in, lim_in))
       )
 {
     std::move(src_in, lim_in, storage.begin());

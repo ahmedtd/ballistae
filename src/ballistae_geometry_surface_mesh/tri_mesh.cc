@@ -7,7 +7,8 @@
 #include <libballistae/ray.hh>
 #include <libballistae/vector.hh>
 
-namespace bl = ballistae;
+using namespace ballistae;
+using namespace frustum;
 
 tri_face_verts load_face_v(const tri_mesh &mesh, const tri_face_idx &idx)
 {
@@ -24,28 +25,28 @@ tri_face_texcoords load_face_m(const tri_mesh &mesh, const tri_face_idx &idx)
     return {mesh.m[idx.mi[0]], mesh.m[idx.mi[1]], mesh.m[idx.mi[2]]};
 }
 
-ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f)
+aabox<double, 3> get_aabox(const tri_face_crunched &f)
 {
     using std::minmax_element;
 
-    bl::fixvec<double, 3> v0 = f.v0;
-    bl::fixvec<double, 3> v1 = f.v0 + f.u;
-    bl::fixvec<double, 3> v2 = f.v0 + f.v;
+    fixvec<double, 3> v0 = f.v0;
+    fixvec<double, 3> v1 = f.v0 + f.u;
+    fixvec<double, 3> v2 = f.v0 + f.v;
 
     std::array<double, 3> x = {v0(0), v1(0), v2(0)};
     std::array<double, 3> y = {v0(1), v1(1), v2(1)};
     std::array<double, 3> z = {v0(2), v1(2), v2(2)};
 
-    bl::aabox<double, 3> result = {
-        bl::from_ptr_pair(minmax_element(x.begin(), x.end())),
-        bl::from_ptr_pair(minmax_element(y.begin(), y.end())),
-        bl::from_ptr_pair(minmax_element(z.begin(), z.end()))
+    aabox<double, 3> result = {
+        from_ptr_pair(minmax_element(x.begin(), x.end())),
+        from_ptr_pair(minmax_element(y.begin(), y.end())),
+        from_ptr_pair(minmax_element(z.begin(), z.end()))
     };
 
     return result;
 }
 
-bl::kd_tree<double, 3, tri_face_crunched> crunch(
+kd_tree<double, 3, tri_face_crunched> crunch(
     const tri_mesh &m,
     size_t bucket_hint
 )
@@ -67,18 +68,18 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(
         cf.u = v.v1 - v.v0;
         cf.v = v.v2 - v.v0;
 
-        cf.n = arma::normalise(arma::cross(cf.u,cf.v));
+        cf.n = normalise(cprod(cf.u,cf.v));
 
-        cf.uu = arma::dot(cf.u, cf.u);
-        cf.uv = arma::dot(cf.u, cf.v);
-        cf.vv = arma::dot(cf.v, cf.v);
+        cf.uu = iprod(cf.u, cf.u);
+        cf.uv = iprod(cf.u, cf.v);
+        cf.vv = iprod(cf.v, cf.v);
 
         cf.recip_denom = 1.0 / (cf.uu * cf.vv - cf.uv * cf.uv);
 
         facets[i] = cf;
     }
 
-    bl::kd_tree<double, 3, tri_face_crunched> result(
+    kd_tree<double, 3, tri_face_crunched> result(
         std::begin(facets),
         std::end(facets),
         bucket_hint,
@@ -89,20 +90,18 @@ bl::kd_tree<double, 3, tri_face_crunched> crunch(
 }
 
 tri_contact tri_face_contact(
-    const bl::ray_segment<double, 3> &query,
+    const ray_segment<double, 3> &query,
     const tri_face_crunched &f,
     const int want_type
 )
 {
-    using bl::dot;
+    const ray<double, 3> &r = query.the_ray;
 
-    const bl::ray<double, 3> &r = query.the_ray;
-
-    double cosine = dot<double, 3>(f.n, r.slope);
-    double offset = dot<double, 3>(f.n, r.point - f.v0);
+    double cosine = iprod(f.n, r.slope);
+    double offset = iprod(f.n, r.point - f.v0);
     double ray_t = -offset / cosine;
 
-    if(!bl::contains(query.the_segment, ray_t))
+    if(!contains(query.the_segment, ray_t))
     {
         tri_contact result;
         result.type = 0;
@@ -124,15 +123,15 @@ tri_contact tri_face_contact(
         return result;
     }
 
-    bl::fixvec<double, 3> p = bl::eval_ray(r, ray_t);
-    bl::fixvec<double, 3> w = p - f.v0;
+    fixvec<double, 3> p = eval_ray(r, ray_t);
+    fixvec<double, 3> w = p - f.v0;
 
-    double tri_s = (f.vv * dot<double, 3>(f.u,w) - dot<double, 3>(f.v,w) * f.uv) * f.recip_denom;
-    double tri_t = (f.uu * dot<double, 3>(f.v,w) - dot<double, 3>(f.u,w) * f.uv) * f.recip_denom;
+    double tri_s = (f.vv * iprod(f.u,w) - iprod(f.v,w) * f.uv) * f.recip_denom;
+    double tri_t = (f.uu * iprod(f.v,w) - iprod(f.u,w) * f.uv) * f.recip_denom;
 
-    if(bl::contains({0.0, 1.0}, tri_s)
-       && bl::contains({0.0, 1.0}, tri_t)
-       && bl::contains({0.0, 1.0}, (tri_s + tri_t)))
+    if(contains({0.0, 1.0}, tri_s)
+       && contains({0.0, 1.0}, tri_t)
+       && contains({0.0, 1.0}, (tri_s + tri_t)))
     {
         contact_type |= CONTACT_HIT;
     }
@@ -140,9 +139,9 @@ tri_contact tri_face_contact(
     return {contact_type, ray_t, tri_s, tri_t, p, f.n};
 }
 
-bl::contact<double> tri_mesh_contact(
-    bl::ray_segment<double, 3> r,
-    const bl::kd_tree<double, 3, tri_face_crunched> &mesh_kd_tree,
+contact<double> tri_mesh_contact(
+    ray_segment<double, 3> r,
+    const kd_tree<double, 3, tri_face_crunched> &mesh_kd_tree,
     const int want_type
 )
 {
@@ -192,7 +191,7 @@ bl::contact<double> tri_mesh_contact(
     // the kd_tree will call computor on it.
     auto computor = [&](const tri_face_crunched &face) -> void {
         tri_contact c = tri_face_contact(r, face, want_type);
-        if((c.type & CONTACT_HIT) && bl::contains(r.the_segment, c.ray_t))
+        if((c.type & CONTACT_HIT) && contains(r.the_segment, c.ray_t))
         {
             r.the_segment.hi = c.ray_t;
             least_contact = c;
@@ -201,7 +200,7 @@ bl::contact<double> tri_mesh_contact(
 
     mesh_kd_tree.query(selector, computor);
 
-    bl::contact<double> result;
+    contact<double> result;
     if(least_contact.ray_t == std::numeric_limits<double>::infinity())
     {
         // If we didn't hit any triangles, we can bail now.

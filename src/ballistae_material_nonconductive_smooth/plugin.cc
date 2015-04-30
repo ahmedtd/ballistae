@@ -6,11 +6,14 @@
 #include <random>
 #include <utility>
 
+#include <frustum-0/indicial/fixed.hh>
+
 #include <libballistae/vector.hh>
 
-namespace bl = ballistae;
+using namespace frustum;
+using namespace ballistae;
 
-class nc_smooth : public ballistae::material
+class nc_smooth : public material
 {
 public:
     double n_interior;
@@ -20,9 +23,9 @@ public:
 
     virtual ~nc_smooth();
 
-    virtual bl::shade_info<double> shade(
-        const bl::scene &the_scene,
-        const bl::contact<double> &glb_contact,
+    virtual shade_info<double> shade(
+        const scene &the_scene,
+        const contact<double> &glb_contact,
         double lambda_nm,
         size_t sample_index,
         std::ranlux24 &thread_rng
@@ -33,9 +36,9 @@ nc_smooth::~nc_smooth()
 {
 }
 
-bl::shade_info<double> nc_smooth::shade(
-    const bl::scene &the_scene,
-    const bl::contact<double> &glb_contact,
+shade_info<double> nc_smooth::shade(
+    const scene &the_scene,
+    const contact<double> &glb_contact,
     double lambda_nm,
     size_t sample_index,
     std::ranlux24 &thread_rng
@@ -45,15 +48,11 @@ bl::shade_info<double> nc_smooth::shade(
     using std::sqrt;
     using std::swap;
 
-    using arma::normalise;
+    fixvec<double, 3> p = glb_contact.p;
+    fixvec<double, 3> n = glb_contact.n;
+    fixvec<double, 3> refl = glb_contact.r.slope;
 
-    using arma::dot;
-
-    bl::fixvec<double, 3> p = glb_contact.p;
-    bl::fixvec<double, 3> n = glb_contact.n;
-    bl::fixvec<double, 3> refl = glb_contact.r.slope;
-
-    double a_cos = dot(refl, n);
+    double a_cos = iprod(refl, n);
 
     double n_a = n_exterior;
     double n_b = n_interior;
@@ -82,11 +81,11 @@ bl::shade_info<double> nc_smooth::shade(
         // All power was contributed by the reflected ray (total internal
         // reflection).
 
-        bl::shade_info<double> result;
+        shade_info<double> result;
         result.emitted_power = 0;
         result.propagation_k = 1.0;
         result.incident_ray.point = p;
-        result.incident_ray.slope = bl::reflect<double, 3>(refl, n);
+        result.incident_ray.slope = reflect(refl, n);
         return result;
     }
 
@@ -103,13 +102,13 @@ bl::shade_info<double> nc_smooth::shade(
 
     std::uniform_real_distribution<> dist(0, coeff_refl + coeff_tran);
 
-    bl::shade_info<double> result;
+    shade_info<double> result;
     result.emitted_power = 0.0;
     if(dist(thread_rng) < coeff_refl)
     {
         // Give the ray that contributed by reflection.
         result.propagation_k = 1;
-        result.incident_ray.slope = bl::reflect<double, 3>(refl, n);
+        result.incident_ray.slope = reflect(refl, n);
     }
     else
     {
@@ -123,7 +122,7 @@ bl::shade_info<double> nc_smooth::shade(
     return result;
 }
 
-ballistae::material* guile_ballistae_material(SCM config_alist)
+material* guile_ballistae_material(SCM config_alist)
 {
     SCM sym_n_interior = scm_from_utf8_symbol("n-interior");
     SCM sym_n_exterior = scm_from_utf8_symbol("n-exterior");

@@ -1,28 +1,31 @@
 #include <libballistae/material.hh>
 #include <libguile_ballistae/material_plugin_interface.hh>
 
+#include <frustum-0/indicial/fixed.hh>
+
 #include <libballistae/dense_signal.hh>
 
-#include <libguile_ballistae/dense_signal.hh>
+#include <libguile_ballistae/libguile_ballistae.hh>
 
-namespace bl = ballistae;
+using namespace frustum;
+using namespace ballistae;
 
-class phong_priv : public ballistae::material
+class phong_priv : public material
 {
 public:
-    bl::dense_signal<double> ambient;
-    bl::dense_signal<double> diffuse;
-    bl::dense_signal<double> specular;
-    bl::dense_signal<double> reflect;
+    dense_signal<double> ambient;
+    dense_signal<double> diffuse;
+    dense_signal<double> specular;
+    dense_signal<double> reflect;
 
 public:
 
     phong_priv();
     virtual ~phong_priv();
 
-    virtual bl::shade_info<double> shade(
-        const bl::scene &the_scene,
-        const bl::contact<double> &glb_contact,
+    virtual shade_info<double> shade(
+        const scene &the_scene,
+        const contact<double> &glb_contact,
         double lambda_nm,
         size_t sample_index,
         std::ranlux24 &thread_rng
@@ -37,17 +40,15 @@ phong_priv::~phong_priv()
 {
 }
 
-bl::shade_info<double> phong_priv::shade(
-    const bl::scene &the_scene,
-    const bl::contact<double> &glb_contact,
+shade_info<double> phong_priv::shade(
+    const scene &the_scene,
+    const contact<double> &glb_contact,
     double lambda_nm,
     size_t sample_index,
     std::ranlux24 &thread_rng
 ) const
 {
-    using arma::dot;
-    
-    bl::shade_info<double> result;
+    shade_info<double> result;
     result.propagation_k = 0.0;
     result.emitted_power = 0.0;
 
@@ -62,7 +63,7 @@ bl::shade_info<double> phong_priv::shade(
             thread_rng
         );
 
-        double cosine = -dot(glb_contact.n, info.arrival);
+        double cosine = -iprod(glb_contact.n, info.arrival);
         if(cosine > 0.0)
             result.emitted_power += cosine * info.power * diffuse(lambda_nm);
     }
@@ -70,8 +71,10 @@ bl::shade_info<double> phong_priv::shade(
     return result;
 }
 
-ballistae::material* guile_ballistae_material(SCM config_alist)
+material* guile_ballistae_material(SCM config_alist)
 {
+    using namespace ballistae_guile;
+    
     SCM sym_ambient = scm_from_utf8_symbol("ambient");
     SCM sym_diffuse = scm_from_utf8_symbol("diffuse");
     SCM sym_specular = scm_from_utf8_symbol("specular");
@@ -83,19 +86,19 @@ ballistae::material* guile_ballistae_material(SCM config_alist)
     phong_priv *result = new phong_priv();
 
     if(scm_is_true(lu_ambient))
-        result->ambient = ballistae_guile::dense_signal::from_scm(lu_ambient);
+        result->ambient = signal_from_scm(lu_ambient);
     else
-        result->ambient = bl::vis_spectrum_signal<double>(); // All zeroes
+        result->ambient = vis_spectrum_signal<double>(); // All zeroes
             
     if(scm_is_true(lu_diffuse))
-        result->diffuse = ballistae_guile::dense_signal::from_scm(lu_diffuse);
+        result->diffuse = signal_from_scm(lu_diffuse);
     else
-        result->diffuse = bl::vis_spectrum_signal<double>(); // All zeroes
+        result->diffuse = vis_spectrum_signal<double>(); // All zeroes
 
     if(scm_is_true(lu_specular))
-        result->specular = ballistae_guile::dense_signal::from_scm(lu_specular);
+        result->specular = signal_from_scm(lu_specular);
     else
-        result->specular = bl::vis_spectrum_signal<double>(); // All zeroes
+        result->specular = vis_spectrum_signal<double>(); // All zeroes
 
     return result;
 }

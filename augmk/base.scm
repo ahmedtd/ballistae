@@ -97,10 +97,6 @@
       group))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Utility functions for working with command flags.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;  
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utility functions for working with paths.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -197,28 +193,27 @@
 ;; Install targets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; Create a phony target that installs [group] into $(DESTDIR)/[relpath] with
-;; mode [modestring].
+;; Install everything in [group] into $(DESTDIR)/relpath
+;;
+;; Creates a phony target (named [phony-name]) that installs every target listed
+;; in [group] to $(DESTDIR)/relpath.  Each element of [group] can name either a
+;; file or a directory.
 ;;
 ;; Returns that name of the phony so that you can do this:
 ;;
-;;     INSTALL_TARGETS += $(guile (augmk/create-install ...))
-(define-public (augmk/install-phony phony-name relpath modestring group)
-
-  ;; Expand args, since they may have computed components.
+;;     INSTALL_TARGETS += $(guile (augmk/install-phony ...))
+(define-public (augmk/install-phony phony-name relpath mode group)
   (set! phony-name (augmk/expand phony-name))
-  (set! relpath (augmk/expand relpath))
-  (set! modestring (augmk/expand modestring))
-  (set! group (augmk/expand group))
+  (set! relpath    (augmk/expand relpath))
+  (set! mode       (augmk/expand mode))
+  (set! group      (augmk/expand group))
 
-  (augmk/paste-eval ".PHONY: " phony-name)
-
+  (augmk/paste-eval ".PHONY: "phony-name)
   (augmk/paste-eval "
 "phony-name" : "group"
-	install -d $(DESTDIR)"relpath"
-	install -t $(DESTDIR)"relpath" -m '"modestring"' "group"
+	mkdir -p $(DESTDIR)/"relpath"
+	rsync --recursive --chmod="mode" "group" $(DESTDIR)/"relpath"
 ")
-
   phony-name)
 
 (define-public (augmk/install-hdr-phony phony-name relpath group)
@@ -245,7 +240,7 @@
 
 ;; Set a sane default for DESTDIR.  If the user specifies it (make DESTDIR="..."
 ;; ...), then that location will be used instead.
-(augmk/eval "DESTDIR := /")
-(augmk/eval "DEST_LIB_DIR := /usr/lib/")
-(augmk/eval "DEST_HDR_DIR := /usr/include/")
-(augmk/eval "DEST_BIN_DIR := /usr/bin/")
+(augmk/eval "DESTDIR := /usr")
+(augmk/eval "DEST_LIB_DIR := lib")
+(augmk/eval "DEST_HDR_DIR := include")
+(augmk/eval "DEST_BIN_DIR := bin")

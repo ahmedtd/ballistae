@@ -56,8 +56,8 @@ illumination_info point_isotropic_illuminator::power_at_point(
 {
     using std::pow;
 
-    fixvec<double, 3> direction = arma::normalise(position - query_point);
-    double distance = arma::norm(position - query_point);
+    fixvec<double, 3> direction = normalise(position - query_point);
+    double distance = norm(position - query_point);
     
     // Query ray.
     ray_segment<double, 3> shadow_ray = {
