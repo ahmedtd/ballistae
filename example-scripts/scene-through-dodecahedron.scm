@@ -1,4 +1,5 @@
 (use-modules (ice-9 getopt-long))
+(use-modules (ice-9 format))
 
 (use-modules (frustum0))
 (use-modules (ballistae))
@@ -79,6 +80,8 @@
                                        (aperture-vec . ,(frst/dvec3 0.05 0.018 0.012)))))
 
 (bsta/scene/crush scene)
+
+(define output-name (format #f "scene-through-dodecahedron-~5d.pfm" frame-num))
 
 (bsta/scene/render scene cam
                    "scene-through-dodecahedron.pfm"  ;; output file
