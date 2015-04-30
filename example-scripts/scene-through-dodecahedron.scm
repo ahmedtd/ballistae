@@ -7,7 +7,8 @@
   '((frame-num  (value #t))
     (frame-rate (value #t))
     (gridsize   (value #t))
-    (nlambdas   (value #t))))
+    (nlambdas   (value #t))
+    (depthlim   (value #t))))
 
 (define options (getopt-long (command-line) option-spec))
 
@@ -15,6 +16,7 @@
 (define frame-rate (string->number (option-ref options 'frame-rate "24")))
 (define gridsize  (string->number (option-ref options 'gridsize  "4")))
 (define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
+(define depthlim  (string->number (option-ref options 'depthlim  "16")))
 
 ;; Turn the frame specification into a usable time.
 (define t (/ frame-num frame-rate))
@@ -82,4 +84,5 @@
                    "scene-through-dodecahedron.pfm"  ;; output file
                    864 1296                          ;; rows, columns
                    `((gridsize . ,gridsize)
-                     (nlambdas . ,nlambdas)))
+                     (nlambdas . ,nlambdas)
+                     (depthlim . ,depthlim)))
