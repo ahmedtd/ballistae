@@ -5,12 +5,16 @@
 
 (define option-spec
   '((frame-num  (value #t))
-    (frame-rate (value #t))))
+    (frame-rate (value #t))
+    (gridsize   (value #t))
+    (nlambdas   (value #t))))
 
 (define options (getopt-long (command-line) option-spec))
 
-(define frame-num  (string->number (option-ref options 'frame-num 0)))
-(define frame-rate (string->number (option-ref options 'frame-rate 24)))
+(define frame-num  (string->number (option-ref options 'frame-num  "0")))
+(define frame-rate (string->number (option-ref options 'frame-rate "24")))
+(define gridsize  (string->number (option-ref options 'gridsize  "4")))
+(define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
 
 ;; Turn the frame specification into a usable time.
 (define t (/ frame-num frame-rate))
@@ -77,6 +81,5 @@
 (bsta/scene/render scene cam
                    "scene-through-dodecahedron.pfm"  ;; output file
                    864 1296                          ;; rows, columns
-                   '(1 1 1 1 1 1 1 1 1 1)            ;; depth profile
-                   '(390 . 835)                      ;; spectral profile
-                   3)                                ;; supersampling factor
+                   `((gridsize . ,gridsize)
+                     (nlambdas . ,nlambdas)))

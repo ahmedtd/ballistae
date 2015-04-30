@@ -59,6 +59,14 @@ ballistae::scene* scene_from_scm(SCM scene) BG_PUBLIC;
 SCM scene_make() BG_PUBLIC;
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform) BG_PUBLIC;
 SCM add_illuminator(SCM scene, SCM illuminator) BG_PUBLIC;
+SCM render(
+    SCM scene,
+    SCM camera,
+    SCM output_file_scm,
+    SCM img_rows_scm,
+    SCM img_cols_scm,
+    SCM opts_scm
+) BG_PUBLIC;
 
 }
 

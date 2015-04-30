@@ -1,6 +1,8 @@
 #ifndef LIBBALLISTAE_RENDER_SCENE_HH
 #define LIBBALLISTAE_RENDER_SCENE_HH
 
+#include <cstdlib>
+
 #include <atomic>
 #include <vector>
 
@@ -13,15 +15,21 @@
 namespace ballistae
 {
 
+struct render_opts
+{
+    size_t gridsize;
+    span<double> bandwidth;
+    size_t n_lambdas;
+    size_t depth_lim;
+};
+
 image<float> render_scene(
     size_t img_rows,
     size_t img_cols,
     const camera &the_camera,
     const scene &scene,
-    unsigned int supersample_factor,
-    std::atomic_size_t &cur_progress,
-    const std::vector<size_t> &sampling_profile,
-    const span<double> &sample_bandwidth
+    const render_opts &opts,
+    std::atomic_size_t &cur_progress
 );
 
 }

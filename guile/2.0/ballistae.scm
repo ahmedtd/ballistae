@@ -156,15 +156,11 @@ present, specifies the affine mapping from world space to model space.
                                    output-file
                                    rows
                                    cols
-                                   recursion-profile
-                                   bandwidth
-                                   ss-factor)
+                                   opts)
   "Render SCENE using CAMERA."
   (bsta/backend/scene/render scene
                              camera
                              output-file
                              rows
                              cols
-                             ss-factor
-                             recursion-profile
-                             bandwidth))
+                             opts))

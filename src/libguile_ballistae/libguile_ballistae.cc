@@ -418,7 +418,7 @@ SCM dir_illuminator_make(SCM config_alist)
     result->direction = guile_frustum::dvec3_from_scm(lu_direction);
 
     result->direction = normalise(result->direction);
-    
+
     return new_smob(flag_illuminator, result);
 }
 
@@ -447,7 +447,7 @@ SCM illuminator_make(SCM name, SCM config_alist)
         return point_isotropic_illuminator_make(config_alist);
 
     // Otherwise, load from plugin.
-    
+
     SCM plug_soname = scm_string_append(
         scm_list_2(
             scm_from_utf8_string("ballistae_illuminator_"),
@@ -656,9 +656,7 @@ SCM render(
     SCM output_file_scm,
     SCM img_rows_scm,
     SCM img_cols_scm,
-    SCM ss_factor_scm,
-    SCM sample_profile_scm,
-    SCM bandwidth_scm
+    SCM opts_scm
 )
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
@@ -667,18 +665,36 @@ SCM render(
     scm_dynwind_free(output_file);
     std::size_t img_rows = scm_to_size_t(img_rows_scm);
     std::size_t img_cols = scm_to_size_t(img_cols_scm);
-    std::size_t ss_factor = scm_to_size_t(ss_factor_scm);
 
-    std::vector<size_t> sample_profile;
-    for(SCM cur = sample_profile_scm; !scm_is_null(cur); cur = scm_cdr(cur))
-    {
-        sample_profile.push_back(scm_to_size_t(scm_car(cur)));
-    }
+    SCM sym_gridsize = scm_from_utf8_symbol("gridsize");
+    SCM sym_bw_lo = scm_from_utf8_symbol("bw-lo");
+    SCM sym_bw_hi = scm_from_utf8_symbol("bw-hi");
+    SCM sym_nlambdas = scm_from_utf8_symbol("nlambdas");
+    SCM sym_depthlim = scm_from_utf8_symbol("depthlim");
 
-    ballistae::span<double> bandwidth = {
-        scm_to_double(scm_car(bandwidth_scm)),
-        scm_to_double(scm_cdr(bandwidth_scm))
+    ballistae::render_opts opts = {
+        4,
+        {390, 835},
+        16,
+        16
     };
+
+    SCM lu_gridsize = scm_assq_ref(opts_scm, sym_gridsize);
+    SCM lu_bw_lo = scm_assq_ref(opts_scm, sym_bw_lo);
+    SCM lu_bw_hi = scm_assq_ref(opts_scm, sym_bw_hi);
+    SCM lu_nlambdas = scm_assq_ref(opts_scm, sym_nlambdas);
+    SCM lu_depthlim = scm_assq_ref(opts_scm, sym_depthlim);
+
+    if(scm_is_true(lu_gridsize))
+        opts.gridsize = scm_to_size_t(lu_gridsize);
+    if(scm_is_true(lu_bw_lo))
+        opts.bandwidth.lo = scm_to_double(lu_bw_lo);
+    if(scm_is_true(lu_bw_hi))
+        opts.bandwidth.hi = scm_to_double(lu_bw_hi);
+    if(scm_is_true(lu_nlambdas))
+        opts.n_lambdas = scm_to_size_t(lu_nlambdas);
+    if(scm_is_true(lu_depthlim))
+        opts.depth_lim = scm_to_size_t(lu_depthlim);
 
     //
     // Below this point, no scheme exceptions may be thrown.
@@ -705,10 +721,8 @@ SCM render(
         img_cols,
         *camera_from_scm(camera),
         *scene_from_scm(scene),
-        ss_factor,
-        cur_progress,
-        sample_profile,
-        bandwidth
+        opts,
+        cur_progress
     );
 
     // Stop the progress printer.
@@ -800,7 +814,7 @@ SCM smob_equalp(SCM a, SCM b)
 {
     // The equalp forwarder is a little more complex -- it needs to ensure the
     // two provided smobs are of the same subsmob type before dispatching.
-    
+
     scm_t_bits flags_a = get_subsmob_type(a);
     scm_t_bits flags_b = get_subsmob_type(b);
 
@@ -855,12 +869,12 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/geom/make", 2, 0, 0, (scm_t_subr) geometry_make);
 
     scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
-    
+
     scm_c_define_gsubr("bsta/backend/matr/make", 2, 0, 0, (scm_t_subr) material_make);
 
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
     scm_c_define_gsubr("bsta/backend/scene/add-element",     4, 0, 0, (scm_t_subr) add_element);
     scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
-    scm_c_define_gsubr("bsta/backend/scene/render",          8, 0, 0, (scm_t_subr) render);
+    scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);
 }

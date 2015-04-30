@@ -96,7 +96,6 @@ shade_info<double> shade_ray(
     const scene &the_scene,
     const dray3 &reflected_ray,
     double lambda_nm,
-    size_t sample_index,
     std::ranlux24 &thread_rng
 )
 {
@@ -121,7 +120,7 @@ shade_info<double> shade_ray(
             the_scene,
             glb_contact,
             lambda_nm,
-            sample_index,
+            0,
             thread_rng
         );
 
@@ -137,103 +136,33 @@ shade_info<double> shade_ray(
     }
 }
 
-struct sample_scratch
-{
-    sample_scratch(size_t s)
-        : c_stack(s),
-          r_stack(s),
-          p_stack(s),
-          k_stack(s)
-    {
-    }
-
-    std::vector<size_t>         c_stack;
-    std::vector<ray<double, 3>> r_stack;
-    std::vector<double>         p_stack;
-    std::vector<double>         k_stack;
-
-    size_t sample_idx;
-};
-
 double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
     double lambda_nm,
     std::ranlux24 &thread_rng,
-    const std::vector<size_t> &l_stack,
-    sample_scratch &scratch
+    size_t depth_lim
 )
 {
-    using std::pow;
+    double accum_power = 0.0;
+    double cur_k = 1.0;
+    ray<double, 3> cur_ray = initial_query;
 
-    size_t depth_lim = l_stack.size();
-
-    // Load the initial query into cell 0.  The final result will appear in
-    // p_stack[0].
-    scratch.p_stack[0] = 0.0;
-    scratch.k_stack[0] = 1.0;
-    scratch.r_stack[0] = initial_query;
-
-    std::fill(scratch.c_stack.begin(), scratch.c_stack.end(), 0);
-
-    size_t i = 1;
-    do
+    for(size_t i = 0; i < depth_lim && cur_k != 0.0; ++i)
     {
-        if(i == depth_lim)
-        {
-            // We bottom out at fixed depth.
+        shade_info<double> shading = shade_ray(
+            the_scene,
+            cur_ray,
+            lambda_nm,
+            thread_rng
+        );
 
-            shade_info<double> shading = shade_ray(
-                the_scene,
-                scratch.r_stack[i-1],
-                lambda_nm,
-                scratch.sample_idx,
-                thread_rng
-            );
-
-            scratch.p_stack[i-1]
-                += scratch.k_stack[i-1] * shading.emitted_power / l_stack[i-1];
-            --i;
-        }
-        else if(scratch.c_stack[i] < l_stack[i])
-        {
-            shade_info<double> shading = shade_ray(
-                the_scene,
-                scratch.r_stack[i-1],
-                lambda_nm,
-                scratch.sample_idx,
-                thread_rng
-            );
-
-            if(scratch.c_stack[i] == 0)
-                scratch.p_stack[i] = 0.0;
-
-            scratch.p_stack[i] += shading.emitted_power;
-            scratch.k_stack[i] = shading.propagation_k;
-            scratch.r_stack[i] = shading.incident_ray;
-
-            ++scratch.c_stack[i];
-
-            // Only move down a level if we will actually use any of the power.
-            // Also, any material that returns a 0.0 for propagation_k probably
-            // did not provide a real ray to recurse on.
-            if(scratch.k_stack[i] != 0.0)
-            {
-                ++i;
-            }
-        }
-        else
-        {
-            scratch.p_stack[i-1]
-                += (scratch.k_stack[i-1] * scratch.p_stack[i]) / l_stack[i-1];
-            scratch.c_stack[i] = 0;
-            --i;
-        }
-        ++scratch.sample_idx;
+        accum_power += cur_k * shading.emitted_power;
+        cur_k = shading.propagation_k;
+        cur_ray = shading.incident_ray;
     }
-    while(i != 0);
 
-    return scratch.p_stack[0];
+    return accum_power;
 }
 
 color_d_XYZ shade_pixel(
@@ -243,26 +172,26 @@ color_d_XYZ shade_pixel(
     const std::size_t img_cols,
     const camera &the_camera,
     const scene &the_scene,
-    unsigned int ss_factor,
+    unsigned int ss_gridsize,
     std::ranlux24 &rng,
-    const std::vector<size_t> &sampling_profile,
     const std::vector<double> &lambdas,
-    sample_scratch &scratch
+    size_t depth_lim
 )
 {
     std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
 
     color_d_XYZ result = {0, 0, 0};
 
-    for(size_t sr = 0; sr < (1u << ss_factor); ++sr)
+    for(size_t sr = 0; sr < ss_gridsize; ++sr)
     {
-        for(size_t sc = 0; sc < (1u << ss_factor); ++sc)
+        for(size_t sc = 0; sc < ss_gridsize; ++sc)
         {
-            double cur_lambda = lambdas[sr * (1u << ss_factor) + sc];
+            size_t idx = sr * ss_gridsize + sc;
+            double cur_lambda = lambdas[idx % lambdas.size()];
 
             auto image_coords = scan_plane_to_image_space(
-                (cur_row << ss_factor) | sr, img_rows << ss_factor,
-                (cur_col << ss_factor) | sc, img_cols << ss_factor,
+                cur_row * ss_gridsize + sr, img_rows * ss_gridsize,
+                cur_col * ss_gridsize + sc, img_cols * ss_gridsize,
                 rng,
                 ss_pert_dist
             );
@@ -274,9 +203,8 @@ color_d_XYZ shade_pixel(
                 the_scene,
                 cur_lambda,
                 rng,
-                sampling_profile,
-                scratch
-            ) / (1u << (ss_factor*2));
+                depth_lim
+            ) / (ss_gridsize * ss_gridsize);
 
             result += spectral_to_XYZ(cur_lambda, sampled_power);
         }
@@ -285,33 +213,26 @@ color_d_XYZ shade_pixel(
     return result;
 }
 
-
 image<float> render_scene(
     const std::size_t img_rows,
     const std::size_t img_cols,
     const camera &the_camera,
     const scene &the_scene,
-    unsigned int ss_factor,
-    std::atomic_size_t &cur_progress,
-    const std::vector<size_t> &sampling_profile,
-    const span<double> &sample_bandwidth
+    const render_opts &opts,
+    std::atomic_size_t &cur_progress
 )
 {
     std::ranlux24 thread_rng(1235);
-    sample_scratch scratch(sampling_profile.size());
-
     image<float> result({img_rows, img_cols, 3}, 0.0f);
 
-    size_t n_samples = 1u << (ss_factor*2);
-    double lambda_step = (sample_bandwidth.hi - sample_bandwidth.lo) / n_samples;
-    std::vector<double> lambdas(n_samples);
+    double lambda_step = measure(opts.bandwidth) / opts.n_lambdas;
+    std::vector<double> lambdas(opts.n_lambdas);
     for(size_t i = 0; i < lambdas.size(); ++i)
-        lambdas[i] = sample_bandwidth.lo + i * lambda_step;
+        lambdas[i] = opts.bandwidth.lo + i * lambda_step;
 
-# pragma omp parallel for firstprivate(thread_rng, lambdas, scratch) schedule(dynamic, 16)
+# pragma omp parallel for firstprivate(thread_rng, lambdas) schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)
     {
-        scratch.sample_idx = thread_rng();
         for(size_t cc = 0; cc < img_cols; ++cc)
         {
             using std::shuffle;
@@ -322,11 +243,10 @@ image<float> render_scene(
                 img_rows, img_cols,
                 the_camera,
                 the_scene,
-                ss_factor,
+                opts.gridsize,
                 thread_rng,
-                sampling_profile,
                 lambdas,
-                scratch
+                opts.depth_lim
             );
 
             color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
