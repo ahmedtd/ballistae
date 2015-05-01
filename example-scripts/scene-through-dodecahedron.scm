@@ -44,7 +44,6 @@
                   `((n-interior . 2.41)
                     (n-exterior . 1)))
  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) (* t (* 0.3 3.14159)))
   (bsta/aff-t/scaling 5)
   (bsta/aff-t/translation (frst/dvec3 0 0 7))
   ))
@@ -56,8 +55,9 @@
  (bsta/matr/make "phong" `((ambient . ,(bsta/dsig/rgb-to-spectral 1 1 9))
                            (diffuse . ,(bsta/dsig/rgb-to-spectral 0.1 0.1 0.9))))
  (bsta/aff-t/compose
-  (bsta/aff-t/scaling 20)
-  (bsta/aff-t/translation (frst/dvec3 30 20 0))))
+  (bsta/aff-t/scaling 2)
+  (bsta/aff-t/translation (frst/dvec3 30 20 (+ 5 (sin (* t (* 0.5 3.14159))))))
+  (bsta/aff-t/rotation (frst/dvec3 0 0 1) (* t (* 0.5 3.14159)))))
 
 ;; Add a red sphere
 (bsta/scene/add-element
@@ -67,7 +67,8 @@
                            (diffuse . ,(bsta/dsig/rgb-to-spectral 0.9 0.1 0.1))))
  (bsta/aff-t/compose
   (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 10 14 10))))
+  (bsta/aff-t/translation (frst/dvec3 10 14 10))
+  (bsta/aff-t/rotation (frst/dvec3 0 0 1) (* t (* 0.5 3.14159)))))
 
 ;; Add a single directional light.
 (bsta/scene/add-illuminator
