@@ -44,7 +44,7 @@
                   `((n-interior . 2.41)
                     (n-exterior . 1)))
  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) (* t (* 2 3.14159)))
+  (bsta/aff-t/rotation (frst/dvec3 0 0 1) (* t (* 0.3 3.14159)))
   (bsta/aff-t/scaling 5)
   (bsta/aff-t/translation (frst/dvec3 0 0 7))
   ))
