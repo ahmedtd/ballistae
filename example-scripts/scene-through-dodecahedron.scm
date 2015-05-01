@@ -81,7 +81,7 @@
 
 (bsta/scene/crush scene)
 
-(define output-name (format #f "scene-through-dodecahedron-~5d.pfm" frame-num))
+(define output-name (format #f "scene-through-dodecahedron-~5,'0d.pfm" frame-num))
 
 (bsta/scene/render scene cam
                    output-name
