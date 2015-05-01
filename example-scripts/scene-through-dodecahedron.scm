@@ -84,8 +84,8 @@
 (define output-name (format #f "scene-through-dodecahedron-~5d.pfm" frame-num))
 
 (bsta/scene/render scene cam
-                   "scene-through-dodecahedron.pfm"  ;; output file
-                   864 1296                          ;; rows, columns
+                   output-name
+                   864 1296
                    `((gridsize . ,gridsize)
                      (nlambdas . ,nlambdas)
                      (depthlim . ,depthlim)))
