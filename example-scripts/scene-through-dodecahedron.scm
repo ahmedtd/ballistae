@@ -78,7 +78,7 @@
 
 (define cam (bsta/cam/make "pinhole" `((center . ,(frst/dvec3 -20 -20    10))
                                        (eye    . ,(frst/dvec3   1   1    -0.2))
-                                       (aperture-vec . ,(frst/dvec3 0.05 0.018 0.012)))))
+                                       (aperture-vec . ,(frst/dvec3 0.05 0.0192 0.0108)))))
 
 (bsta/scene/crush scene)
 
@@ -86,7 +86,7 @@
 
 (bsta/scene/render scene cam
                    output-name
-                   864 1296
+                   1080 1920
                    `((gridsize . ,gridsize)
                      (nlambdas . ,nlambdas)
                      (depthlim . ,depthlim)))
