@@ -21,7 +21,7 @@
 (define gridsize  (string->number (option-ref options 'gridsize  "4")))
 (define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
 (define depthlim  (string->number (option-ref options 'depthlim  "16")))
-(define output-folder (option-ref options 'output "mc-index-of-refraction-animation"))
+(define output-folder (option-ref options 'output "mc-rolling-marble"))
 
 (when (file-exists? output-folder)
       (error "Output folder ~a already exists." output-folder))
@@ -92,37 +92,93 @@
 (define (lerp v1 v2 t)
   (+ (* (- 1 t) v1) (* t v2)))
 
-(define (dispersive-n wl t)
+(define (dispersive-n wl)
   (define wl-range (- 835 390))
   (define s (/ (- wl 390) wl-range))
-  (define nlo (+ 1 (/ t 2)))
-  (define nhi (+ 1 (/ t 4)))
-  (lerp nlo nhi s))
+  (lerp 1.8 1.2 s))
 
-(bsta/scene/add-element
- scene
- (bsta/geom/make "sphere" `())
- (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 (lambda (wl) (dispersive-n wl 3))))))
- (bsta/aff-t/compose
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 -5 2.5 2))))
+(define (rolling-transform t)
+  (bsta/aff-t/compose
+   (bsta/aff-t/rotation (frst/dvec3 0 1 0) t)
+   (bsta/aff-t/translation (frst/dvec3 (+ -5 (* 2 t)) -2.5 2))))
+
+(define sphere-base-transform
+  (bsta/aff-t/scaling 2))
 
 (define sphere-index
   (bsta/scene/add-element
    scene
    (bsta/geom/make "sphere" `())
-   (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 (lambda (wl) (dispersive-n wl 0))))))
-   (bsta/aff-t/compose
-    (bsta/aff-t/scaling 2)
-    (bsta/aff-t/translation (frst/dvec3 -5 -2.5 2)))))
+   (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   sphere-base-transform))
+
+(define bubble-0-base-transform
+  (bsta/aff-t/compose
+   (bsta/aff-t/scaling 0.2)
+   (bsta/aff-t/translation (frst/dvec3 1.03 0.21 0.67))))
+
+(define bubble-1-base-transform
+  (bsta/aff-t/compose
+   (bsta/aff-t/scaling 0.39)
+   (bsta/aff-t/translation (frst/dvec3 -0.86 0.39 -0.29))))
+
+(define bubble-2-base-transform
+  (bsta/aff-t/compose
+   (bsta/aff-t/scaling 0.25)
+   (bsta/aff-t/translation (frst/dvec3 -0.22 -0.8 -0.24))))
+
+(define bubble-3-base-transform
+  (bsta/aff-t/compose
+   (bsta/aff-t/scaling 0.34)
+   (bsta/aff-t/translation (frst/dvec3 0.1 -0.67 1.02))))
+
+(define bubble-4-base-transform
+  (bsta/aff-t/compose
+   (bsta/aff-t/scaling 0.2)
+   (bsta/aff-t/translation (frst/dvec3 1.05 -0.31 0.50))))
+
+(define bubble-0-index
+  (bsta/scene/add-element
+   scene
+   (bsta/geom/make "sphere" `())
+   (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   bubble-0-base-transform))
+
+(define bubble-1-index
+  (bsta/scene/add-element
+   scene
+   (bsta/geom/make "sphere" `())
+   (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   bubble-1-base-transform))
+
+(define bubble-2-index
+  (bsta/scene/add-element
+   scene
+   (bsta/geom/make "sphere" `())
+   (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   bubble-2-base-transform))
+
+(define bubble-3-index
+  (bsta/scene/add-element
+   scene
+   (bsta/geom/make "sphere" `())
+   (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   bubble-3-base-transform))
+
+(define bubble-4-index
+  (bsta/scene/add-element
+   scene
+   (bsta/geom/make "sphere" `())
+   (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+   bubble-4-base-transform))
 
 (bsta/scene/add-element
  scene
- (bsta/geom/make "surface_mesh" `((file . "bunny-lo.obj") (swapyz . #t)))
+ (bsta/geom/make "surface_mesh" `((file . "cube.obj") (swapyz . #t)))
  (bsta/matr/make "mc_lambert" `())
  (bsta/aff-t/compose
   (bsta/aff-t/scaling 5)
-  (bsta/aff-t/translation (frst/dvec3 -5 -2.5 2))))
+  (bsta/aff-t/translation (frst/dvec3 -5 2.5 1))))
 
 (define cam-center (frst/dvec3 -5 -9  5))
 (define cam-eye (frst/- (frst/dvec3 -2 0 2) cam-center))
@@ -141,11 +197,47 @@
    (define ofile (format #f "~d.pfm" frame))
    (define t     (/ frame frame-rate))
 
-   (define sphere-material (bsta/scene/get-element-material scene sphere-index))
-   (bsta/matr/update
-    "nonconductive_smooth"
-    sphere-material
-    `((n-interior . ,(bsta/dsig/from-fn 390 835 89 (lambda (wl) (dispersive-n wl t))))))
+   (bsta/scene/set-element-transform
+    scene
+    sphere-index
+    (bsta/aff-t/compose
+     sphere-base-transform
+     (rolling-transform t)))
+
+   (bsta/scene/set-element-transform
+    scene
+    bubble-0-index
+    (bsta/aff-t/compose
+     bubble-0-base-transform
+     (rolling-transform t)))
+
+   (bsta/scene/set-element-transform
+    scene
+    bubble-1-index
+    (bsta/aff-t/compose
+     bubble-1-base-transform
+     (rolling-transform t)))
+
+   (bsta/scene/set-element-transform
+    scene
+    bubble-2-index
+    (bsta/aff-t/compose
+     bubble-2-base-transform
+     (rolling-transform t)))
+
+   (bsta/scene/set-element-transform
+    scene
+    bubble-3-index
+    (bsta/aff-t/compose
+     bubble-3-base-transform
+     (rolling-transform t)))
+
+   (bsta/scene/set-element-transform
+    scene
+    bubble-4-index
+    (bsta/aff-t/compose
+     bubble-4-base-transform
+     (rolling-transform t)))
 
    ;; Re-crush scene.
    (bsta/scene/crush scene)

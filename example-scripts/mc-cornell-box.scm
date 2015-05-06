@@ -82,7 +82,7 @@
 (define (dispersive-n wl)
   (let* ((x-dist (- 835 390))
          (t (/ (- wl 390) x-dist)))
-    (+ (* (- 1.5 t) 1) (* t 1))))
+    (+ (* (- 1.7 t) 1) (* t 1.3))))
 
 (bsta/scene/add-element
  scene
