@@ -170,7 +170,7 @@
    scene
    (bsta/geom/make "sphere" `())
    (bsta/matr/make "nonconductive_smooth" `((n-exterior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
-   bubble-4-base-transform)
+   bubble-4-base-transform))
 
 (define cam-center (frst/dvec3 -5 -9  5))
 (define cam-eye (frst/- (frst/dvec3 -2 0 2) cam-center))
