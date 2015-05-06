@@ -31,7 +31,9 @@ public:
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_nm,
+        double lambda_src,
+        double lambda_lim,
+        double lambda_cur,
         size_t sample_index,
         std::ranlux24 &thread_rng
     ) const = 0;

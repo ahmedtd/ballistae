@@ -274,12 +274,33 @@ int camera_print(SCM obj, SCM port, scm_print_state *pstate)
 SCM signal_from_list(SCM lo, SCM hi, SCM val_list)
 {
     auto p = new ballistae::dense_signal<double>();
-    p->src_val = scm_to_double(lo);
-    p->lim_val = scm_to_double(hi);
+    p->src_x = scm_to_double(lo);
+    p->lim_x = scm_to_double(hi);
 
     for(; !scm_is_null(val_list); val_list = scm_cdr(val_list))
     {
         p->samples.push_back(scm_to_double(scm_car(val_list)));
+    }
+
+    return new_smob(flag_dense_signal, p);
+}
+
+SCM signal_from_function(SCM lo_scm, SCM hi_scm, SCM n_scm, SCM fn)
+{
+    double lo = scm_to_double(lo_scm);
+    double hi = scm_to_double(hi_scm);
+    
+    auto p = new ballistae::dense_signal<double>();
+    p->src_x = lo;
+    p->lim_x = hi;
+
+    size_t n = scm_to_size_t(n_scm);
+    for(size_t i = 0; i < n; ++i)
+    {
+        double lambda = lo + i * (hi - lo) / n;
+        SCM val_scm = scm_call_1(fn, scm_from_double(lambda));
+        double val = scm_to_double(val_scm);
+        p->samples.push_back(val);
     }
 
     return new_smob(flag_dense_signal, p);
@@ -316,6 +337,18 @@ SCM green(SCM intensity)
 SCM blue(SCM intensity)
 {
     auto p = new ballistae::dense_signal<double>(scm_to_double(intensity) * ballistae::blue<double>());
+    return new_smob(flag_dense_signal, p);
+}
+
+SCM sunlight(SCM intensity)
+{
+    auto p = new ballistae::dense_signal<double>(scm_to_double(intensity) * ballistae::sunlight<double>());
+    return new_smob(flag_dense_signal, p);
+}
+
+SCM cie_d65()
+{
+    auto p = new ballistae::dense_signal<double>(ballistae::cie_d65<double>());
     return new_smob(flag_dense_signal, p);
 }
 
@@ -501,6 +534,17 @@ SCM material_make(SCM create_fn_scm, SCM config_alist)
     return new_smob(flag_material, create_fn(config_alist));
 }
 
+SCM material_update(SCM update_fn_scm, SCM matr, SCM config)
+{
+    auto void_fn = scm_to_pointer(update_fn_scm);
+    auto update_fn = reinterpret_cast<update_material_t>(void_fn);
+
+    ballistae::material* p_matr = smob_get_data<ballistae::material*>(matr);
+    update_fn(p_matr, config);
+    
+    return matr;
+}
+
 ballistae::material* material_from_scm(SCM matr)
 {
     ensure_smob(matr, flag_material);
@@ -598,9 +642,32 @@ SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
         affine_from_scm(transform)
     };
 
+    size_t index = scene_from_scm(scene)->elements.size();
     scene_from_scm(scene)->elements.push_back(elt);
 
-    return scene;
+    return scm_from_size_t(index);
+}
+
+SCM set_element_transform(SCM scene, SCM index, SCM transform)
+{
+    ballistae::scene_element &elt
+        = scene_from_scm(scene)->elements[scm_to_size_t(index)];
+
+    elt.forward_transform = ballistae::inverse(affine_from_scm(transform));
+    elt.reverse_transform = affine_from_scm(transform);
+
+    return index;
+}
+
+SCM get_element_material(SCM scene, SCM index)
+{
+    ballistae::scene_element &elt
+        = scene_from_scm(scene)->elements[scm_to_size_t(index)];
+    
+    SCM result = new_smob(flag_material, elt.the_material);
+    set_registered(result, true);
+    
+    return result;
 }
 
 SCM add_illuminator(SCM scene, SCM illuminator)
@@ -860,20 +927,26 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/cam/make", 2, 0, 0, (scm_t_subr) camera_make);
 
     scm_c_define_gsubr("bsta/backend/signal/from-list",       3, 0, 0, (scm_t_subr) signal_from_list);
+    scm_c_define_gsubr("bsta/backend/signal/from-fn",         4, 0, 0, (scm_t_subr) signal_from_function);
     scm_c_define_gsubr("bsta/backend/signal/pulse",           3, 0, 0, (scm_t_subr) pulse);
     scm_c_define_gsubr("bsta/backend/signal/red",             1, 0, 0, (scm_t_subr) red);
     scm_c_define_gsubr("bsta/backend/signal/green",           1, 0, 0, (scm_t_subr) green);
     scm_c_define_gsubr("bsta/backend/signal/blue",            1, 0, 0, (scm_t_subr) blue);
+    scm_c_define_gsubr("bsta/backend/signal/sunlight",        1, 0, 0, (scm_t_subr) sunlight);
+    scm_c_define_gsubr("bsta/backend/signal/cie-d65",         0, 0, 0, (scm_t_subr) cie_d65);
     scm_c_define_gsubr("bsta/backend/signal/rgb-to-spectral", 3, 0, 0, (scm_t_subr) rgb_to_spectral);
 
     scm_c_define_gsubr("bsta/backend/geom/make", 2, 0, 0, (scm_t_subr) geometry_make);
 
     scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
 
-    scm_c_define_gsubr("bsta/backend/matr/make", 2, 0, 0, (scm_t_subr) material_make);
+    scm_c_define_gsubr("bsta/backend/matr/make",   2, 0, 0, (scm_t_subr) material_make);
+    scm_c_define_gsubr("bsta/backend/matr/update", 3, 0, 0, (scm_t_subr) material_update);
 
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
     scm_c_define_gsubr("bsta/backend/scene/add-element",     4, 0, 0, (scm_t_subr) add_element);
+    scm_c_define_gsubr("bsta/backend/scene/set-element-transform", 3, 0, 0, (scm_t_subr) set_element_transform);
+    scm_c_define_gsubr("bsta/backend/scene/get-element-material",  2, 0, 0, (scm_t_subr) get_element_material);
     scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);

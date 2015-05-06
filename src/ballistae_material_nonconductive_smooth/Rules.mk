@@ -12,6 +12,7 @@ $(augmk_d)_CXXFLAGS += $(guile2_CFLAGS)
 
 $(augmk_d)_LFLAGS :=
 $(augmk_d)_LFLAGS += -Lsrc/libballistae/ -lballistae
+$(augmk_d)_LFLAGS += -Lsrc/libguile_ballistae/ -lguile_ballistae
 $(augmk_d)_LFLAGS += $(frustum0_LIBS)
 $(augmk_d)_LFLAGS += $(libguile_frustum0_LIBS)
 $(augmk_d)_LFLAGS += $(guile2_LIBS)
@@ -28,6 +29,7 @@ $($(augmk_d)_objs): %.o : %.cc
 # argument, and thus getting linked into the plugin library.
 $(augmk_d)/ballistae_material_nonconductive_smooth.so : d := $(augmk_d)
 $(augmk_d)/ballistae_material_nonconductive_smooth.so : | src/libballistae/libballistae.so
+$(augmk_d)/ballistae_material_nonconductive_smooth.so : | src/libguile_ballistae/libguile_ballistae.so
 $(augmk_d)/ballistae_material_nonconductive_smooth.so : $($(augmk_d)_objs)
 	$(CXX) -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 

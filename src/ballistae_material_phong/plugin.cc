@@ -26,7 +26,9 @@ public:
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_nm,
+        double lambda_src,
+        double lambda_lim,
+        double lambda_cur,
         size_t sample_index,
         std::ranlux24 &thread_rng
     ) const;
@@ -43,7 +45,9 @@ phong_priv::~phong_priv()
 shade_info<double> phong_priv::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_nm,
+    double lambda_src,
+    double lambda_lim,
+    double lambda_cur,
     size_t sample_index,
     std::ranlux24 &thread_rng
 ) const
@@ -52,20 +56,21 @@ shade_info<double> phong_priv::shade(
     result.propagation_k = 0.0;
     result.emitted_power = 0.0;
 
-    result.emitted_power += ambient(lambda_nm);
+    result.emitted_power += interpolate(ambient, lambda_cur);
 
     for(const auto &illum_p : the_scene.illuminators)
     {
         auto info = illum_p->power_at_point(
             the_scene,
             glb_contact.p,
-            lambda_nm,
+            lambda_cur,
             thread_rng
         );
 
         double cosine = -iprod(glb_contact.n, info.arrival);
         if(cosine > 0.0)
-            result.emitted_power += cosine * info.power * diffuse(lambda_nm);
+            result.emitted_power
+                += cosine * info.power * interpolate(diffuse, lambda_cur);
     }
 
     return result;

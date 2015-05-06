@@ -12,17 +12,14 @@ namespace ballistae
 template<class Field>
 struct dense_signal
 {
-    Field src_val;
-    Field lim_val;
+    Field src_x;
+    Field lim_x;
 
     std::vector<Field> samples;
 
     size_t size() const;
 
-    Field support() const;
-
-    Field& operator()(Field x);
-    const Field& operator()(Field x) const;
+    Field step_x() const;
 
     Field& operator[](size_t i);
     const Field& operator[](size_t i) const;
@@ -35,26 +32,9 @@ size_t dense_signal<Field>::size() const
 }
 
 template<class Field>
-Field dense_signal<Field>::support() const
+Field dense_signal<Field>::step_x() const
 {
-    return (lim_val - src_val) / Field(samples.size());
-}
-
-template<class Field>
-Field& dense_signal<Field>::operator()(Field x)
-{
-    using std::floor;
-
-    long index = std::lrint(std::floor((x - src_val) / support()));
-
-    // Result is guaranteed to be a valid index into samples.
-    return samples[index];
-}
-
-template<class Field>
-const Field& dense_signal<Field>::operator()(Field x) const
-{
-    return const_cast<dense_signal<Field>*>(this)->operator()(x);
+    return (lim_x - src_x) / Field(samples.size());
 }
 
 template<class Field>
@@ -68,6 +48,39 @@ const Field& dense_signal<Field>::operator[](size_t i) const
 {
     return const_cast<dense_signal<Field>*>(this)->operator[](i);
 }
+
+template<class Field>
+Field interpolate(const dense_signal<Field> &sig, Field x)
+{
+    using std::floor;
+
+    if(x < sig.src_x || sig.lim_x < x)
+        return Field(0);
+
+    long index = std::lrint(std::floor((x - sig.src_x) / sig.step_x()));
+
+    // Result is guaranteed to be a valid index into samples.
+    return sig.samples[index];
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Smooth sampling of signals.
+////////////////////////////////////////////////////////////////////////////////
+
+// template<class Field>
+// const Field interpolate(const dense_signal<Field> &sig, const Field x)
+// {
+//     if(x < sig.src_val)
+//         return Field(0);
+//     else if(sig.lim_val <= x)
+//         return Field(0);
+
+//     long lo_index = std::lrint(std::floor((x - src_val) / support()));
+//     double lo_val = sig[lo_index];
+
+//     double hi_val;
+//     if(lo_index == sig.
+// }
 
 ////////////////////////////////////////////////////////////////////////////////
 /// Arithmetic operators on signals.
@@ -116,19 +129,183 @@ dense_signal<Field> operator*(
     return result;
 }
 
+template<class Field>
+Field integrate(const dense_signal<Field> &sig, Field i_src_x, Field i_lim_x)
+{
+    using std::floor;
+    using std::lrint;
+
+    Field accum = Field(0);
+
+    size_t cur_idx;
+
+    Field cur_x;
+    Field next_x;
+
+    if(sig.src_x < i_src_x)
+    {
+        cur_x = i_src_x;
+
+        cur_idx = lrint(floor((i_src_x - sig.src_x) / sig.step_x()));
+
+        next_x = sig.src_x + (cur_idx + 1) * sig.step_x();
+    }
+    else
+    {
+        cur_x = sig.src_x;
+
+        cur_idx = 0;
+
+        next_x = sig.src_x + sig.step_x();
+    }
+
+    while(cur_idx < sig.size() && cur_x < i_lim_x)
+    {
+        if(next_x < i_lim_x)
+        {
+            Field width = next_x - cur_x;
+            accum += sig[cur_idx] * width;
+            cur_x = next_x;
+            next_x += sig.step_x();
+            ++cur_idx;
+        }
+        else
+        {
+            Field width = i_lim_x - cur_x;
+            accum += sig[cur_idx] * width;
+            cur_x = i_lim_x;
+        }
+    }
+
+    return accum;
+}
+
+// template<class Field>
+// Field iprod(const dense_signal<Field> &a, const dense_signal<Field> &b)
+// {
+//     using std::floor;
+//     using std::lrint;
+
+//     Field accum = Field(0);
+
+//     size_t cur_idx_a;
+//     size_t cur_idx_b;
+
+//     Field cur_x;
+//     Field next_a;
+//     Field next_b;
+
+//     if(a.src_x < b.src_x)
+//     {
+//         cur_x = b.src_x;
+
+//         cur_idx_a = lrint(floor((b.src_x - a.src_x) / a.step_x()));
+//         cur_idx_b = 0;
+
+//         next_a = a.src_x + (cur_idx_a + 1) * a.step_x();
+//         next_b = b.src_x + b.step_x();
+//     }
+//     else
+//     {
+//         cur_x = a.src_x;
+
+//         cur_idx_a = 0;
+//         cur_idx_b = lrint(floor((a.src_x - b.src_x) / b.step_x()));
+
+//         next_a = a.src_x; + a.step_x();
+//         next_b = b.src_x + (cur_idx_b + 1) * b.step_x();
+//     }
+
+//     while(cur_idx_a < a.samples.size() && cur_idx_b < b.samples.size())
+//     {
+//         if(next_a < next_b)
+//         {
+//             width = next_a - cur_x;
+//             accum += a(cur_x) * b(cur_x) * width;
+//             cur_x = next_a;
+//             next_a += a.step_x();
+//             ++cur_idx_a;
+//         }
+//         else
+//         {
+//             width = next_b - cur_x;
+//             accum += a(cur_x) * b(cur_x) * width;
+//             cur_x = next_b;
+//             next_b += b.step_x();
+//             ++cur_idx_b;
+//         }
+//     }
+
+//     return accum;
+// }
+
 /// Take part of the inner product between [sig] and a sampled function.
 ///
 /// This lets us only store an XYZ color for each pixel, rather than the full
 /// spectrum.  As we perform spectral sampling, each sample is immediately
 /// folded into the current XYZ val.
 template<class Field>
-Field partial_inner_product(
-    const dense_signal<Field>& sig,
-    Field sample_x,
-    Field sample_y
+Field partial_iprod(
+    const dense_signal<Field>& a,
+    Field b_src_x,
+    Field b_lim_x,
+    Field b_y
 )
 {
-    return sig(sample_x) * sample_y * sig.support();
+    using std::floor;
+    using std::lrint;
+
+    Field accum = Field(0);
+
+    size_t cur_idx_a;
+    size_t cur_idx_b;
+
+    Field cur_x;
+    Field next_a;
+    Field next_b;
+
+    if(a.src_x < b_src_x)
+    {
+        cur_x = b_src_x;
+
+        cur_idx_a = lrint(floor((b_src_x - a.src_x) / a.step_x()));
+        cur_idx_b = 0;
+
+        next_a = a.src_x + (cur_idx_a + 1) * a.step_x();
+        next_b = b_lim_x;
+    }
+    else
+    {
+        cur_x = a.src_x;
+
+        cur_idx_a = 0;
+        cur_idx_b = lrint(floor((a.src_x - b_src_x) / (b_lim_x - b_src_x)));
+
+        next_a = a.src_x + a.step_x();
+        next_b = b_src_x + (cur_idx_b + 1) * (b_lim_x - b_src_x);
+    }
+
+    while(cur_idx_a < a.size() && cur_idx_b < 1)
+    {
+        if(next_a < next_b)
+        {
+            Field width = next_a - cur_x;
+            accum += a[cur_idx_a] * b_y * width;
+            cur_x = next_a;
+            next_a += a.step_x();
+            ++cur_idx_a;
+        }
+        else
+        {
+            Field width = next_b - cur_x;
+            accum += a[cur_idx_a] * b_y * width;
+            cur_x = next_b;
+            next_b += (b_lim_x - b_src_x);
+            ++cur_idx_b;
+        }
+    }
+
+    return accum;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -157,13 +334,13 @@ dense_signal<Field> pulse(
 {
     dense_signal<Field> sig = {sigsrc, siglim, std::vector<Field>(n, Field(0))};
 
-    double x = sig.src_val;
+    double x = sig.src_x;
     for(Field &y : sig.samples)
     {
         if(pulsrc <= x && x < pullim)
             y += val;
 
-        x += sig.support();
+        x += sig.step_x();
     }
 
     return sig;
@@ -327,6 +504,181 @@ const dense_signal<Field>& cie_2006_Z()
     };
 
     static const dense_signal<Field> sig = {390, 835, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& sunlight()
+{
+    static const std::vector<double> vals = {
+        1.247, 1.019, 1.026, 0.855, 1.522, 1.682, 1.759, 1.674, 1.589, 1.735,
+        1.532, 1.789, 1.737, 1.842, 1.684, 1.757, 1.582, 1.767, 1.698, 1.587,
+        1.135, 1.646, 1.670, 1.929, 1.567, 1.713, 1.980, 1.973, 1.891, 1.973,
+        2.144, 1.941, 1.979, 2.077, 1.971, 2.040, 2.104, 1.976, 1.921, 1.994,
+        1.877, 2.041, 2.051, 1.956, 2.009, 2.035, 2.023, 1.969, 1.625, 1.914,
+        2.007, 1.896, 2.058, 2.017, 1.866, 1.857, 1.894, 1.869, 1.961, 1.919,
+        1.947, 1.867, 1.874, 1.669, 1.654, 1.831, 1.823, 1.958, 1.674, 1.897,
+        1.952, 1.770, 1.858, 1.871, 1.904, 1.769, 1.825, 1.879, 1.879, 1.863,
+        1.862, 1.846, 1.898, 1.821, 1.787, 1.843, 1.850, 1.854, 1.829, 1.810,
+        1.769, 1.892, 1.867, 1.846, 1.783, 1.838, 1.873, 1.860, 1.830, 1.750,
+        1.813, 1.808, 1.773, 1.805, 1.757, 1.746, 1.719, 1.776, 1.759, 1.743,
+        1.703, 1.705, 1.713, 1.609, 1.724, 1.734, 1.713, 1.656, 1.697, 1.697,
+        1.639, 1.651, 1.656, 1.654, 1.651, 1.614, 1.621, 1.627, 1.603, 1.558,
+        1.606, 1.599, 1.532, 1.384, 1.549, 1.571, 1.555, 1.560, 1.535, 1.546,
+        1.516, 1.521, 1.510, 1.508, 1.498, 1.492, 1.479, 1.455, 1.467, 1.461,
+        1.448, 1.448, 1.436, 1.416, 1.425, 1.386, 1.388, 1.415, 1.400, 1.384,
+        1.385, 1.373, 1.366, 1.354, 1.328, 1.331, 1.348, 1.350, 1.346, 1.319,
+        1.326, 1.318, 1.309, 1.307, 1.278, 1.258, 1.286, 1.279, 1.283, 1.270,
+        1.262, 1.259, 1.255, 1.248, 1.240, 1.237, 1.241, 1.221, 1.185, 1.203,
+        1.204, 1.208, 1.188, 1.196, 1.187, 1.187, 1.176, 1.180, 1.177, 1.174,
+        1.158, 1.143, 1.134, 1.152, 1.135, 1.142, 1.129, 1.115, 1.120, 1.095,
+        1.114, 1.115, 1.107, 1.104, 1.063, 1.080, 1.073, 1.075, 1.080, 1.081,
+        1.063, 1.051, 1.041
+    };
+
+    static const dense_signal<Field> sig = {390, 835, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& cie_a()
+{
+    static const std::vector<double> vals = {
+        0.930483, 1.128210, 1.357690, 1.622190, 1.925080,
+        2.269800, 2.659810, 3.098610, 3.589680, 4.136480,
+        4.742380, 5.410700, 6.144620, 6.947200, 7.821350,
+        8.769800, 9.795100, 10.899600, 12.085300, 13.354300,
+        14.708000, 16.148000, 17.675300, 19.290700, 20.995000,
+        22.788300, 24.670900, 26.642500, 28.702700, 30.850800,
+        33.085900, 35.406800, 37.812100, 40.300200, 42.869300,
+        45.517400, 48.242300, 51.041800, 53.913200, 56.853900,
+        59.861100, 62.932000, 66.063500, 69.252500, 72.495900,
+        75.790300, 79.132600, 82.519300, 85.947000, 89.412400,
+        92.912000, 96.442300, 100.000000, 103.582000, 107.184000,
+        110.803000, 114.436000, 118.080000, 121.731000, 125.386000,
+        129.043000, 132.697000, 136.346000, 139.988000, 143.618000,
+        147.235000, 150.836000, 154.418000, 157.979000, 161.516000,
+        165.028000, 168.510000, 171.963000, 175.383000, 178.769000,
+        182.118000, 185.429000, 188.701000, 191.931000, 195.118000,
+        198.261000, 201.359000, 204.409000, 207.411000, 210.365000,
+        213.268000, 216.120000, 218.920000, 221.667000, 224.361000,
+        227.000000, 229.585000, 232.115000, 234.589000, 237.008000,
+        239.370000, 241.675000
+    };
+
+    static const dense_signal<Field> sig = {300, 785, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& cie_d65()
+{
+    static const std::vector<double> vals = {
+        0.034100, 1.664300, 3.294500, 11.765200, 20.236000,
+        28.644700, 37.053500, 38.501100, 39.948800, 42.430200,
+        44.911700, 45.775000, 46.638300, 49.363700, 52.089100,
+        51.032300, 49.975500, 52.311800, 54.648200, 68.701500,
+        82.754900, 87.120400, 91.486000, 92.458900, 93.431800,
+        90.057000, 86.682300, 95.773600, 104.865000, 110.936000,
+        117.008000, 117.410000, 117.812000, 116.336000, 114.861000,
+        115.392000, 115.923000, 112.367000, 108.811000, 109.082000,
+        109.354000, 108.578000, 107.802000, 106.296000, 104.790000,
+        106.239000, 107.689000, 106.047000, 104.405000, 104.225000,
+        104.046000, 102.023000, 100.000000, 98.167100, 96.334200,
+        96.061100, 95.788000, 92.236800, 88.685600, 89.345900,
+        90.006200, 89.802600, 89.599100, 88.648900, 87.698700,
+        85.493600, 83.288600, 83.493900, 83.699200, 81.863000,
+        80.026800, 80.120700, 80.214600, 81.246200, 82.277800,
+        80.281000, 78.284200, 74.002700, 69.721300, 70.665200,
+        71.609100, 72.979000, 74.349000, 67.976500, 61.604000,
+        65.744800, 69.885600, 72.486300, 75.087000, 69.339800,
+        63.592700, 55.005400, 46.418200, 56.611800, 66.805400,
+        65.094100, 63.382800, 63.843400, 64.304000, 61.877900,
+        59.451900, 55.705400, 51.959000, 54.699800, 57.440600,
+        58.876500, 60.312500
+    };
+
+    static const dense_signal<Field> sig = {300, 835, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_zero()
+{
+    static const std::vector<double> vals = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_white()
+{
+    static const std::vector<double> vals = {
+        1.0000, 1.0000, 0.9999, 0.9993, 0.9992, 0.9998, 1.0000, 1.0000, 1.0000, 1.0000
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_cyan()
+{
+    static const std::vector<double> vals = {
+        0.9710, 0.9426, 1.0007, 1.0007, 1.0007, 1.0007, 0.1564, 0.0000, 0.0000, 0.0000
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_magenta()
+{
+    static const std::vector<double> vals = {
+        1.0000, 1.0000, 0.9685, 0.2229, 0.0000, 0.0458, 0.8369, 1.0000, 1.0000, 0.9959
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_yellow()
+{
+    static const std::vector<double> vals = {
+        0.0001, 0.0000, 0.1088, 0.6651, 1.0000, 1.0000, 0.9996, 0.9586, 0.9685, 0.9840
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_red()
+{
+    static const std::vector<double> vals = {
+        0.1012, 0.0515, 0.0000, 0.0000, 0.0000, 0.0000, 0.8325, 1.0149, 1.0149, 1.0149
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_green()
+{
+    static const std::vector<double> vals = {
+        0.0000, 0.0000, 0.0273, 0.7937, 1.0000, 0.9418, 0.1719, 0.0000, 0.0000, 0.0025
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
+    return sig;
+}
+
+template<class Field>
+const dense_signal<Field>& smits_blue()
+{
+    static const std::vector<double> vals = {
+        1.0000, 1.0000, 0.8916, 0.3323, 0.0000, 0.0000, 0.0003, 0.0369, 0.0483, 0.0496
+    };
+    static const dense_signal<Field> sig = {380, 754, vals};
     return sig;
 }
 

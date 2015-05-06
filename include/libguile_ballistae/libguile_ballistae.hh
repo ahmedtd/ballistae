@@ -38,10 +38,13 @@ SCM camera_make(SCM plug_name, SCM config_alist) BG_PUBLIC;
 
 ballistae::dense_signal<double> signal_from_scm(SCM obj) BG_PUBLIC;
 SCM signal_from_list(SCM lo, SCM hi, SCM val_list) BG_PUBLIC;
+SCM signal_from_function(SCM lo_scm, SCM hi_scm, SCM n_scm, SCM fn) BG_PUBLIC;
 SCM pulse(SCM pulse_src, SCM pulse_lim, SCM pulse_power) BG_PUBLIC;
 SCM red(SCM intensity) BG_PUBLIC;
 SCM green(SCM intensity) BG_PUBLIC;
 SCM blue(SCM intensity) BG_PUBLIC;
+SCM sunlight(SCM intensity) BG_PUBLIC;
+SCM cie_d65() BG_PUBLIC;
 SCM rgb_to_spectral(SCM red, SCM green, SCM blue) BG_PUBLIC;
 
 ballistae::geometry* geometry_from_scm(SCM geom) BG_PUBLIC;
@@ -54,10 +57,13 @@ SCM illuminator_make(SCM name, SCM config_alist) BG_PUBLIC;
 
 ballistae::material* material_from_scm(SCM matr) BG_PUBLIC;
 SCM material_make(SCM create_fn_scm, SCM config_alist) BG_PUBLIC;
+SCM material_update(SCM update_fn_scm, SCM material, SCM config) BG_PUBLIC;
 
 ballistae::scene* scene_from_scm(SCM scene) BG_PUBLIC;
 SCM scene_make() BG_PUBLIC;
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform) BG_PUBLIC;
+SCM set_element_transform(SCM scene, SCM index, SCM transform) BG_PUBLIC;
+SCM get_element_transform(SCM scene, SCM index) BG_PUBLIC;
 SCM add_illuminator(SCM scene, SCM illuminator) BG_PUBLIC;
 SCM render(
     SCM scene,

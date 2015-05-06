@@ -8,6 +8,7 @@
 
 #include <frustum-0/indicial/fixed.hh>
 
+#include <libballistae/dense_signal.hh>
 #include <libballistae/vector.hh>
 
 using namespace frustum;
@@ -16,8 +17,9 @@ using namespace ballistae;
 class nc_smooth : public material
 {
 public:
-    double n_interior;
-    double n_exterior;
+
+    dense_signal<double> n_interior;
+    dense_signal<double> n_exterior;
 
 public:
 
@@ -26,7 +28,9 @@ public:
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_nm,
+        double lambda_src,
+        double lambda_lim,
+        double lambda_cur,
         size_t sample_index,
         std::ranlux24 &thread_rng
     ) const;
@@ -39,7 +43,9 @@ nc_smooth::~nc_smooth()
 shade_info<double> nc_smooth::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_nm,
+    double lambda_src,
+    double lambda_lim,
+    double lambda_cur,
     size_t sample_index,
     std::ranlux24 &thread_rng
 ) const
@@ -54,8 +60,8 @@ shade_info<double> nc_smooth::shade(
 
     double a_cos = iprod(refl, n);
 
-    double n_a = n_exterior;
-    double n_b = n_interior;
+    double n_a = interpolate(n_exterior, lambda_cur);
+    double n_b = interpolate(n_interior, lambda_cur);
 
     if(a_cos > 0.0)
     {
@@ -74,7 +80,7 @@ shade_info<double> nc_smooth::shade(
     //   * One shone on the boundary from region B, and was partially
     //     transmitted into the ray we have.
 
-    double snell = 1 - pow(n_r, 2) * (1 - pow(a_cos, 2));
+    double snell = 1 - pow(n_r, 2) * (1.0 - pow(a_cos, 2));
 
     if(snell < 0.0)
     {
@@ -122,25 +128,35 @@ shade_info<double> nc_smooth::shade(
     return result;
 }
 
-material* guile_ballistae_material(SCM config_alist)
+material* guile_ballistae_material(SCM config)
 {
+    nc_smooth *p = new nc_smooth();
+
+    p->n_interior = pulse<double>(390, 835, 1, 390, 835, 1.0);
+    p->n_exterior = pulse<double>(390, 835, 1, 390, 835, 1.0);
+
+    guile_ballistae_update_material(p, config);
+
+    return p;
+}
+
+material* guile_ballistae_update_material(material *p_matr, SCM config)
+{
+    using namespace ballistae_guile;
+
+    nc_smooth *p = dynamic_cast<nc_smooth*>(p_matr);
+
     SCM sym_n_interior = scm_from_utf8_symbol("n-interior");
     SCM sym_n_exterior = scm_from_utf8_symbol("n-exterior");
 
-    SCM lu_n_interior = scm_assq_ref(config_alist, sym_n_interior);
-    SCM lu_n_exterior = scm_assq_ref(config_alist, sym_n_exterior);
-
-    nc_smooth *result = new nc_smooth();
+    SCM lu_n_interior = scm_assq_ref(config, sym_n_interior);
+    SCM lu_n_exterior = scm_assq_ref(config, sym_n_exterior);
 
     if(scm_is_true(lu_n_interior))
-        result->n_interior = scm_to_double(lu_n_interior);
-    else
-        result->n_interior = 1.0;
+        p->n_interior = signal_from_scm(lu_n_interior);
 
     if(scm_is_true(lu_n_exterior))
-        result->n_exterior = scm_to_double(lu_n_exterior);
-    else
-        result->n_exterior = 1.0;
+        p->n_exterior = signal_from_scm(lu_n_exterior);
 
-    return result;
+    return p;
 }

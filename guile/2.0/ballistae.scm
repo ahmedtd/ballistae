@@ -50,8 +50,17 @@
 (define-public (bsta/dsig/from-list src-val lim-val val-list)
   (bsta/backend/signal/from-list src-val lim-val val-list))
 
+(define-public (bsta/dsig/from-fn src-val lim-val n fn)
+  (bsta/backend/signal/from-fn src-val lim-val n fn))
+
 (define-public (bsta/dsig/pulse pulse-src pulse-lim pulse-power)
   (bsta/backend/signal/pulse pulse-src pulse-lim pulse-power))
+
+(define-public (bsta/dsig/sunlight intensity)
+  (bsta/backend/signal/sunlight intensity))
+
+(define-public (bsta/dsig/cie-d65)
+  (bsta/backend/signal/cie-d65))
 
 (define-public (bsta/dsig/rgb-to-spectral red green blue)
   (bsta/backend/signal/rgb-to-spectral red green blue))
@@ -107,6 +116,12 @@ transform and every subsequent element left-multiplied in."
          (create-fn (dynamic-pointer "guile_ballistae_material" sohndl)))
     (bsta/backend/matr/make create-fn config-alist)))
 
+(define-public (bsta/matr/update plugname material config)
+  (let* ((soname (string-append "ballistae_material_" plugname))
+         (sohndl (dynamic-link soname))
+         (update-fn (dynamic-pointer "guile_ballistae_update_material" sohndl)))
+    (bsta/backend/matr/update update-fn material config)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions for illuminators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -142,6 +157,12 @@ present, specifies the affine mapping from world space to model space.
   ;; If the user didn't specify a transform, use identity.
   (unless transform (set! transform (bsta/aff-t/identity)))
   (bsta/backend/scene/add-element scene geometry material transform))
+
+(define*-public (bsta/scene/set-element-transform scene index tform)
+  (bsta/backend/scene/set-element-transform scene index tform))
+
+(define*-public (bsta/scene/get-element-material scene index )
+  (bsta/backend/scene/get-element-material scene index))
 
 (define*-public (bsta/scene/add-illuminator scene illuminator)
   "Add ILLUMINATOR to SCENE."

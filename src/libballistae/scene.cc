@@ -95,7 +95,9 @@ static fixvec<double, 3> scan_plane_to_image_space(
 shade_info<double> shade_ray(
     const scene &the_scene,
     const dray3 &reflected_ray,
-    double lambda_nm,
+    double lambda_src,
+    double lambda_lim,
+    double lambda_cur,
     std::ranlux24 &thread_rng
 )
 {
@@ -119,7 +121,9 @@ shade_info<double> shade_ray(
         auto shade_result = matr->shade(
             the_scene,
             glb_contact,
-            lambda_nm,
+            lambda_src,
+            lambda_lim,
+            lambda_cur,
             0,
             thread_rng
         );
@@ -139,7 +143,9 @@ shade_info<double> shade_ray(
 double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
-    double lambda_nm,
+    double lambda_src,
+    double lambda_lim,
+    double lambda_cur,
     std::ranlux24 &thread_rng,
     size_t depth_lim
 )
@@ -153,7 +159,9 @@ double sample_ray(
         shade_info<double> shading = shade_ray(
             the_scene,
             cur_ray,
-            lambda_nm,
+            lambda_src,
+            lambda_lim,
+            lambda_cur,
             thread_rng
         );
 
@@ -173,12 +181,14 @@ color_d_XYZ shade_pixel(
     const camera &the_camera,
     const scene &the_scene,
     unsigned int ss_gridsize,
-    std::ranlux24 &rng,
+    std::ranlux24 &thread_rng,
     const std::vector<double> &lambdas,
+    const double sample_bandwidth,
     size_t depth_lim
 )
 {
-    std::uniform_real_distribution<double> ss_pert_dist(0.0, 1.0);
+    std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
+    std::uniform_real_distribution<double> lambda_dist(0.0, sample_bandwidth);
 
     color_d_XYZ result = {0, 0, 0};
 
@@ -187,26 +197,31 @@ color_d_XYZ shade_pixel(
         for(size_t sc = 0; sc < ss_gridsize; ++sc)
         {
             size_t idx = sr * ss_gridsize + sc;
-            double cur_lambda = lambdas[idx % lambdas.size()];
+
+            double lambda_src = lambdas[idx % lambdas.size()];
+            double lambda_lim = lambda_src + sample_bandwidth;
+            double lambda_cur = lambda_src + lambda_dist(thread_rng);
 
             auto image_coords = scan_plane_to_image_space(
                 cur_row * ss_gridsize + sr, img_rows * ss_gridsize,
                 cur_col * ss_gridsize + sc, img_cols * ss_gridsize,
-                rng,
-                ss_pert_dist
+                thread_rng,
+                ss_dist
             );
 
-            dray3 cur_query = the_camera.image_to_ray(image_coords, rng);
+            dray3 cur_query = the_camera.image_to_ray(image_coords, thread_rng);
 
             double sampled_power = sample_ray(
                 cur_query,
                 the_scene,
-                cur_lambda,
-                rng,
+                lambda_src,
+                lambda_lim,
+                lambda_cur,
+                thread_rng,
                 depth_lim
             ) / (ss_gridsize * ss_gridsize);
 
-            result += spectral_to_XYZ(cur_lambda, sampled_power);
+            result += spectral_to_XYZ(lambda_src, lambda_lim, sampled_power);
         }
     }
 
@@ -246,6 +261,7 @@ image<float> render_scene(
                 opts.gridsize,
                 thread_rng,
                 lambdas,
+                lambda_step,
                 opts.depth_lim
             );
 

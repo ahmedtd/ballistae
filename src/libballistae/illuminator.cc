@@ -38,7 +38,7 @@ illumination_info dir_illuminator::power_at_point(
     );
 
     if(contact.t == std::numeric_limits<double>::infinity())
-        return {spectrum(lambda_nm), direction};
+        return {interpolate(spectrum, lambda_nm), direction};
     else
         return {0.0, {0.0, 0.0, 0.0}};
 }
@@ -75,7 +75,7 @@ illumination_info point_isotropic_illuminator::power_at_point(
     );
 
     if(! std::isnan(contact.t))
-        return {spectrum(lambda_nm) / pow(distance, 2), direction};
+        return {interpolate(spectrum, lambda_nm) / pow(distance, 2), direction};
     else
         return {0.0, {0.0, 0.0, 0.0}};
 }

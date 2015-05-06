@@ -88,21 +88,71 @@ using color_d_rgb = color3<double, rgb_tag>;
 using color_d_XYZ = color3<double, XYZ_tag>;
 
 template<class Field>
-color3<Field, XYZ_tag> spectral_to_XYZ(const Field &x, const Field &y)
+color3<Field, XYZ_tag> spectral_to_XYZ(
+    const Field &src_x,
+    const Field &lim_x,
+    const Field &y)
 {
     color3<Field, XYZ_tag> result;
-    result.channels[0] = partial_inner_product(cie_2006_X<Field>(), x, y);
-    result.channels[1] = partial_inner_product(cie_2006_Y<Field>(), x, y);
-    result.channels[2] = partial_inner_product(cie_2006_Z<Field>(), x, y);
+    result.channels[0] = partial_iprod(cie_2006_X<Field>(), src_x, lim_x, y);
+    result.channels[1] = partial_iprod(cie_2006_Y<Field>(), src_x, lim_x, y);
+    result.channels[2] = partial_iprod(cie_2006_Z<Field>(), src_x, lim_x, y);
     return result;
 }
 
 template<class Field>
 dense_signal<Field> rgb_to_spectral(const color3<Field, rgb_tag> &src)
 {
-    return src[0] * red<Field>()
-        + src[1] * green<Field>()
-        + src[2] * blue<Field>();
+    const Field& r = src[0];
+    const Field& g = src[1];
+    const Field& b = src[2];
+
+    dense_signal<Field> result = smits_zero<Field>();
+
+    if(r < g && r < b)
+    {
+        result += r * smits_white<Field>();
+        if(g < b)
+        {
+            result += (g - r) * smits_cyan<Field>();
+            result += (b - g) * smits_blue<Field>();
+        }
+        else
+        {
+            result += (b - r) * smits_cyan<Field>();
+            result += (g - b) * smits_green<Field>();
+        }
+    }
+    else if(g < r && g < b)
+    {
+        result += g * smits_white<Field>();
+        if(r < b)
+        {
+            result += (r - g) * smits_magenta<Field>();
+            result += (b - r) * smits_blue<Field>();
+        }
+        else
+        {
+            result += (b - g) * smits_magenta<Field>();
+            result += (r - b) * smits_red<Field>();
+        }
+    }
+    else
+    {
+        result += b * smits_white<Field>();
+        if(r < g)
+        {
+            result += (r - b) * smits_yellow<Field>();
+            result += (g - r) * smits_green<Field>();
+        }
+        else
+        {
+            result += (g - b) * smits_yellow<Field>();
+            result += (r - g) * smits_red<Field>();
+        }
+    }
+
+    return result;
 }
 
 }
