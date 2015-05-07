@@ -11,7 +11,7 @@
     (gridsize      (value #t))
     (nlambdas      (value #t))
     (depthlim      (value #t))
-    (output-folder (value #t))))
+    (output-dir (value #t))))
 
 (define options (getopt-long (command-line) option-spec))
 
@@ -21,7 +21,7 @@
 (define gridsize  (string->number (option-ref options 'gridsize  "4")))
 (define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
 (define depthlim  (string->number (option-ref options 'depthlim  "16")))
-(define output-folder (option-ref options 'output "mc-rolling-marble"))
+(define output-folder (option-ref options 'output-dir "mc-rolling-marble"))
 
 (when (file-exists? output-folder)
       (error "Output folder ~a already exists." output-folder))
