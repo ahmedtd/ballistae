@@ -34,7 +34,7 @@ $(augmk_d)/ballistae_material_omnidirectional_emitter.so : | src/libguile_ballis
 $(augmk_d)/ballistae_material_omnidirectional_emitter.so : $($(augmk_d)_objs)
 	$(CXX) -shared -o $@ $^ $($(d)_CXXFLAGS) $($(d)_LFLAGS) $(CXXFLAGS)
 
-ALL_TARGETS += $(augmk_d)/ballistae_material_phong.so
-CLEAN_TARGETS += $(augmk_d)/ballistae_material_phong.so
+ALL_TARGETS += $(augmk_d)/ballistae_material_omnidirectional_emitter.so
+CLEAN_TARGETS += $(augmk_d)/ballistae_material_omnidirectional_emitter.so
 
 INSTALL_TARGETS += $(guile (augmk/install-lib-phony "$(augmk_d)_install" "./" "$(augmk_d)/ballistae_material_omnidirectional_emitter.so"))
