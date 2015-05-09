@@ -73,10 +73,8 @@ struct tri_face_crunched
 ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f)
     __attribute__((visibility("hidden")));
 
-ballistae::kd_tree<double, 3, tri_face_crunched> crunch(
-    const tri_mesh &m,
-    size_t bucket_hint
-) __attribute__((visibility("hidden")));
+ballistae::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
+    __attribute__((visibility("hidden")));
 
 constexpr int CONTACT_INTO = (1 << 0);
 constexpr int CONTACT_EXIT = (1 << 1);

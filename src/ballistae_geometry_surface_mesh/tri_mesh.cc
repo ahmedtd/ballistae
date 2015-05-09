@@ -46,10 +46,7 @@ aabox<double, 3> get_aabox(const tri_face_crunched &f)
     return result;
 }
 
-kd_tree<double, 3, tri_face_crunched> crunch(
-    const tri_mesh &m,
-    size_t bucket_hint
-)
+kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m)
 {
     using std::move;
     using std::log;

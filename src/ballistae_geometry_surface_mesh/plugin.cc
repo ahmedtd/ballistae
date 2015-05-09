@@ -16,7 +16,7 @@ surface_mesh_priv : public ballistae::geometry
     bl::kd_tree<double, 3, tri_face_crunched> mesh;
 
 public:
-    surface_mesh_priv(const tri_mesh &mesh_in, size_t bucket_hint)
+    surface_mesh_priv(const tri_mesh &mesh_in)
         __attribute__((visibility("default")));
 
     virtual ~surface_mesh_priv()
@@ -35,11 +35,8 @@ public:
     ) const __attribute__((visibility("default")));
 };
 
-surface_mesh_priv::surface_mesh_priv(
-    const tri_mesh &mesh_in,
-    size_t bucket_hint
-)
-    : mesh(crunch(mesh_in, bucket_hint))
+surface_mesh_priv::surface_mesh_priv(const tri_mesh &mesh_in)
+    : mesh(crunch(mesh_in))
 {
 }
 
@@ -73,12 +70,6 @@ ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
 
     SCM sym_file = scm_from_utf8_symbol("file");
     SCM sym_swapyz = scm_from_utf8_symbol("swapyz");
-    SCM sym_bucket_hint = scm_from_utf8_symbol("bucket-hint");
-
-    SCM lu_bucket_hint = scm_assq_ref(config_alist, sym_bucket_hint);
-    size_t bucket_hint = scm_is_true(lu_bucket_hint)
-        ? scm_to_size_t(lu_bucket_hint)
-        : 96;
 
     bool swapyz = scm_is_true(scm_assq_ref(config_alist, sym_swapyz));
 
@@ -126,5 +117,5 @@ ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
 
     scm_dynwind_end();
 
-    return new surface_mesh_priv(std::move(the_mesh), bucket_hint);
+    return new surface_mesh_priv(std::move(the_mesh));
 }
