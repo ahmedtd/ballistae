@@ -16,20 +16,23 @@ surface_mesh_priv : public ballistae::geometry
     bl::kd_tree<double, 3, tri_face_crunched> mesh;
 
 public:
-    surface_mesh_priv(const tri_mesh &mesh_in, size_t bucket_hint);
-    virtual ~surface_mesh_priv();
+    surface_mesh_priv(const tri_mesh &mesh_in, size_t bucket_hint)
+        __attribute__((visibility("default")));
+
+    virtual ~surface_mesh_priv()
+        __attribute__((visibility("default")));
 
     virtual bl::contact<double> ray_into(
         const bl::scene &the_scene,
         const bl::ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
-    ) const;
+    ) const __attribute__((visibility("default")));
 
     virtual bl::contact<double> ray_exit(
         const bl::scene &the_scene,
         const bl::ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
-    ) const;
+    ) const __attribute__((visibility("default")));
 };
 
 surface_mesh_priv::surface_mesh_priv(
@@ -62,6 +65,8 @@ bl::contact<double> surface_mesh_priv::ray_exit(
     return tri_mesh_contact(query, mesh, CONTACT_EXIT);
 }
 
+// Declared with default visibility in libguile_ballistae /
+// material_plugin_interface.hh
 ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
@@ -72,7 +77,7 @@ ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
 
     SCM lu_bucket_hint = scm_assq_ref(config_alist, sym_bucket_hint);
     size_t bucket_hint = scm_is_true(lu_bucket_hint)
-        ? scm_to_double(lu_bucket_hint)
+        ? scm_to_size_t(lu_bucket_hint)
         : 96;
 
     bool swapyz = scm_is_true(scm_assq_ref(config_alist, sym_swapyz));

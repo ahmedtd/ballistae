@@ -16,18 +16,28 @@ struct aabox final
 {
     std::array<span<Field>, D> spans;
 
-    static aabox<Field, D> nan()
-    {
-        aabox<Field, D> result;
-        for(size_t i = 0; i < D; ++i)
-            result.spans[i] = span<Field>::nan();
-        return result;
-    }
+    static aabox<Field, D> nan() __attribute__((visibility("hidden")));
 };
+
+template<typename Field, size_t D>
+aabox<Field, D> aabox<Field, D>::nan()
+{
+    aabox<Field, D> result;
+    for(size_t i = 0; i < D; ++i)
+        result.spans[i] = span<Field>::nan();
+    return result;
+}
 
 /// Order A and B along the given axis.
 ///
 /// Convenient for use with std::bind.
+template<typename Field, size_t D>
+bool aabox_axial_comparator(
+    size_t axis,
+    const aabox<Field, D> &a,
+    const aabox<Field, D> &b
+) __attribute__((visibility("hidden")));
+
 template<typename Field, size_t D>
 bool aabox_axial_comparator(
     size_t axis,
@@ -39,6 +49,12 @@ bool aabox_axial_comparator(
 }
 
 /// Smallest aabox containing A and B.
+template<typename Field, size_t D>
+aabox<Field, D> min_containing(
+    const aabox<Field, D> &a,
+    const aabox<Field, D> &b
+) __attribute__((visibility("hidden")));
+
 template<typename Field, size_t D>
 aabox<Field, D> min_containing(
     const aabox<Field, D> &a,
@@ -61,6 +77,13 @@ std::array<aabox<Field, D>, 2> cut(
     const aabox<Field, D> &box,
     size_t axis,
     const Field &cut_plane
+) __attribute__((visibility("hidden")));
+
+template<typename Field, size_t D>
+std::array<aabox<Field, D>, 2> cut(
+    const aabox<Field, D> &box,
+    size_t axis,
+    const Field &cut_plane
 )
 {
     auto span_cut = cut(box.spans[axis], cut_plane);
@@ -73,9 +96,16 @@ std::array<aabox<Field, D>, 2> cut(
 }
 
 template<typename Field, size_t D>
-span<double> ray_test(
+span<Field> ray_test(
     const ray_segment<Field, D> &r,
-    const aabox<Field, D> &b)
+    const aabox<Field, D> &b
+) __attribute__((visibility("hidden")));
+
+template<typename Field, size_t D>
+span<Field> ray_test(
+    const ray_segment<Field, D> &r,
+    const aabox<Field, D> &b
+)
 {
     using std::swap;
 
@@ -94,7 +124,7 @@ span<double> ray_test(
         if(cur.hi < cur.lo)
             swap(cur.lo, cur.hi);
 
-        if(!(overlaps(r.the_segment, cur)))
+        if(!(overlaps(cover, cur)))
             return span<double>::nan();
 
         cover = max_intersecting(cover, cur);
@@ -103,6 +133,23 @@ span<double> ray_test(
     return overlaps(cover, r.the_segment)
         ? cover
         : span<double>::nan();
+}
+
+template<typename Field, size_t D>
+Field surface_area(const aabox<Field, D> &box)
+{
+    Field accum = 0;
+    for(size_t axis_a = 0; axis_a < D; ++axis_a)
+    {
+        for(size_t axis_b = axis_a; axis_b < D; ++axis_b)
+        {
+            accum += Field(2)
+                * measure(box.spans[axis_a])
+                * measure(box.spans[axis_b]);
+        }
+    }
+
+    return accum;
 }
 
 }

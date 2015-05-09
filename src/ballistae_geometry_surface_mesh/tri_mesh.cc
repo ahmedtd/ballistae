@@ -51,6 +51,7 @@ kd_tree<double, 3, tri_face_crunched> crunch(
     size_t bucket_hint
 )
 {
+    using std::move;
     using std::log;
 
     std::vector<tri_face_crunched> facets(m.f.size());
@@ -80,11 +81,11 @@ kd_tree<double, 3, tri_face_crunched> crunch(
     }
 
     kd_tree<double, 3, tri_face_crunched> result(
-        std::begin(facets),
-        std::end(facets),
-        bucket_hint,
+        move(facets),
         get_aabox
     );
+
+    kd_tree_refine_sah(result, get_aabox, 1.0, 0.9);
 
     return result;
 }
@@ -149,42 +150,10 @@ contact<double> tri_mesh_contact(
     least_contact.ray_t = std::numeric_limits<double>::infinity();
 
     // The kd_tree uses selector to drive the search.
-    auto selector = [&](
-        auto &push,
-        auto &bounds,
-        size_t idxl,
-        size_t idxh
-    ) -> void {
+    auto selector = [&](const aabox<double, 3> &box) -> bool {
         using std::isnan;
-
-        // Handle root case.
-        if(idxl == 0 && ! isnan(ray_test(r, bounds(idxl))))
-        {
-            push(idxl);
-            return;
-        }
-
-        auto t_l = ray_test(r, bounds(idxl));
-        auto t_h = ray_test(r, bounds(idxh));
-
-        bool viable_l = (!isnan(t_l)) && (t_l.lo < least_contact.ray_t);
-        bool viable_h = (!isnan(t_h)) && (t_h.lo < least_contact.ray_t);
-
-        if(viable_l && viable_h)
-        {
-            if(t_l.lo < t_h.lo)
-            {
-                push(idxh); push(idxl);
-            }
-            else
-            {
-                push(idxl); push(idxh);
-            }
-        }
-        else if(viable_l)
-            push(idxl);
-        else if(viable_h)
-            push(idxh);
+        auto t = ray_test(r, box);
+        return !isnan(t) && t.lo < least_contact.ray_t;
     };
 
     // When any stored object is indicated suspected to be relevant,

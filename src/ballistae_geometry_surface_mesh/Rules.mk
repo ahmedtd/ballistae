@@ -4,7 +4,7 @@ $(augmk_d)_objs := $($(augmk_d)_srcs:.cc=.o)
 CLEAN_TARGETS += $($(augmk_d)_objs)
 
 $(augmk_d)_CXXFLAGS :=
-$(augmk_d)_CXXFLAGS += -fPIC
+$(augmk_d)_CXXFLAGS += -fPIC -fvisibility=hidden
 $(augmk_d)_CXXFLAGS += $(frustum0_CFLAGS)
 $(augmk_d)_CXXFLAGS += $(libguile_frustum0_CFLAGS)
 $(augmk_d)_CXXFLAGS += -Iinclude

@@ -32,9 +32,19 @@ using dray3 = ray<double, 3>;
 ///   (arma::vec3) The point along the ray with parameter value T.
 template<class Field, size_t Dim>
 fixvec<Field, Dim> eval_ray(const ray<Field, Dim> &r, const Field &t)
+    __attribute__((visibility("default")));
+
+template<class Field, size_t Dim>
+fixvec<Field, Dim> eval_ray(const ray<Field, Dim> &r, const Field &t)
 {
     return r.point + t * r.slope;
 }
+
+template<class Field, size_t Dim>
+ray<Field, Dim> operator*(
+    const affine_transform<Field, Dim> &a,
+    const ray<Field, Dim> &b
+) __attribute__((visibility("default")));
 
 template<class Field, size_t Dim>
 ray<Field, Dim> operator*(
@@ -54,6 +64,12 @@ struct ray_segment
     ray<Field, D> the_ray;
     span<Field> the_segment;
 };
+
+template<class Field, size_t Dim>
+ray_segment<Field, Dim> operator*(
+    const affine_transform<Field, Dim> &a,
+    const ray_segment<Field, Dim> &b
+) __attribute__((visibility("default")));
 
 template<class Field, size_t Dim>
 ray_segment<Field, Dim> operator*(

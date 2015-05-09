@@ -18,68 +18,30 @@ namespace ballistae
 
 ///
 ///
-/// Each aacut at a given depth owns a portion of the storage array, which is
-/// pre-divided into three different ranges at tree construction time.
-///
-///   * The first range, [partitions[0], partitions[1]), consists of elements
-///     whose aaboxes strictly precede cut_plane along axis.
-///
-///   * The second range, [partitions[1], partitions[2]), consists of elements
-///     whose aaboxes contain cut_plane, along axis.
-///
-///   * The third range, [partitions[2], partitions[3]), consists of elements
-///     whose aaboxes strictly succeed cut_plane along axis.
-///
-/// If an aacut is not a leaf, then the low child is the aacut immediately
-/// following it in the kd_tree cut vector.  The high child can be found at
-/// kd_tree.cuts[link] (in a properly-initialized kd_tree).
+/// The LINK field is an index into the kd tree's NODES field, and points to a
+/// the source of a two-node block holding the children of this node.
 template<typename Field, typename StoredIt, size_t D>
-struct aacut
+struct aanode
 {
     size_t depth;
     aabox<Field, D> bounds;
-    std::array<StoredIt, 4> partitions;
+    StoredIt src;
+    StoredIt lim;
     size_t link;
 };
-
-template<class Field, typename StoredIt, size_t D>
-size_t aacut_t_size(const aacut<Field, StoredIt, D> &cut)
-{
-    return static_cast<size_t>(cut.partitions[3] - cut.partitions[0]);
-}
-
-template<class Field, typename StoredIt, size_t D>
-size_t aacut_l_size(const aacut<Field, StoredIt, D> &cut)
-{
-    return static_cast<size_t>(cut.partitions[1] - cut.partitions[0]);
-}
-
-template<class Field, typename StoredIt, size_t D>
-size_t aacut_o_size(const aacut<Field, StoredIt, D> &cut)
-{
-    return static_cast<size_t>(cut.partitions[2] - cut.partitions[1]);
-}
-
-template<class Field, typename StoredIt, size_t D>
-size_t aacut_h_size(const aacut<Field, StoredIt, D> &cut)
-{
-    return static_cast<size_t>(cut.partitions[3] - cut.partitions[2]);
-}
 
 /// A balanced, bounded-volume
 template<typename Field, size_t D, typename Stored>
 struct kd_tree final
 {
     std::vector<Stored> storage;
-    std::vector<aacut<Field, decltype(storage.begin()), D>> cuts;
+    std::vector<aanode<Field, decltype(storage.begin()), D>> nodes;
 
-    size_t depth_lim;
+    size_t max_depth;
 
-    template<typename StoredIt,typename StoredToAABox>
+    template<typename StoredToAABox>
     kd_tree(
-        StoredIt src,
-        StoredIt lim,
-        size_t bucket_cap,
+        std::vector<Stored> &&storage_in,
         StoredToAABox get_aabox
     );
 
@@ -88,143 +50,257 @@ struct kd_tree final
 };
 
 template<typename Field, size_t D, typename Stored>
-template<typename StoredIt, typename StoredToAABox>
+template<typename StoredToAABox>
 kd_tree<Field, D, Stored>::kd_tree(
-    StoredIt src_in,
-    StoredIt lim_in,
-    size_t bucket_try_cap,
+    std::vector<Stored> &&storage_in,
     StoredToAABox get_aabox
 )
-    : storage(std::distance(src_in, lim_in)),
-      depth_lim(
-          std::distance(src_in, lim_in) == 0
-          ? 0
-          : sizeof(size_t) * CHAR_BIT - __builtin_clz(std::distance(src_in, lim_in))
-      )
+    : storage(storage_in),
+      max_depth(0)
 {
-    std::move(src_in, lim_in, storage.begin());
-
-    if(storage.cbegin() == storage.cend())
+    aabox<Field, D> max_box;
+    if(storage.cbegin() != storage.cend())
     {
-        aacut<Field, decltype(storage.begin()), D> top_cut;
-        for(size_t i = 0; i < D; ++i)
-            top_cut.bounds.spans[i] = {0.0, 0.0};
-        top_cut.partitions = {storage.end(), storage.end(), storage.end(), storage.end()};
-        top_cut.link = std::numeric_limits<size_t>::max();
-        cuts.push_back(top_cut);
-        return;
+        max_box = std::accumulate(
+            storage.cbegin(),
+            storage.cend(),
+            get_aabox(storage[0]),
+            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+        );
     }
 
-    aabox<Field, D> max_box = std::accumulate(
-        storage.cbegin(),
-        storage.cend(),
-        get_aabox(storage[0]),
-        [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-    );
-
-    // During tree construction, unfinalized aacuts have their link set to the
-    // parent node.  As nodes are finalized, they patch their parent's link to
-    // point to themselves, then set their own link to size_t max as a sentinel.
-    // The order in which nodes are processed ensures that all low siblings are
-    // processed before all high siblings, so the parent's link will be set to
-    // point to their high child.
-
-    aacut<Field, decltype(storage.begin()), D> root_cut = {
+    aanode<Field, decltype(storage.begin()), D> root_node = {
         0,
         max_box,
-        {storage.begin(), storage.end(), storage.end(), storage.end()},
+        storage.begin(),
+        storage.end(),
         std::numeric_limits<size_t>::max()
     };
 
-    std::vector<aacut<Field, decltype(storage.begin()), D>> work_stack;
-    work_stack.push_back(root_cut);
+    nodes.push_back(root_node);
+}
 
-    while(! work_stack.empty())
+template<typename Field, size_t D, typename Stored, typename StoredToAABox>
+void kd_tree_refine_sah(
+    kd_tree<Field, D, Stored> &tree,
+    StoredToAABox get_aabox,
+    Field split_cost,
+    Field threshold
+)
+{
+    using stored_it = typename std::vector<Stored>::iterator;
+
+    size_t cur_node_idx = 0;
+    while(cur_node_idx != tree.nodes.size())
     {
-        auto cur_cut = work_stack.back();
-        work_stack.pop_back();
+        auto &cur_node = tree.nodes[cur_node_idx];
+        ++cur_node_idx;
 
-        size_t div_axis = cur_cut.depth % D;
+        if(cur_node.depth + 1 > tree.max_depth)
+            tree.max_depth = cur_node.depth + 1;
 
-        // Find the median element along the chosen axis.
+        bool should_cut;
+        size_t cut_axis;
+        Field cut;
+        std::tie(should_cut, cut_axis, cut)
+            = split_sah(cur_node, get_aabox, split_cost, threshold);
+
+        // Terminate recursion if indicated.
+        if(! should_cut)
+            continue;
+
+        // Sort on the chose axis.
         std::sort(
-            cur_cut.partitions[0],
-            cur_cut.partitions[3],
+            cur_node.src,
+            cur_node.lim,
             [&](auto a, auto b) {
-                return aabox_axial_comparator(div_axis, get_aabox(a), get_aabox(b));
+                return aabox_axial_comparator(cut_axis, get_aabox(a), get_aabox(b));
             }
         );
-        auto median = cur_cut.partitions[0] + (cur_cut.partitions[3] - cur_cut.partitions[0]) / 2;
-
-        // Get a single cut value.
-        Field cut_val = get_aabox(*median).spans[div_axis].hi;
 
         // Calculate the preceding, covering, and succeeding ranges for the
         // selected cut.
+        std::array<stored_it, 4> split = {
+            cur_node.src,
+            cur_node.lim,
+            cur_node.lim,
+            cur_node.lim
+        };
 
-        cur_cut.partitions[1] = std::partition(
-            cur_cut.partitions[0],
-            cur_cut.partitions[3],
+        split[1] = std::partition(
+            split[0],
+            split[3],
             [&](auto a) {
-                return strictly_precedes(get_aabox(a).spans[div_axis], cut_val);
+                return strictly_precedes(get_aabox(a).spans[cut_axis], cut);
             }
         );
 
-        cur_cut.partitions[2] = std::partition(
-            cur_cut.partitions[1],
-            cur_cut.partitions[3],
+        split[2] = std::partition(
+            split[1],
+            split[3],
             [&](auto a) {
-                return contains(get_aabox(a).spans[div_axis], cut_val);
+                return contains(get_aabox(a).spans[cut_axis], cut);
             }
         );
 
-        // Terminate recursion if:
-        //
-        //   * We have reached the depth limit.
-        //
-        //   * The current bucket is small enough.
-        //
-        //   * Most of the current bucket's elements fall on the cut plane,
-        //     making further recursion pointless.
-        if(cur_cut.depth == depth_lim
-           || aacut_t_size(cur_cut) < bucket_try_cap
-           || aacut_o_size(cur_cut) > 0.9 * aacut_t_size(cur_cut)
-        )
+        cur_node.link = tree.nodes.size();
+
+        // Create and record the low child node.  It will hold all elements
+        // preceding and overlapping the cut.
+
+        aabox<Field, D> lo_bounds;
+        if(split[2] - split[0] != 0)
         {
-            if(cur_cut.link != std::numeric_limits<size_t>::max())
-                cuts[cur_cut.link].link = cuts.size();
-            cur_cut.link = std::numeric_limits<size_t>::max();
-            cuts.push_back(cur_cut);
-            continue;
+            lo_bounds = std::accumulate(
+                split[0],
+                split[2],
+                get_aabox(*(split[0])),
+                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+            );
         }
 
-        // Queue up the current cut's two children for inspection.  Low child
-        // will be processed next.
-        auto new_aaboxes = cut(cur_cut.bounds, div_axis, cut_val);
+        aanode<Field, stored_it, D> lo_child = {
+            cur_node.depth + 1,
+            lo_bounds,
+            split[0],
+            split[2],
+            std::numeric_limits<size_t>::max()
+        };
 
-        auto low_child = cur_cut;
-        low_child.depth = cur_cut.depth + 1;
-        low_child.bounds = new_aaboxes[0];
-        low_child.link = cuts.size();
-        low_child.partitions[0] = cur_cut.partitions[0];
-        low_child.partitions[3] = cur_cut.partitions[1];
+        tree.nodes.push_back(lo_child);
 
-        auto high_child = cur_cut;
-        high_child.depth = cur_cut.depth + 1;
-        high_child.bounds = new_aaboxes[1];
-        high_child.link = cuts.size();
-        high_child.partitions[0] = cur_cut.partitions[2];
-        high_child.partitions[3] = cur_cut.partitions[3];
+        // Create and record the hi child node
 
-        work_stack.push_back(high_child);
-        work_stack.push_back(low_child);
+        aabox<Field, D> hi_bounds;
+        if(split[3] - split[2] != 0)
+        {
+            hi_bounds = std::accumulate(
+                split[2],
+                split[3],
+                get_aabox(*(split[2])),
+                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+            );
+        }
 
-        // Record the current cut for use in lookups, patching the parent link.
-        if(cur_cut.link != std::numeric_limits<size_t>::max())
-            cuts[cur_cut.link].link = cuts.size();
-        cuts.push_back(cur_cut);
+        aanode<Field, stored_it, D> hi_child = {
+            cur_node.depth + 1,
+            hi_bounds,
+            split[2],
+            split[3],
+            std::numeric_limits<size_t>::max()
+        };
+
+        tree.nodes.push_back(hi_child);
     }
 }
+
+template<typename Field, size_t D, typename StoredIt, typename StoredToAABox>
+std::tuple<bool, size_t, Field> split_sah(
+    aanode<Field, StoredIt, D> &parent,
+    StoredToAABox get_aabox,
+    Field split_cost,
+    Field termination_threshold
+)
+{
+    Field parent_objective
+        = (parent.lim - parent.src) * surface_area(parent.bounds);
+
+    size_t piv_axis;
+    Field piv_cut;
+    Field piv_objective = std::numeric_limits<Field>::infinity();
+
+    for(size_t axis = 0; axis < D; ++axis)
+    {
+        // Sort on axis
+        std::sort(
+            parent.src,
+            parent.lim,
+            [&](auto a, auto b) {
+                return aabox_axial_comparator(axis, get_aabox(a), get_aabox(b));
+            }
+        );
+
+        for(auto el = parent.src; el != parent.lim; ++el)
+        {
+            auto box = get_aabox(*el);
+            Field cut = box.spans[axis].hi;
+
+            // Calculate the preceding, covering, and succeeding ranges for the
+            // selected cut.
+            std::array<StoredIt, 4> split = {
+                parent.src,
+                parent.lim,
+                parent.lim,
+                parent.lim
+            };
+
+            split[1] = std::partition(
+                split[0],
+                split[3],
+                [&](auto a) {
+                    return strictly_precedes(get_aabox(a).spans[axis], cut);
+                }
+            );
+
+            split[2] = std::partition(
+                split[1],
+                split[3],
+                [&](auto a) {
+                    return contains(get_aabox(a).spans[axis], cut);
+                }
+            );
+
+            Field lo_n = Field(split[2] - split[0]);
+            Field hi_n = Field(split[3] - split[2]);
+
+            aabox<Field, D> lo_box;
+            if(split[2] - split[0] != 0)
+            {
+                lo_box = std::accumulate(
+                    split[0],
+                    split[2],
+                    get_aabox(*(split[0])),
+                    [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+                );
+            }
+
+            aabox<Field, D> hi_box;
+            if(split[3] - split[2] != 0)
+            {
+                hi_box = std::accumulate(
+                    split[2],
+                    split[3],
+                    get_aabox(*(split[2])),
+                    [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+                );
+            }
+
+            Field lo_sa = surface_area(lo_box);
+            Field hi_sa = surface_area(hi_box);
+
+            Field objective = lo_sa * lo_n + hi_sa * hi_n;
+
+            if(objective < piv_objective)
+            {
+                piv_axis = axis;
+                piv_cut = cut;
+                piv_objective = objective;
+            }
+        }
+    }
+
+    // Now we have computed the optimal split.  We need to check if it is a good
+    // improvement over simply not splitting.
+    if(piv_objective + split_cost > termination_threshold * parent_objective)
+    {
+        return std::make_tuple(false, 0, Field(0));
+    }
+    else
+    {
+        return std::make_tuple(true, piv_axis, piv_cut);
+    }
+}
+
 
 template<typename Field, size_t D, typename Stored>
 template<typename Selector, typename Computor>
@@ -234,41 +310,33 @@ void kd_tree<Field, D, Stored>::query(
 )
     const
 {
-    static thread_local std::vector<size_t> work_stack(depth_lim);
+    static thread_local std::vector<size_t> work_stack(max_depth);
+
     auto top = work_stack.begin();
     auto base = work_stack.begin();
 
-    auto bounds = [this](auto idx){return cuts[idx].bounds;};
-    auto select = [&top](auto idx){*top = idx; ++top;};
-
-    selector(select, bounds, 0, 0);
+    *top = 0;
+    ++top;
 
     while(top != base)
     {
         --top;
         auto cur_idx = *top;
+        auto cur_node = nodes[cur_idx];
 
-        auto cur_cut = cuts[cur_idx];
-
-        if(cur_cut.link == std::numeric_limits<size_t>::max())
+        if(cur_node.src != cur_node.lim && selector(cur_node.bounds))
         {
-            std::for_each(
-                cur_cut.partitions[0],
-                cur_cut.partitions[3],
-                computor
-            );
-        }
-        else
-        {
-            // Ask the caller to test the left and right link.
-            selector(select, bounds, cur_idx + 1, cur_cut.link);
-
-            // Process elements that fall directly on the cut.
-            std::for_each(
-                cur_cut.partitions[1],
-                cur_cut.partitions[2],
-                computor
-            );
+            if(cur_node.link == std::numeric_limits<size_t>::max())
+            {
+                std::for_each(cur_node.src, cur_node.lim, computor);
+            }
+            else
+            {
+                *top = (cur_node.link + 1);
+                ++top;
+                *top = (cur_node.link + 0);
+                ++top;
+            }
         }
     }
 }
