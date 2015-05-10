@@ -49,9 +49,12 @@ shade_info<double> omnidirectional_emitter::shade(
     std::ranlux24 &thread_rng
 ) const
 {
+    double avg_spectrum = integrate(spectrum, lambda_src, lambda_lim)
+        / (lambda_lim - lambda_src);
+
     shade_info<double> result;
     result.propagation_k = 0.0;
-    result.emitted_power = interpolate(spectrum, lambda_cur);
+    result.emitted_power = avg_spectrum;
 
     return result;
 }
