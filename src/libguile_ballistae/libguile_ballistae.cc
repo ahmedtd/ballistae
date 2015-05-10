@@ -342,6 +342,12 @@ SCM sunlight(SCM intensity)
     return new_smob(flag_dense_signal, p);
 }
 
+SCM cie_a()
+{
+    auto p = new ballistae::dense_signal<double>(ballistae::cie_a<double>());
+    return new_smob(flag_dense_signal, p);
+}
+
 SCM cie_d65()
 {
     auto p = new ballistae::dense_signal<double>(ballistae::cie_d65<double>());
@@ -913,6 +919,7 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/signal/green",           1, 0, 0, (scm_t_subr) green);
     scm_c_define_gsubr("bsta/backend/signal/blue",            1, 0, 0, (scm_t_subr) blue);
     scm_c_define_gsubr("bsta/backend/signal/sunlight",        1, 0, 0, (scm_t_subr) sunlight);
+    scm_c_define_gsubr("bsta/backend/signal/cie-a",           0, 0, 0, (scm_t_subr) cie_a);
     scm_c_define_gsubr("bsta/backend/signal/cie-d65",         0, 0, 0, (scm_t_subr) cie_d65);
     scm_c_define_gsubr("bsta/backend/signal/rgb-to-spectral", 3, 0, 0, (scm_t_subr) rgb_to_spectral);
 

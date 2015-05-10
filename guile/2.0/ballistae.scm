@@ -59,6 +59,9 @@
 (define-public (bsta/dsig/sunlight intensity)
   (bsta/backend/signal/sunlight intensity))
 
+(define-public (bsta/dsig/cie-a)
+  (bsta/backend/signal/cie-a))
+
 (define-public (bsta/dsig/cie-d65)
   (bsta/backend/signal/cie-d65))
 
