@@ -13,6 +13,7 @@ using namespace ballistae;
 class omnidirectional_emitter : public material
 {
 public:
+    double level;
     dense_signal<double> spectrum;
 
 public:
@@ -64,6 +65,7 @@ material* guile_ballistae_material(SCM config)
     omnidirectional_emitter *p = new omnidirectional_emitter();
 
     p->spectrum = cie_d65<double>();
+    p->level = 1.0;
 
     guile_ballistae_update_material(p, config);
 
@@ -79,8 +81,14 @@ material* guile_ballistae_update_material(material *p_matr, SCM config)
     SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
     SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
 
+    SCM sym_level = scm_from_utf8_symbol("level");
+    SCM lu_level = scm_assq_ref(config, sym_level);
+
     if(scm_is_true(lu_spectrum))
         p->spectrum = signal_from_scm(lu_spectrum);
+
+    if(scm_is_true(lu_level))
+        p->level = scm_to_double(lu_level);
 
     return p;
 }
