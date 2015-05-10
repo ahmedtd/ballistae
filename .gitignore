@@ -1,5 +1,7 @@
 *~
 *\#
-
+*.pfm
+*.jpeg
+*.webm
 *.o
 *.so
