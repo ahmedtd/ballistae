@@ -35,9 +35,9 @@
  (bsta/matr/make
   "directional_emitter"
   `((spectrum . ,(bsta/dsig/cie-d65))
-    (dir . ,(frst/dvec3 -1 -1 -1))
+    (dir . ,(frst/dvec3 -1 -1 -0.5))
     (cutoff . 0.95)
-    (lo-level . 0.2)
+    (lo-level . 0.05)
     (hi-level . 1.0)))
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
