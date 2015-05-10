@@ -1,8 +1,5 @@
 #include <libguile_ballistae/libguile_ballistae.hh>
 
-#include <sys/ioctl.h>
-#include <unistd.h>
-
 #include <cstdlib>
 
 #include <atomic>
@@ -11,7 +8,6 @@
 #include <future>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <tuple>
 #include <utility>
 
@@ -688,28 +684,12 @@ void print_progress_bar(
     SCM port
 )
 {
-    std::stringstream valstream;
     while(!stop_flag_atomic.load())
     {
         size_t cur_progress = cur_progress_atomic.load();
 
-        winsize w;
-        ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-
-        size_t bar_field_width = (size_t) w.ws_col - 2;
-        size_t bar_length = (cur_progress * bar_field_width) / max_progress;
-
-        std::string buf(w.ws_col, ' ');
-        size_t i = 0;
-        buf[i] = '['; ++i;
-        for(; i < 1 + bar_length; ++i)
-            buf[i] = '=';
-        buf[i] = '>'; ++i;
-        for(; i < 1 + bar_field_width; ++i)
-            buf[i] = ' ';
-        buf[i] = ']';
-
-        std::cout << '\r' << buf << std::flush;
+        size_t percent = (cur_progress * 100) / max_progress;
+        std::cout << '\r' << "Rendering: " << percent << "%" << std::flush;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
