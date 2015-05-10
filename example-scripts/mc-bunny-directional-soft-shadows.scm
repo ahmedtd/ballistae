@@ -36,7 +36,7 @@
   "directional_emitter"
   `((spectrum . ,(bsta/dsig/cie-d65))
     (dir . ,(frst/dvec3 -1 -1 -1))
-    (cutoff . 0.9)
+    (cutoff . 0.95)
     (lo-level . 0.2)
     (hi-level . 1.0)))
  (bsta/aff-t/compose
