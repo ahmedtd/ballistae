@@ -35,7 +35,7 @@
  (bsta/matr/make
   "directional_emitter"
   `((spectrum . ,(bsta/dsig/cie-d65))
-    (dir . ,(frst/dvec3 0 1 -1))
+    (dir . ,(frst/dvec3 -1 -1 -1))
     (cutoff . 0.9)
     (lo-level . 0.2)
     (hi-level . 1.0)))
@@ -68,7 +68,7 @@
   (bsta/aff-t/scaling 30)
   (bsta/aff-t/translation (frst/dvec3 2 -2 0))))
 
-(define cam-center (frst/dvec3 -5 -9  5))
+(define cam-center (frst/dvec3 -5 -11  5))
 (define cam-eye (frst/- (frst/dvec3 0 0 2) cam-center))
 
 (define cam (bsta/cam/make "pinhole" `((center . ,cam-center)
