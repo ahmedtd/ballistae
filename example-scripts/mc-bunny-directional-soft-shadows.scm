@@ -62,7 +62,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 dispersive-n))))
+ (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.95 0.1))))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
