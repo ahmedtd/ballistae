@@ -58,7 +58,7 @@ shade_info<double> mc_lambert::shade(
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = dir;
 
-    result.propagation_k = interpolate(reflectance, lambda_cur);
+    result.propagation_k = iprod(glb_contact.n, dir) * interpolate(reflectance, lambda_cur);
 
     return result;
 }
