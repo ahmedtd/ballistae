@@ -11,7 +11,7 @@
 using namespace frustum;
 using namespace ballistae;
 
-class directional_emitter : public material
+class directional_emitter : public ballistae_guile::updatable_material
 {
 public:
     double cutoff;
@@ -25,6 +25,8 @@ public:
 
     directional_emitter();
     virtual ~directional_emitter();
+
+    virtual void guile_update(scene *p_scene, SCM config);
 
     virtual shade_info<double> shade(
         const scene &the_scene,
@@ -43,6 +45,42 @@ directional_emitter::directional_emitter()
 
 directional_emitter::~directional_emitter()
 {
+}
+
+void directional_emitter::guile_update(scene *p_scene, SCM config)
+{
+    using namespace ballistae_guile;
+    using namespace guile_frustum;
+
+    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
+    SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
+
+    SCM sym_dir = scm_from_utf8_symbol("dir");
+    SCM lu_dir = scm_assq_ref(config, sym_dir);
+
+    SCM sym_cutoff = scm_from_utf8_symbol("cutoff");
+    SCM lu_cutoff = scm_assq_ref(config, sym_cutoff);
+
+    SCM sym_lo_level = scm_from_utf8_symbol("lo-level");
+    SCM lu_lo_level = scm_assq_ref(config, sym_lo_level);
+
+    SCM sym_hi_level = scm_from_utf8_symbol("hi-level");
+    SCM lu_hi_level = scm_assq_ref(config, sym_hi_level);
+
+    if(scm_is_true(lu_spectrum))
+        this->spectrum = signal_from_scm(lu_spectrum);
+
+    if(scm_is_true(lu_dir))
+        this->dir = normalise(dvec3_from_scm(lu_dir));
+
+    if(scm_is_true(lu_cutoff))
+        this->cutoff = scm_to_double(lu_cutoff);
+
+    if(scm_is_true(lu_lo_level))
+        this->lo_level = scm_to_double(lu_lo_level);
+
+    if(scm_is_true(lu_hi_level))
+        this->hi_level = scm_to_double(lu_hi_level);
 }
 
 shade_info<double> directional_emitter::shade(
@@ -71,7 +109,8 @@ shade_info<double> directional_emitter::shade(
     return result;
 }
 
-material* guile_ballistae_material(SCM config)
+ballistae_guile::updatable_material*
+guile_ballistae_material(scene *p_scene, SCM config)
 {
     using namespace ballistae_guile;
     using namespace guile_frustum;
@@ -85,47 +124,7 @@ material* guile_ballistae_material(SCM config)
     p->lo_level = 0.0;
     p->hi_level = 1.0;
 
-    guile_ballistae_update_material(p, config);
-
-    return p;
-}
-
-material* guile_ballistae_update_material(material *p_matr, SCM config)
-{
-    using namespace ballistae_guile;
-    using namespace guile_frustum;
-
-    directional_emitter *p = dynamic_cast<directional_emitter*>(p_matr);
-
-    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
-    SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
-
-    SCM sym_dir = scm_from_utf8_symbol("dir");
-    SCM lu_dir = scm_assq_ref(config, sym_dir);
-
-    SCM sym_cutoff = scm_from_utf8_symbol("cutoff");
-    SCM lu_cutoff = scm_assq_ref(config, sym_cutoff);
-
-    SCM sym_lo_level = scm_from_utf8_symbol("lo-level");
-    SCM lu_lo_level = scm_assq_ref(config, sym_lo_level);
-
-    SCM sym_hi_level = scm_from_utf8_symbol("hi-level");
-    SCM lu_hi_level = scm_assq_ref(config, sym_hi_level);
-
-    if(scm_is_true(lu_spectrum))
-        p->spectrum = signal_from_scm(lu_spectrum);
-
-    if(scm_is_true(lu_dir))
-        p->dir = normalise(dvec3_from_scm(lu_dir));
-
-    if(scm_is_true(lu_cutoff))
-        p->cutoff = scm_to_double(lu_cutoff);
-
-    if(scm_is_true(lu_lo_level))
-        p->lo_level = scm_to_double(lu_lo_level);
-
-    if(scm_is_true(lu_hi_level))
-        p->hi_level = scm_to_double(lu_hi_level);
+    p->guile_update(p_scene, config);
 
     return p;
 }

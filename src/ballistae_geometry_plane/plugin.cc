@@ -64,8 +64,8 @@ contact<double> plane_priv::ray_into(
         result.r = query.the_ray;
         result.p = eval_ray(query.the_ray, t);
         result.n = {1, 0, 0};
-        result.uv = {result.p(1), result.p(2)};
-        result.uvw = result.p;
+        result.mtl2 = {result.p(1), result.p(2)};
+        result.mtl3 = result.p;
 
         return result;
     }
@@ -94,8 +94,8 @@ contact<double> plane_priv::ray_exit(
         result.r = query.the_ray;
         result.p = eval_ray(query.the_ray, t);
         result.n = {1, 0, 0};
-        result.uv = {result.p(1), result.p(2)};
-        result.uvw = result.p;
+        result.mtl2 = {result.p(1), result.p(2)};
+        result.mtl3 = result.p;
 
         return result;
     }

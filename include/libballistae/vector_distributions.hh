@@ -30,7 +30,8 @@ struct uniform_unitv_distribution
 
         do
         {
-            result = {elt_dist(g), elt_dist(g), elt_dist(g)};
+            for(size_t i = 0; i < D; ++i)
+                result(i) = elt_dist(g);
         } while(norm(result) > Field(1) || norm(result) == Field(0));
 
         return normalise(result);
@@ -47,7 +48,7 @@ struct hemisphere_unitv_distribution
         : normal(normal_in)
     {
     }
-    
+
     template<class Gen>
     fixvec<Field, D> operator()(Gen &g)
     {
@@ -56,7 +57,7 @@ struct hemisphere_unitv_distribution
             candidate = -candidate;
         return candidate;
     }
-    
+
 };
 
 template<class Field, size_t D>

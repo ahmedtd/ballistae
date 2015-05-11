@@ -71,8 +71,8 @@ contact<double> sphere_priv::ray_into(
         result.t = t_min;
         result.p = p;
         result.n = normalise(p);
-        result.uv = {atan2(p(0), p(1)), acos(p(2))};
-        result.uvw = p;
+        result.mtl2 = {atan2(p(0), p(1)), acos(p(2))};
+        result.mtl3 = p;
         result.r = query.the_ray;
 
         return result;
@@ -106,8 +106,8 @@ contact<double> sphere_priv::ray_exit(
         result.t = t_max;
         result.p = p;
         result.n = normalise(p);
-        result.uv = {atan2(p(0), p(1)), acos(p(2))};
-        result.uvw = p;
+        result.mtl2 = {atan2(p(0), p(1)), acos(p(2))};
+        result.mtl3 = p;
         result.r = query.the_ray;
 
         return result;

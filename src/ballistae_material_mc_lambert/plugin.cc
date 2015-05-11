@@ -5,17 +5,18 @@
 
 #include <libguile_ballistae/libguile_ballistae.hh>
 
+#include <libballistae/material_map.hh>
 #include <libballistae/dense_signal.hh>
 #include <libballistae/vector_distributions.hh>
 
 using namespace frustum;
 using namespace ballistae;
 
-class mc_lambert : public material
+class mc_lambert : public ballistae_guile::updatable_material
 {
 public:
 
-    dense_signal<double> reflectance;
+    mtlmap<1> *reflectance;
 
     mc_lambert();
     virtual ~mc_lambert();
@@ -29,6 +30,8 @@ public:
         size_t sample_index,
         std::ranlux24 &thread_rng
     ) const;
+
+    virtual void guile_update(scene *p_scene, SCM config);
 };
 
 mc_lambert::mc_lambert()
@@ -58,35 +61,31 @@ shade_info<double> mc_lambert::shade(
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = dir;
 
-    result.propagation_k = iprod(glb_contact.n, dir) * interpolate(reflectance, lambda_cur);
+    double r = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
+    result.propagation_k = iprod(glb_contact.n, dir) * r;
 
     return result;
 }
 
-material* guile_ballistae_material(SCM config)
+void mc_lambert::guile_update(scene *p_scene, SCM config)
+{
+    SCM sym_reflectance = scm_from_utf8_symbol("reflectance");
+    SCM lu_reflectance = scm_assq_ref(config, sym_reflectance);
+
+    if(scm_is_true(lu_reflectance))
+        this->reflectance = p_scene->mtlmaps_1[scm_to_size_t(lu_reflectance)].get();
+}
+
+ballistae_guile::updatable_material*
+guile_ballistae_material(scene *p_scene, SCM config)
 {
     using namespace ballistae_guile;
 
     mc_lambert *p = new mc_lambert();
 
-    p->reflectance = smits_white<double>();
-
-    guile_ballistae_update_material(p, config);
-
-    return p;
-}
-
-material* guile_ballistae_update_material(material *p_matr, SCM config)
-{
-    using namespace ballistae_guile;
-
-    mc_lambert *p = dynamic_cast<mc_lambert*>(p_matr);
-
-    SCM sym_reflectance = scm_from_utf8_symbol("reflectance");
-    SCM lu_reflectance = scm_assq_ref(config, sym_reflectance);
-
-    if(scm_is_true(lu_reflectance))
-        p->reflectance = signal_from_scm(lu_reflectance);
+    // mtlmap 0 is *always* a constant smits_white mtlmap.
+    p->reflectance = p_scene->mtlmaps_1[0].get();
+    p->guile_update(p_scene, config);
 
     return p;
 }

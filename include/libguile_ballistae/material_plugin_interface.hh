@@ -8,22 +8,32 @@
 
 #include <libguile_ballistae/libguile_ballistae.hh>
 
+namespace ballistae_guile
+{
+
+struct __attribute__((visibility("default"))) updatable_material
+    : public ballistae::material
+{
+    virtual ~updatable_material()
+        __attribute__((visibility("default")));
+
+    virtual void guile_update(ballistae::scene *scene_p, SCM config)
+        __attribute__((visibility("default"))) = 0;
+};
+
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Initialize a material instance from the values in [alist].
 ////////////////////////////////////////////////////////////////////////////////
-extern "C" ballistae::material* guile_ballistae_material(
-    SCM alist
-) __attribute__((visibility("default")));
-
-extern "C" ballistae::material* guile_ballistae_update_material(
-    ballistae::material *p_matr,
-    SCM config
+extern "C" ballistae_guile::updatable_material* guile_ballistae_material(
+    ballistae::scene *p_scene,
+    SCM config_alist
 ) __attribute__((visibility("default")));
 
 namespace ballistae_guile
 {
 using create_material_t = decltype(&guile_ballistae_material);
-using update_material_t = decltype(&guile_ballistae_update_material);
 }
 
 #endif

@@ -14,6 +14,8 @@ namespace ballistae
 
 class geometry;
 class material;
+template<size_t>
+class mtlmap;
 
 struct scene_element
 {
@@ -25,6 +27,11 @@ struct scene_element
 
 struct scene
 {
+    /// Material maps producing 1-, 2-,and 3-vectors.
+    std::vector<std::unique_ptr<mtlmap<1>>> mtlmaps_1;
+    std::vector<std::unique_ptr<mtlmap<2>>> mtlmaps_2;
+    std::vector<std::unique_ptr<mtlmap<3>>> mtlmaps_3;
+
     std::vector<std::unique_ptr<material>> materials;
     std::vector<std::unique_ptr<illuminator>> illuminators;
     std::vector<std::unique_ptr<geometry>> geometries;

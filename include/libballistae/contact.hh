@@ -14,9 +14,11 @@ struct contact final
     Field t;
     ray<Field, 3>    r;
     fixvec<Field, 3> p;
+    fixvec<Field, 3> u;
+    fixvec<Field, 3> v;
     fixvec<Field, 3> n;
-    fixvec<Field, 2> uv;
-    fixvec<Field, 3> uvw;
+    fixvec<Field, 2> mtl2;
+    fixvec<Field, 3> mtl3;
 
     static contact<Field> nan()
     {
@@ -47,6 +49,8 @@ contact<Field> operator*(
 
     result.p = t * result.p;
     result.n = normalise(t.linear * result.n);
+    result.u = normalise(t.linear * result.u);
+    result.v = normalise(t.linear * result.v);
     result.t *= scale_factor;
     return result;
 }

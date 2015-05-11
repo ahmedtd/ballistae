@@ -19,10 +19,21 @@
 
 (define scene (bsta/scene/make))
 
+(define white-mtlmap
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.8 0.8 0.8)))))
+
+(define blue-mtlmap
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.2 0.9)))))
+
+(define checkerboard-mtlmap
+  (bsta/mtlmap1/make scene 'checkerboard `((even-spectrum . ,white-mtlmap)
+                                           (odd-spectrum . ,blue-mtlmap)
+                                           (period . 0.01))))
+
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
- (bsta/matr/make "mc_lambert" `(reflectance . ,(bsta/dsig/rgb-to-spectral 0.5 0.5 0.5)))
+ (bsta/matr/make scene "mc_lambert" `())
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
@@ -33,6 +44,7 @@
  scene
  (bsta/geom/make "infinity" `())
  (bsta/matr/make
+  scene
   "directional_emitter"
   `((spectrum . ,(bsta/dsig/cie-d65))
     (dir . ,(frst/dvec3 -1 -1 -0.5))
@@ -48,7 +60,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make "mc_lambert" `(reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.1 0.8)))
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,checkerboard-mtlmap)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
@@ -57,7 +69,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.8 0.1))))
+ (bsta/matr/make scene "mc_lambert" `())
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)

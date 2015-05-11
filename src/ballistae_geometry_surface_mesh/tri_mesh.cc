@@ -178,7 +178,7 @@ contact<double> tri_mesh_contact(
     result.r = r.the_ray;
     result.p = least_contact.p;
     result.n = least_contact.n;
-    result.uvw = least_contact.p;
+    result.mtl3 = least_contact.p;
 
     // Here, we could compute a different normal by interpolating the
     // mesh-specified normals.  Right now, we just use the computed normal of

@@ -17,6 +17,10 @@
 #include <frustum-0/indicial/fixed.hh>
 #include <libguile_frustum0/libguile_frustum0.hh>
 
+#include <libballistae/color.hh>
+#include <libballistae/dense_signal.hh>
+#include <libballistae/material_map.hh>
+
 #include <libguile_ballistae/camera_plugin_interface.hh>
 #include <libguile_ballistae/geometry_plugin_interface.hh>
 #include <libguile_ballistae/illuminator_plugin_interface.hh>
@@ -285,7 +289,7 @@ SCM signal_from_function(SCM lo_scm, SCM hi_scm, SCM n_scm, SCM fn)
 {
     double lo = scm_to_double(lo_scm);
     double hi = scm_to_double(hi_scm);
-    
+
     auto p = new ballistae::dense_signal<double>();
     p->src_x = lo;
     p->lim_x = hi;
@@ -528,23 +532,23 @@ int illuminator_print(SCM obj, SCM port, scm_print_state *pstate)
 /// Material subsmob
 ////////////////////////////////////////////////////////////////////////////////
 
-SCM material_make(SCM create_fn_scm, SCM config_alist)
+SCM material_make(SCM scene, SCM create_fn_scm, SCM config)
 {
     auto void_fn = scm_to_pointer(create_fn_scm);
     auto create_fn = reinterpret_cast<create_material_t>(void_fn);
 
-    return new_smob(flag_material, create_fn(config_alist));
+    updatable_material *p_um = create_fn(scene_from_scm(scene), config);
+    auto p_m = static_cast<ballistae::material*>(p_um);
+    return new_smob(flag_material, p_m);
 }
 
-SCM material_update(SCM update_fn_scm, SCM matr, SCM config)
+SCM material_update(SCM scene, SCM index, SCM config)
 {
-    auto void_fn = scm_to_pointer(update_fn_scm);
-    auto update_fn = reinterpret_cast<update_material_t>(void_fn);
+    ballistae::material *p_matr = scene_from_scm(scene)->materials[scm_to_size_t(index)].get();
+    auto p_updatable = dynamic_cast<updatable_material*>(p_matr);
+    p_updatable->guile_update(scene_from_scm(scene), config);
 
-    ballistae::material* p_matr = smob_get_data<ballistae::material*>(matr);
-    update_fn(p_matr, config);
-    
-    return matr;
+    return index;
 }
 
 ballistae::material* material_from_scm(SCM matr)
@@ -574,6 +578,20 @@ SCM scene_make()
 {
     // The pointer will be deleted when the smob is freed.
     auto scene_p = new ballistae::scene();
+
+    // Materials can rely on the presence of mtlmap1 #0 and #1 for default
+    // initialization.
+
+    auto white_up = std::make_unique<ballistae::constant_mtlmap1>(
+        ballistae::smits_white<double>()
+    );
+    scene_p->mtlmaps_1.push_back(std::move(white_up));
+
+    auto d65_up = std::make_unique<ballistae::constant_mtlmap1>(
+        ballistae::cie_d65<double>()
+    );
+    scene_p->mtlmaps_1.push_back(std::move(d65_up));
+
     return new_smob(flag_scene, scene_p);
 }
 
@@ -665,10 +683,10 @@ SCM get_element_material(SCM scene, SCM index)
 {
     ballistae::scene_element &elt
         = scene_from_scm(scene)->elements[scm_to_size_t(index)];
-    
+
     SCM result = new_smob(flag_material, elt.the_material);
     set_registered(result, true);
-    
+
     return result;
 }
 
@@ -816,6 +834,102 @@ int scene_print(SCM obj, SCM port, scm_print_state *pstate)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Material maps that produce scalars.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Material maps are wholly-owned by the scene.  Guile code can only access
+/// them via index into the scene.
+
+SCM mtlmap1_create_constant(SCM scene, SCM config)
+{
+    using std::move;
+
+    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
+    SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
+
+    auto up = std::make_unique<ballistae::constant_mtlmap1>(
+        ballistae::smits_white<double>()
+    );
+
+    if(scm_is_true(sym_spectrum))
+        up->spectrum = signal_from_scm(lu_spectrum);
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
+}
+
+SCM mtlmap1_create_checkerboard(SCM scene, SCM config)
+{
+    using std::move;
+
+    auto up = std::make_unique<ballistae::checkerboard_mtlmap1>(
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        1.0,
+        true
+    );
+
+    SCM sym_even_mtlmap = scm_from_utf8_symbol("even-mtlmap");
+    SCM sym_odd_mtlmap = scm_from_utf8_symbol("odd-mtlmap");
+    SCM sym_period = scm_from_utf8_symbol("period");
+    SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
+
+    SCM lu_even_mtlmap = scm_assq_ref(config, sym_even_mtlmap);
+    SCM lu_odd_mtlmap  = scm_assq_ref(config, sym_odd_mtlmap);
+    SCM lu_period      = scm_assq_ref(config, sym_period);
+    SCM lu_volumetric  = scm_assq_ref(config, sym_volumetric);
+
+    if(scm_is_true(lu_even_mtlmap))
+    {
+        size_t idx = scm_to_size_t(lu_even_mtlmap);
+        up->even_mtlmap = scene_from_scm(scene)->mtlmaps_1[idx].get();
+    }
+
+    if(scm_is_true(lu_odd_mtlmap))
+    {
+        size_t idx = scm_to_size_t(lu_odd_mtlmap);
+        up->odd_mtlmap = scene_from_scm(scene)->mtlmaps_1[idx].get();
+    }
+
+    if(scm_is_true(lu_period))
+        up->period = scm_to_double(lu_period);
+
+    if(scm_is_true(lu_volumetric))
+        up->volumetric = scm_is_true(lu_volumetric);
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
+}
+
+SCM mtlmap1_create_perlinval2(SCM scene, SCM config)
+{
+    return SCM_UNDEFINED;
+}
+
+SCM mtlmap1_create_plugin(SCM scene, SCM create_fn, SCM config)
+{
+    return SCM_UNDEFINED;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Material maps that produce vectors.
+////////////////////////////////////////////////////////////////////////////////
+
+SCM mtlmap2_create_perlingrad2(SCM scene, SCM config)
+{
+    return SCM_UNDEFINED;
+}
+
+SCM mtlmap2_create_plugin(SCM scene, SCM create_fn, SCM config)
+{
+    return SCM_UNDEFINED;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Subsmob dispatch machinery.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -927,7 +1041,7 @@ extern "C" void libguile_ballistae_init()
 
     scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
 
-    scm_c_define_gsubr("bsta/backend/matr/make",   2, 0, 0, (scm_t_subr) material_make);
+    scm_c_define_gsubr("bsta/backend/matr/make",   3, 0, 0, (scm_t_subr) material_make);
     scm_c_define_gsubr("bsta/backend/matr/update", 3, 0, 0, (scm_t_subr) material_update);
 
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
@@ -937,4 +1051,9 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);
+
+    scm_c_define_gsubr("bsta/backend/mtlmap1/constant",      2, 0, 0, (scm_t_subr) mtlmap1_create_constant);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/checkerboard",  2, 0, 0, (scm_t_subr) mtlmap1_create_checkerboard);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/perlinval2",    2, 0, 0, (scm_t_subr) mtlmap1_create_perlinval2);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/plugin",        3, 0, 0, (scm_t_subr) mtlmap1_create_plugin);
 }

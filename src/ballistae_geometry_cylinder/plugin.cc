@@ -94,8 +94,8 @@ contact<double> cylinder_priv::ray_into(
             result.r = query.the_ray;
             result.p = eval_ray(query.the_ray, t_min);
             result.n = reject(axis, result.p - center);
-            result.uv = {result.p(0), std::atan2(result.p(1), result.p(2))};
-            result.uvw = result.p;
+            result.mtl2 = {result.p(0), std::atan2(result.p(1), result.p(2))};
+            result.mtl3 = result.p;
 
             return result;
         }
@@ -157,8 +157,8 @@ contact<double> cylinder_priv::ray_exit(
             result.r = query.the_ray;
             result.p = eval_ray(query.the_ray, t_max);
             result.n = reject(axis, result.p - center);
-            result.uv = {result.p(0), std::atan2(result.p(1), result.p(2))};
-            result.uvw = result.p;
+            result.mtl2 = {result.p(0), std::atan2(result.p(1), result.p(2))};
+            result.mtl3 = result.p;
 
             return result;
         }

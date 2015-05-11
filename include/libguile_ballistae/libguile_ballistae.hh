@@ -56,7 +56,7 @@ SCM point_isotropic_illuminator_make(SCM config_alist) BG_PUBLIC;
 SCM illuminator_make(SCM name, SCM config_alist) BG_PUBLIC;
 
 ballistae::material* material_from_scm(SCM matr) BG_PUBLIC;
-SCM material_make(SCM create_fn_scm, SCM config_alist) BG_PUBLIC;
+SCM material_make(SCM scene, SCM create_fn_scm, SCM config) BG_PUBLIC;
 SCM material_update(SCM update_fn_scm, SCM material, SCM config) BG_PUBLIC;
 
 ballistae::scene* scene_from_scm(SCM scene) BG_PUBLIC;

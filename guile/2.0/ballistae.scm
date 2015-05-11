@@ -110,14 +110,37 @@ transform and every subsequent element left-multiplied in."
   (bsta/backend/geom/make plug-soname config-alist))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Material maps: Bindings from 2D/3D material coordinates to data.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (bsta/mtlmap1/make scene type config)
+  "Create a material map that turns material coordinates into scalar values.
+
+Arguments:
+
+  * SCENE: Ballistae scene in which to define the material map.
+
+  * TYPE: A symbol corresponding to a built-in material map type, or a string
+      that names a plugin material map type.
+
+  * CONFIG: A configuration alist for the material map."
+  (case type
+   ((constant) (bsta/backend/mtlmap1/constant scene config))
+   ((checkerboard) (bsta/backend/mtlmap1/checkerboard scene config))
+   (else (let* ((soname (string-append "ballistae_mtlmap1_" type))
+                (sohndl (dynamic-link soname))
+                (create-fn (dynamic-pointer "guile_ballistae_mtlmap1" sohndl)))
+           (bsta/backend/mtlmap1/plugin scene create-fn config)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions for dealing with materials.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (bsta/matr/make plugname config-alist)
+(define-public (bsta/matr/make scene plugname config-alist)
   (let* ((soname (string-append "ballistae_material_" plugname))
          (sohndl (dynamic-link soname))
          (create-fn (dynamic-pointer "guile_ballistae_material" sohndl)))
-    (bsta/backend/matr/make create-fn config-alist)))
+    (bsta/backend/matr/make scene create-fn config-alist)))
 
 (define-public (bsta/matr/update plugname material config)
   (let* ((soname (string-append "ballistae_material_" plugname))
