@@ -22,7 +22,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
- (bsta/matr/make "mc_lambert" `())
+ (bsta/matr/make "mc_lambert" `(reflectance . ,(bsta/dsig/rgb-to-spectral 0.5 0.5 0.5)))
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
@@ -48,7 +48,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make "mc_lambert" `())
+ (bsta/matr/make "mc_lambert" `(reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.1 0.8)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
@@ -57,7 +57,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.95 0.1))))
+ (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.8 0.1))))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
