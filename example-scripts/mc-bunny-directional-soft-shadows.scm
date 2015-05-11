@@ -45,11 +45,6 @@
                             (frst/dvec3 0 0 1))
   (bsta/aff-t/translation (frst/dvec3 -10 0 0))))
 
-(define (dispersive-n wl)
-  (let* ((x-dist (- 835 390))
-         (t (/ (- wl 390) x-dist)))
-    (+ (* (- 1.7 t) 1) (* t 1.3))))
-
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))

@@ -33,21 +33,13 @@
  scene
  (bsta/geom/make "infinity" `())
  (bsta/matr/make
-  "directional_emitter"
+  "omnidirectional_emitter"
   `((spectrum . ,(bsta/dsig/cie-d65))
-    (dir . ,(frst/dvec3 0 1 -1))
-    (cutoff . 0.8)
-    (lo-level . 0.1)
-    (hi-level . 1.0)))
+    (level . 0.1)))
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 0 0 1))))
-
-(define (dispersive-n wl)
-  (let* ((x-dist (- 835 390))
-         (t (/ (- wl 390) x-dist)))
-    (+ (* (- 1.55 t) 1) (* t 1.45))))
 
 (bsta/scene/add-element
  scene
@@ -70,7 +62,7 @@
   (bsta/aff-t/scaling 30)
   (bsta/aff-t/translation (frst/dvec3 2 -2 0))))
 
-(define cam-center (frst/dvec3 -5 -9  5))
+(define cam-center (frst/dvec3 -5 -11  5))
 (define cam-eye (frst/- (frst/dvec3 0 0 2) cam-center))
 
 (define cam (bsta/cam/make "pinhole" `((center . ,cam-center)
