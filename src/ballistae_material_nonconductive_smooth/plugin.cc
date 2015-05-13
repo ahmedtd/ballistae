@@ -9,6 +9,7 @@
 #include <frustum-0/indicial/fixed.hh>
 
 #include <libballistae/dense_signal.hh>
+#include <libballistae/material_map.hh>
 #include <libballistae/vector.hh>
 
 using namespace frustum;
@@ -18,8 +19,8 @@ class nc_smooth : public ballistae_guile::updatable_material
 {
 public:
 
-    dense_signal<double> n_interior;
-    dense_signal<double> n_exterior;
+    const mtlmap<1>* n_interior;
+    const mtlmap<1>* n_exterior;
 
 public:
 
@@ -53,10 +54,10 @@ void nc_smooth::guile_update(scene *p_scene, SCM config)
     SCM lu_n_exterior = scm_assq_ref(config, sym_n_exterior);
 
     if(scm_is_true(lu_n_interior))
-        this->n_interior = signal_from_scm(lu_n_interior);
+        this->n_interior = p_scene->mtlmaps_1[scm_to_size_t(lu_n_interior)].get();
 
     if(scm_is_true(lu_n_exterior))
-        this->n_exterior = signal_from_scm(lu_n_exterior);
+        this->n_exterior = p_scene->mtlmaps_1[scm_to_size_t(lu_n_exterior)].get();
 }
 
 shade_info<double> nc_smooth::shade(
@@ -79,8 +80,8 @@ shade_info<double> nc_smooth::shade(
 
     double a_cos = iprod(refl, n);
 
-    double n_a = interpolate(n_exterior, lambda_cur);
-    double n_b = interpolate(n_interior, lambda_cur);
+    double n_a = n_exterior->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
+    double n_b = n_interior->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
 
     if(a_cos > 0.0)
     {
@@ -152,8 +153,8 @@ guile_ballistae_material(scene *p_scene, SCM config)
 {
     nc_smooth *p = new nc_smooth();
 
-    p->n_interior = pulse<double>(390, 835, 1, 390, 835, 1.0);
-    p->n_exterior = pulse<double>(390, 835, 1, 390, 835, 1.0);
+    p->n_interior = p_scene->mtlmaps_1[0].get();
+    p->n_exterior = p_scene->mtlmaps_1[0].get();
 
     p->guile_update(p_scene, config);
 
