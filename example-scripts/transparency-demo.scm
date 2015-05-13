@@ -65,6 +65,12 @@
 (define (lerp v1 v2 t)
   (+ (* (- 1 t) v1) (* t v2)))
 
+(define exterior-ior-mtlmap
+  (bsta/mtlmap1/make
+   scene
+   'constant
+   `((spectrum . ,(bsta/dsig/pulse 390 835 1.0)))))
+
 (define (dispersive-n-1 wl)
   (define wl-range (- 835 390))
   (define s (/ (- wl 390) wl-range))
@@ -125,7 +131,8 @@
 (bsta/scene/add-element
  scene
  sphere-geom
- (bsta/matr/make scene "nonconductive_smooth" `((n-interior . ,simple-ior-mtlmap)))
+ (bsta/matr/make scene "nonconductive_smooth" `((n-interior . ,simple-ior-mtlmap)
+                                                (n-exterior . ,exterior-ior-mtlmap)))
   (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 2)
@@ -143,7 +150,8 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make scene "nonconductive_smooth" `((reflectance . ,simple-ior-mtlmap)))
+ (bsta/matr/make scene "nonconductive_smooth" `((reflectance . ,simple-ior-mtlmap)
+                                                (n-exterior . ,exterior-ior-mtlmap)))
   (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
@@ -152,7 +160,8 @@
 (bsta/scene/add-element
  scene
  sphere-geom
- (bsta/matr/make scene "nonconductive_smooth" `((n-interior . ,perlin-ior-mtlmap)))
+ (bsta/matr/make scene "nonconductive_smooth" `((n-interior . ,perlin-ior-mtlmap)
+                                                (n-exterior . ,exterior-ior-mtlmap)))
   (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 2)
