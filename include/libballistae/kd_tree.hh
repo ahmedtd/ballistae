@@ -93,7 +93,7 @@ void kd_tree_refine_sah(
     size_t cur_node_idx = 0;
     while(cur_node_idx != tree.nodes.size())
     {
-        auto &cur_node = tree.nodes[cur_node_idx];
+        auto cur_node = tree.nodes[cur_node_idx];
         ++cur_node_idx;
 
         if(cur_node.depth + 1 > tree.max_depth)
