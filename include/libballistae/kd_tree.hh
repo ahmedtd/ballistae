@@ -93,26 +93,28 @@ void kd_tree_refine_sah(
     size_t cur_node_idx = 0;
     while(cur_node_idx != tree.nodes.size())
     {
-        auto cur_node = tree.nodes[cur_node_idx];
-        ++cur_node_idx;
+        size_t cur_depth = tree.nodes[cur_node_idx].depth;
 
-        if(cur_node.depth + 1 > tree.max_depth)
-            tree.max_depth = cur_node.depth + 1;
+        if(cur_depth + 1 > tree.max_depth)
+            tree.max_depth = cur_depth + 1;
 
         bool should_cut;
         size_t cut_axis;
         Field cut;
         std::tie(should_cut, cut_axis, cut)
-            = split_sah(cur_node, get_aabox, split_cost, threshold);
+            = split_sah(tree.nodes[cur_node_idx], get_aabox, split_cost, threshold);
 
         // Terminate recursion if indicated.
         if(! should_cut)
+        {
+            ++cur_node_idx;
             continue;
+        }
 
-        // Sort on the chose axis.
+        // Sort on the chosen axis.
         std::sort(
-            cur_node.src,
-            cur_node.lim,
+            tree.nodes[cur_node_idx].src,
+            tree.nodes[cur_node_idx].lim,
             [&](auto a, auto b) {
                 return aabox_axial_comparator(cut_axis, get_aabox(a), get_aabox(b));
             }
@@ -121,10 +123,10 @@ void kd_tree_refine_sah(
         // Calculate the preceding, covering, and succeeding ranges for the
         // selected cut.
         std::array<stored_it, 4> split = {
-            cur_node.src,
-            cur_node.lim,
-            cur_node.lim,
-            cur_node.lim
+            tree.nodes[cur_node_idx].src,
+            tree.nodes[cur_node_idx].lim,
+            tree.nodes[cur_node_idx].lim,
+            tree.nodes[cur_node_idx].lim
         };
 
         split[1] = std::partition(
@@ -143,7 +145,7 @@ void kd_tree_refine_sah(
             }
         );
 
-        cur_node.link = tree.nodes.size();
+        tree.nodes[cur_node_idx].link = tree.nodes.size();
 
         // Create and record the low child node.  It will hold all elements
         // preceding and overlapping the cut.
@@ -160,7 +162,7 @@ void kd_tree_refine_sah(
         }
 
         aanode<Field, stored_it, D> lo_child = {
-            cur_node.depth + 1,
+            cur_depth + 1,
             lo_bounds,
             split[0],
             split[2],
@@ -183,7 +185,7 @@ void kd_tree_refine_sah(
         }
 
         aanode<Field, stored_it, D> hi_child = {
-            cur_node.depth + 1,
+            cur_depth + 1,
             hi_bounds,
             split[2],
             split[3],
@@ -191,6 +193,8 @@ void kd_tree_refine_sah(
         };
 
         tree.nodes.push_back(hi_child);
+
+        ++cur_node_idx;
     }
 }
 
