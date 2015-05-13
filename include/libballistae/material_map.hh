@@ -26,7 +26,7 @@ public:
 
 class constant_mtlmap1 : public mtlmap<1>
 {
- public:
+public:
     dense_signal<double> spectrum;
 
     constant_mtlmap1(dense_signal<double> spectrum_in);
@@ -39,22 +39,67 @@ class constant_mtlmap1 : public mtlmap<1>
     ) const;
 };
 
+class lerp_mtlmap1 : public mtlmap<1>
+{
+public:
+    double t_lo;
+    double t_hi;
+    
+    const mtlmap<1> *t;
+    const mtlmap<1> *a;
+    const mtlmap<1> *b;
+
+    lerp_mtlmap1(
+        double t_lo_in,
+        double t_hi_in,
+        const mtlmap<1> *t_in,
+        const mtlmap<1> *a_in,
+        const mtlmap<1> *b_in
+    );
+
+    virtual fixvec<double, 1> value(
+        const fixvec<double, 2> &mtl2,
+        const fixvec<double, 3> &mtl3,
+        double lambda
+    ) const;
+};
+
+class level_mtlmap1 : public mtlmap<1>
+{
+public:
+    double t_lo;
+    double t_hi;
+
+    const mtlmap<1> *t;
+    const mtlmap<1> *a;
+    const mtlmap<1> *b;
+    
+    level_mtlmap1(
+        double t_lo_in,
+        double t_hi_in,
+        const mtlmap<1> *t_in,
+        const mtlmap<1> *a_in,
+        const mtlmap<1> *b_in
+    );
+
+    virtual fixvec<double, 1> value(
+        const fixvec<double, 2> &mtl2,
+        const fixvec<double, 3> &mtl3,
+        double lambda
+    ) const;
+};
+
 class checkerboard_mtlmap1 : public mtlmap<1>
 {
 public:
-    const mtlmap<1> *even_mtlmap;
-    const mtlmap<1> *odd_mtlmap;
-
     double period;
     bool volumetric;
-    
+
     checkerboard_mtlmap1(
-        const mtlmap<1> *even_mtlmap_in,
-        const mtlmap<1> *odd_mtlmap_in,
         double period_in,
         bool volumetric_in
     );
-    
+
     virtual ~checkerboard_mtlmap1();
 
     virtual fixvec<double, 1> value(
@@ -64,32 +109,19 @@ public:
     ) const;
 };
 
-class perlinval2_mtlmap1 : public mtlmap<1>
+class perlinval_mtlmap1 : public mtlmap<1>
 {
 public:
-    double scale;
-    std::array<fixvec<double, 2>, 256*256> kernel;
+    bool volumetric;
+    double period;
 
-    perlinval2_mtlmap1(double scale_in, size_t seed);
-    virtual ~perlinval2_mtlmap1();
+    perlinval_mtlmap1(
+        bool volumetric_in,
+        double period_in
+    );
+    virtual ~perlinval_mtlmap1();
 
     virtual fixvec<double, 1> value(
-        const fixvec<double, 2> &mtl2,
-        const fixvec<double, 3> &mtl3,
-        double lambda
-    ) const;
-};
-
-class perlingrad2_mtlmap2 : public mtlmap<2>
-{
-public:
-    double scale;
-    std::array<fixvec<double, 2>, 256*256> kernel;
-
-    perlingrad2_mtlmap2(double scale_in, size_t seed);
-    virtual ~perlingrad2_mtlmap2();
-
-    virtual fixvec<double, 2> value(
         const fixvec<double, 2> &mtl2,
         const fixvec<double, 3> &mtl3,
         double lambda

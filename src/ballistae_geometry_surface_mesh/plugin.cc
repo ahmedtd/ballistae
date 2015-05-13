@@ -8,12 +8,13 @@
 #include "load_obj.hh"
 #include "tri_mesh.hh"
 
-namespace bl = ballistae;
+using namespace frustum;
+using namespace ballistae;
 
 class __attribute__((visibility("default")))
 surface_mesh_priv : public ballistae::geometry
 {
-    bl::kd_tree<double, 3, tri_face_crunched> mesh;
+    kd_tree<double, 3, tri_face_crunched> mesh;
 
 public:
     surface_mesh_priv(const tri_mesh &mesh_in)
@@ -22,15 +23,15 @@ public:
     virtual ~surface_mesh_priv()
         __attribute__((visibility("default")));
 
-    virtual bl::contact<double> ray_into(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_into(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const __attribute__((visibility("default")));
 
-    virtual bl::contact<double> ray_exit(
-        const bl::scene &the_scene,
-        const bl::ray_segment<double,3> &query,
+    virtual contact<double> ray_exit(
+        const scene &the_scene,
+        const ray_segment<double,3> &query,
         std::ranlux24 &thread_rng
     ) const __attribute__((visibility("default")));
 };
@@ -44,18 +45,18 @@ surface_mesh_priv::~surface_mesh_priv()
 {
 }
 
-bl::contact<double> surface_mesh_priv::ray_into(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> surface_mesh_priv::ray_into(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
     return tri_mesh_contact(query, mesh, CONTACT_INTO);
 }
 
-bl::contact<double> surface_mesh_priv::ray_exit(
-    const bl::scene &the_scene,
-    const bl::ray_segment<double,3> &query,
+contact<double> surface_mesh_priv::ray_exit(
+    const scene &the_scene,
+    const ray_segment<double,3> &query,
     std::ranlux24 &thread_rng
 ) const
 {
@@ -64,7 +65,10 @@ bl::contact<double> surface_mesh_priv::ray_exit(
 
 // Declared with default visibility in libguile_ballistae /
 // material_plugin_interface.hh
-ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
+std::unique_ptr<geometry> guile_ballistae_geometry(
+    scene *p_scene,
+    SCM config_alist
+)
 {
     scm_dynwind_begin((scm_t_dynwind_flags)0);
 
@@ -117,5 +121,5 @@ ballistae::geometry* guile_ballistae_geometry(SCM config_alist)
 
     scm_dynwind_end();
 
-    return new surface_mesh_priv(std::move(the_mesh));
+    return std::make_unique<surface_mesh_priv>(std::move(the_mesh));
 }

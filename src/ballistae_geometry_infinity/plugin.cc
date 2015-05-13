@@ -102,9 +102,10 @@ contact<double> infty_priv::ray_exit(
     }
 }
 
-geometry* guile_ballistae_geometry(
+std::unique_ptr<geometry> guile_ballistae_geometry(
+    scene *p_scene,
     SCM config_alist
 )
 {
-    return new infty_priv();
+    return std::make_unique<infty_priv>();
 }

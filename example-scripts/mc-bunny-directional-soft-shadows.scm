@@ -25,15 +25,45 @@
 (define blue-mtlmap
   (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.2 0.9)))))
 
-(define checkerboard-mtlmap
-  (bsta/mtlmap1/make scene 'checkerboard `((even-spectrum . ,white-mtlmap)
-                                           (odd-spectrum . ,blue-mtlmap)
-                                           (period . 0.01))))
+(define green-mtlmap
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.9 0.2)))))
+
+(define red-mtlmap
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.9 0.2 0.2)))))
+
+(define checkerboard-small
+  (bsta/mtlmap1/make scene 'checkerboard `((period . 0.01)
+                                           (volumetric . #t))))
+
+(define white-blue-checkerboard
+  (bsta/mtlmap1/make scene 'lerp `((t . ,checkerboard-small)
+                                   (a . ,white-mtlmap)
+                                   (b . ,blue-mtlmap))))
+
+(define white-green-checkerboard
+  (bsta/mtlmap1/make
+   scene
+   'lerp
+   `((t . ,(bsta/mtlmap1/make scene 'checkerboard `((period . 1)
+                                                    (volumetric . #f))))
+     (a . ,white-mtlmap)
+     (b . ,green-mtlmap))))
+
+(define red-marble-mtlmap
+  (bsta/mtlmap1/make
+   scene
+   'level
+   `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
+                                                 (period . 1.28))))
+     (t-lo . -0.8)
+     (t-hi .  0.8)
+     (a . ,red-mtlmap)
+     (b . ,white-mtlmap))))
 
 (bsta/scene/add-element
  scene
- (bsta/geom/make "plane" `())
- (bsta/matr/make scene "mc_lambert" `())
+ (bsta/geom/make scene "plane" `())
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,white-green-checkerboard)))
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
@@ -42,7 +72,7 @@
 
 (bsta/scene/add-element
  scene
- (bsta/geom/make "infinity" `())
+ (bsta/geom/make scene "infinity" `())
  (bsta/matr/make
   scene
   "directional_emitter"
@@ -57,10 +87,15 @@
                             (frst/dvec3 0 0 1))
   (bsta/aff-t/translation (frst/dvec3 -10 0 0))))
 
+
+(define bunny-geom
+  (bsta/geom/make scene "surface_mesh" `((file . "bunny.obj")
+                                         (swapyz . #t))))
+
 (bsta/scene/add-element
  scene
- (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,checkerboard-mtlmap)))
+ bunny-geom
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,white-blue-checkerboard)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)
@@ -68,8 +103,8 @@
 
 (bsta/scene/add-element
  scene
- (bsta/geom/make "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make scene "mc_lambert" `())
+ bunny-geom
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,red-marble-mtlmap)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 30)

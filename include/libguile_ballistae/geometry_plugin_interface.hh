@@ -7,8 +7,12 @@
 #include <libguile.h>
 
 #include <libballistae/geometry.hh>
+#include <libballistae/scene.hh>
 
-extern "C" ballistae::geometry* guile_ballistae_geometry(
+extern "C"
+std::unique_ptr<ballistae::geometry>
+guile_ballistae_geometry(
+    ballistae::scene *p_scene,
     SCM alist
 ) __attribute__((visibility("default")));
 

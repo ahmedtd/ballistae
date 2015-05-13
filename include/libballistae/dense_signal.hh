@@ -23,6 +23,16 @@ struct dense_signal
 
     Field& operator[](size_t i);
     const Field& operator[](size_t i) const;
+
+    dense_signal<Field>& operator+=(const dense_signal<Field> &other)
+    {
+        for(size_t i = 0; i < samples.size(); ++i)
+        {
+            samples[i] += other[i];
+        }
+
+        return *this;
+    }
 };
 
 template<class Field>

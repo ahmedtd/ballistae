@@ -106,8 +106,12 @@ transform and every subsequent element left-multiplied in."
 ;; Functions for dealing with geometry.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (bsta/geom/make plug-soname config-alist)
-  (bsta/backend/geom/make plug-soname config-alist))
+(define-public (bsta/geom/make scene type config-alist)
+  (case type
+    (else (let* ((soname (string-append "ballistae_geometry_" type))
+                 (sohndl (dynamic-link soname))
+                 (create-fn (dynamic-pointer "guile_ballistae_geometry" sohndl)))
+            (bsta/backend/geom/plugin scene create-fn config-alist)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Material maps: Bindings from 2D/3D material coordinates to data.
@@ -125,9 +129,12 @@ Arguments:
 
   * CONFIG: A configuration alist for the material map."
   (case type
-   ((constant) (bsta/backend/mtlmap1/constant scene config))
-   ((checkerboard) (bsta/backend/mtlmap1/checkerboard scene config))
-   (else (let* ((soname (string-append "ballistae_mtlmap1_" type))
+    ((constant) (bsta/backend/mtlmap1/constant scene config))
+    ((lerp) (bsta/backend/mtlmap1/lerp scene config))
+    ((level) (bsta/backend/mtlmap1/level scene config))
+    ((checkerboard) (bsta/backend/mtlmap1/checkerboard scene config))
+    ((perlinval) (bsta/backend/mtlmap1/perlinval scene config))
+    (else (let* ((soname (string-append "ballistae_mtlmap1_" type))
                 (sohndl (dynamic-link soname))
                 (create-fn (dynamic-pointer "guile_ballistae_mtlmap1" sohndl)))
            (bsta/backend/mtlmap1/plugin scene create-fn config)))))

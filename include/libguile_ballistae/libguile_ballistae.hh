@@ -47,8 +47,7 @@ SCM sunlight(SCM intensity) BG_PUBLIC;
 SCM cie_d65() BG_PUBLIC;
 SCM rgb_to_spectral(SCM red, SCM green, SCM blue) BG_PUBLIC;
 
-ballistae::geometry* geometry_from_scm(SCM geom) BG_PUBLIC;
-SCM geometry_make(SCM plug_soname, SCM config_alist) BG_PUBLIC;
+SCM geometry_plugin(SCM scene, SCM create_fn, SCM config_alist) BG_PUBLIC;
 
 ballistae::illuminator* illuminator_from_scm(SCM geom) BG_PUBLIC;
 SCM dir_illuminator_make(SCM config_alist) BG_PUBLIC;

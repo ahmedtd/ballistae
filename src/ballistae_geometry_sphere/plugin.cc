@@ -118,7 +118,10 @@ contact<double> sphere_priv::ray_exit(
     }
 }
 
-geometry* guile_ballistae_geometry(SCM config_alist)
+std::unique_ptr<geometry> guile_ballistae_geometry(
+    scene *p_scene,
+    SCM config_alist
+)
 {
-    return new sphere_priv();
+    return std::make_unique<sphere_priv>();
 }

@@ -183,7 +183,8 @@ contact<double> cylinder_priv::ray_exit(
     }
 }
 
-ballistae::geometry* guile_ballistae_geometry(
+std::unique_ptr<geometry> guile_ballistae_geometry(
+    scene *p_scene,
     SCM config_alist
 )
 {
@@ -191,9 +192,9 @@ ballistae::geometry* guile_ballistae_geometry(
     SCM sym_axis   = scm_from_utf8_symbol("axis");
     SCM sym_radius = scm_from_utf8_symbol("radius");
 
-    auto cyl_p = new cylinder_priv(
-        {0, 0, 0},
-        {0, 0, 1},
+    auto cyl_p = std::make_unique<cylinder_priv>(
+        fixvec<double, 3>{0, 0, 0},
+        fixvec<double, 3>{0, 0, 1},
         1.0
     );
 
@@ -216,5 +217,5 @@ ballistae::geometry* guile_ballistae_geometry(
         cyl_p->radius_squared = scm_to_double(radius_lookup);
     }
 
-    return cyl_p;
+    return std::move(cyl_p);
 }

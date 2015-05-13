@@ -73,11 +73,10 @@ SCM smob_set_data(SCM obj, T data)
 /// Values used in the 16-bit flag field.
 constexpr scm_t_bits flag_scene            = 0;
 constexpr scm_t_bits flag_camera           = 1;
-constexpr scm_t_bits flag_geometry         = 2;
-constexpr scm_t_bits flag_material         = 3;
-constexpr scm_t_bits flag_illuminator      = 4;
-constexpr scm_t_bits flag_affine_transform = 5;
-constexpr scm_t_bits flag_dense_signal     = 6;
+constexpr scm_t_bits flag_material         = 2;
+constexpr scm_t_bits flag_illuminator      = 3;
+constexpr scm_t_bits flag_affine_transform = 4;
+constexpr scm_t_bits flag_dense_signal     = 5;
 
 /// The MSB of the flags field is used to track whether or not the subsmob has
 /// been registered with a scene.  If it is, then the scene controls the
@@ -360,10 +359,13 @@ SCM cie_d65()
 
 SCM rgb_to_spectral(SCM red, SCM green, SCM blue)
 {
-    auto sig = scm_to_double(red) * ballistae::red<double>()
-        + scm_to_double(green) * ballistae::green<double>()
-        + scm_to_double(blue) * ballistae::blue<double>();
+    ballistae::color3<double, ballistae::rgb_tag> color = {
+        scm_to_double(red),
+        scm_to_double(green),
+        scm_to_double(blue)
+    };
 
+    auto sig = ballistae::rgb_to_spectral(color);
     return new_smob(flag_dense_signal, new ballistae::dense_signal<double>(std::move(sig)));
 }
 
@@ -396,47 +398,17 @@ SCM signal_equalp(SCM a, SCM b)
 /// Geometry subsmob
 ////////////////////////////////////////////////////////////////////////////////
 
-SCM geometry_make(SCM plug_soname, SCM config_alist)
+SCM geometry_plugin(SCM scene, SCM create_fn_scm, SCM config)
 {
-    plug_soname = scm_string_append(
-        scm_list_2(
-            scm_from_utf8_string("ballistae_geometry_"),
-            plug_soname
-        )
-    );
+    auto void_fn = scm_to_pointer(create_fn_scm);
+    auto create_fn = reinterpret_cast<create_geometry_t>(void_fn);
 
-    SCM so_handle = scm_dynamic_link(plug_soname);
+    auto up_g = create_fn(scene_from_scm(scene), config);
 
-    auto create_fn = reinterpret_cast<create_geometry_t>(
-        scm_to_pointer(
-            scm_dynamic_pointer(
-                scm_from_utf8_string("guile_ballistae_geometry"),
-                so_handle
-            )
-        )
-    );
+    size_t idx = scene_from_scm(scene)->geometries.size();
+    scene_from_scm(scene)->geometries.push_back(std::move(up_g));
 
-    return new_smob(flag_geometry, create_fn(config_alist));
-}
-
-ballistae::geometry* geometry_from_scm(SCM geom)
-{
-    ensure_smob(geom, flag_geometry);
-    return smob_get_data<ballistae::geometry*>(geom);
-}
-
-size_t geometry_free(SCM obj)
-{
-    if(! is_registered(obj))
-        delete geometry_from_scm(obj);
-    return 0;
-}
-
-int geometry_print(SCM obj, SCM port, scm_print_state *pstate)
-{
-    SCM fmt = scm_from_utf8_string("#<bsta/geometry>");
-    scm_simple_format(port, fmt, SCM_EOL);
-    return 0;
+    return scm_from_size_t(idx);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -583,7 +555,7 @@ SCM scene_make()
     // initialization.
 
     auto white_up = std::make_unique<ballistae::constant_mtlmap1>(
-        ballistae::smits_white<double>()
+        ballistae::rgb_to_spectral<double>({0.0, 0.9, 0.0})
     );
     scene_p->mtlmaps_1.push_back(std::move(white_up));
 
@@ -604,21 +576,6 @@ ballistae::scene* scene_from_scm(SCM scene)
 ///
 /// These functions are idempotent, and should be safe against garbage
 /// collection running during their extent.
-
-SCM register_geometry(SCM scene, SCM geometry)
-{
-    if(! is_registered(geometry))
-    {
-        set_registered(geometry, true);
-
-        auto scene_p = scene_from_scm(scene);
-        auto geom_p = geometry_from_scm(geometry);
-
-        scene_p->geometries.push_back(std::unique_ptr<ballistae::geometry>(geom_p));
-    }
-
-    return scene;
-}
 
 SCM register_material(SCM scene, SCM material)
 {
@@ -652,11 +609,10 @@ SCM register_illuminator(SCM scene, SCM illuminator)
 
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
 {
-    register_geometry(scene, geometry);
     register_material(scene, material);
 
     ballistae::scene_element elt = {
-        geometry_from_scm(geometry),
+        scene_from_scm(scene)->geometries[scm_to_size_t(geometry)].get(),
         material_from_scm(material),
         ballistae::inverse(affine_from_scm(transform)),
         affine_from_scm(transform)
@@ -842,14 +798,12 @@ int scene_print(SCM obj, SCM port, scm_print_state *pstate)
 
 SCM mtlmap1_create_constant(SCM scene, SCM config)
 {
-    using std::move;
-
-    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
-    SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
-
     auto up = std::make_unique<ballistae::constant_mtlmap1>(
         ballistae::smits_white<double>()
     );
+
+    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
+    SCM lu_spectrum = scm_assq_ref(config, sym_spectrum);
 
     if(scm_is_true(sym_spectrum))
         up->spectrum = signal_from_scm(lu_spectrum);
@@ -860,38 +814,106 @@ SCM mtlmap1_create_constant(SCM scene, SCM config)
     return scm_from_size_t(index);
 }
 
+SCM mtlmap1_create_lerp(SCM scene, SCM config)
+{
+    auto up = std::make_unique<ballistae::lerp_mtlmap1>(
+        0.0,
+        1.0,
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        scene_from_scm(scene)->mtlmaps_1[0].get()
+    );
+
+    SCM sym_t_lo = scm_from_utf8_symbol("t-lo");
+    SCM sym_t_hi = scm_from_utf8_symbol("t-hi");
+
+    SCM sym_t = scm_from_utf8_symbol("t");
+    SCM sym_a = scm_from_utf8_symbol("a");
+    SCM sym_b = scm_from_utf8_symbol("b");
+
+    SCM lu_t_lo = scm_assq_ref(config, sym_t_lo);
+    SCM lu_t_hi = scm_assq_ref(config, sym_t_hi);
+    SCM lu_t = scm_assq_ref(config, sym_t);
+    SCM lu_a = scm_assq_ref(config, sym_a);
+    SCM lu_b = scm_assq_ref(config, sym_b);
+
+    if(scm_is_true(lu_t_lo))
+        up->t_lo = scm_to_double(lu_t_lo);
+
+    if(scm_is_true(lu_t_hi))
+        up->t_hi = scm_to_double(lu_t_hi);
+
+    if(scm_is_true(lu_t))
+        up->t = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_t)].get();
+
+    if(scm_is_true(lu_a))
+        up->a = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_a)].get();
+
+    if(scm_is_true(lu_b))
+        up->b = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_b)].get();
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
+}
+
+SCM mtlmap1_create_level(SCM scene, SCM config)
+{
+    auto up = std::make_unique<ballistae::level_mtlmap1>(
+        0.0,
+        1.0,
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        scene_from_scm(scene)->mtlmaps_1[0].get(),
+        scene_from_scm(scene)->mtlmaps_1[0].get()
+    );
+
+    SCM sym_t_lo = scm_from_utf8_symbol("t-lo");
+    SCM sym_t_hi = scm_from_utf8_symbol("t-hi");
+
+    SCM sym_t = scm_from_utf8_symbol("t");
+    SCM sym_a = scm_from_utf8_symbol("a");
+    SCM sym_b = scm_from_utf8_symbol("b");
+
+    SCM lu_t_lo = scm_assq_ref(config, sym_t_lo);
+    SCM lu_t_hi = scm_assq_ref(config, sym_t_hi);
+    SCM lu_t = scm_assq_ref(config, sym_t);
+    SCM lu_a = scm_assq_ref(config, sym_a);
+    SCM lu_b = scm_assq_ref(config, sym_b);
+
+    if(scm_is_true(lu_t_lo))
+        up->t_lo = scm_to_double(lu_t_lo);
+
+    if(scm_is_true(lu_t_hi))
+        up->t_hi = scm_to_double(lu_t_hi);
+
+    if(scm_is_true(lu_t))
+        up->t = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_t)].get();
+
+    if(scm_is_true(lu_a))
+        up->a = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_a)].get();
+
+    if(scm_is_true(lu_b))
+        up->b = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_b)].get();
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
+}
+
 SCM mtlmap1_create_checkerboard(SCM scene, SCM config)
 {
-    using std::move;
-
     auto up = std::make_unique<ballistae::checkerboard_mtlmap1>(
-        scene_from_scm(scene)->mtlmaps_1[0].get(),
-        scene_from_scm(scene)->mtlmaps_1[0].get(),
         1.0,
         true
     );
 
-    SCM sym_even_mtlmap = scm_from_utf8_symbol("even-mtlmap");
-    SCM sym_odd_mtlmap = scm_from_utf8_symbol("odd-mtlmap");
     SCM sym_period = scm_from_utf8_symbol("period");
     SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
 
-    SCM lu_even_mtlmap = scm_assq_ref(config, sym_even_mtlmap);
-    SCM lu_odd_mtlmap  = scm_assq_ref(config, sym_odd_mtlmap);
     SCM lu_period      = scm_assq_ref(config, sym_period);
     SCM lu_volumetric  = scm_assq_ref(config, sym_volumetric);
-
-    if(scm_is_true(lu_even_mtlmap))
-    {
-        size_t idx = scm_to_size_t(lu_even_mtlmap);
-        up->even_mtlmap = scene_from_scm(scene)->mtlmaps_1[idx].get();
-    }
-
-    if(scm_is_true(lu_odd_mtlmap))
-    {
-        size_t idx = scm_to_size_t(lu_odd_mtlmap);
-        up->odd_mtlmap = scene_from_scm(scene)->mtlmaps_1[idx].get();
-    }
 
     if(scm_is_true(lu_period))
         up->period = scm_to_double(lu_period);
@@ -905,9 +927,29 @@ SCM mtlmap1_create_checkerboard(SCM scene, SCM config)
     return scm_from_size_t(index);
 }
 
-SCM mtlmap1_create_perlinval2(SCM scene, SCM config)
+SCM mtlmap1_create_perlinval(SCM scene, SCM config)
 {
-    return SCM_UNDEFINED;
+    auto up = std::make_unique<ballistae::perlinval_mtlmap1>(
+        true,
+        1.0
+    );
+
+    SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
+    SCM lu_volumetric = scm_assq_ref(config, sym_volumetric);
+
+    SCM sym_period = scm_from_utf8_symbol("period");
+    SCM lu_period = scm_assq_ref(config, sym_period);
+
+    if(scm_is_true(lu_volumetric))
+        up->volumetric = scm_is_true(lu_volumetric);
+
+    if(scm_is_true(lu_period))
+        up->period = scm_to_double(lu_period);
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
 }
 
 SCM mtlmap1_create_plugin(SCM scene, SCM create_fn, SCM config)
@@ -918,11 +960,6 @@ SCM mtlmap1_create_plugin(SCM scene, SCM create_fn, SCM config)
 ////////////////////////////////////////////////////////////////////////////////
 /// Material maps that produce vectors.
 ////////////////////////////////////////////////////////////////////////////////
-
-SCM mtlmap2_create_perlingrad2(SCM scene, SCM config)
-{
-    return SCM_UNDEFINED;
-}
 
 SCM mtlmap2_create_plugin(SCM scene, SCM create_fn, SCM config)
 {
@@ -947,7 +984,6 @@ struct subsmob_fns
 static subsmob_fns subsmob_dispatch_table [] = {
     {&scene_free, &scene_print, nullptr},
     {&camera_free, &camera_print, nullptr},
-    {&geometry_free, &geometry_print, nullptr},
     {&material_free, &material_print, nullptr},
     {&illuminator_free, &illuminator_print, nullptr},
     {&affine_free, &affine_print, nullptr},
@@ -1037,7 +1073,7 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/signal/cie-d65",         0, 0, 0, (scm_t_subr) cie_d65);
     scm_c_define_gsubr("bsta/backend/signal/rgb-to-spectral", 3, 0, 0, (scm_t_subr) rgb_to_spectral);
 
-    scm_c_define_gsubr("bsta/backend/geom/make", 2, 0, 0, (scm_t_subr) geometry_make);
+    scm_c_define_gsubr("bsta/backend/geom/plugin", 3, 0, 0, (scm_t_subr) geometry_plugin);
 
     scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
 
@@ -1053,7 +1089,9 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);
 
     scm_c_define_gsubr("bsta/backend/mtlmap1/constant",      2, 0, 0, (scm_t_subr) mtlmap1_create_constant);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/lerp",          2, 0, 0, (scm_t_subr) mtlmap1_create_lerp);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/level",         2, 0, 0, (scm_t_subr) mtlmap1_create_level);
     scm_c_define_gsubr("bsta/backend/mtlmap1/checkerboard",  2, 0, 0, (scm_t_subr) mtlmap1_create_checkerboard);
-    scm_c_define_gsubr("bsta/backend/mtlmap1/perlinval2",    2, 0, 0, (scm_t_subr) mtlmap1_create_perlinval2);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/perlinval",     2, 0, 0, (scm_t_subr) mtlmap1_create_perlinval);
     scm_c_define_gsubr("bsta/backend/mtlmap1/plugin",        3, 0, 0, (scm_t_subr) mtlmap1_create_plugin);
 }

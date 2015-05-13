@@ -30,7 +30,7 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
 
     for(size_t i = 0; i < the_scene.elements.size(); ++i)
     {
-        const auto &geom  = the_scene.elements[i].the_geometry;
+        const auto geom  = the_scene.elements[i].the_geometry;
         const auto &ftran = the_scene.elements[i].forward_transform;
         const auto &rtran = the_scene.elements[i].reverse_transform;
 
