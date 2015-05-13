@@ -56,6 +56,7 @@ public:
         const mtlmap<1> *a_in,
         const mtlmap<1> *b_in
     );
+    virtual ~lerp_mtlmap1();
 
     virtual fixvec<double, 1> value(
         const fixvec<double, 2> &mtl2,
@@ -81,6 +82,7 @@ public:
         const mtlmap<1> *a_in,
         const mtlmap<1> *b_in
     );
+    virtual ~level_mtlmap1();
 
     virtual fixvec<double, 1> value(
         const fixvec<double, 2> &mtl2,
@@ -101,6 +103,26 @@ public:
     );
 
     virtual ~checkerboard_mtlmap1();
+
+    virtual fixvec<double, 1> value(
+        const fixvec<double, 2> &mtl2,
+        const fixvec<double, 3> &mtl3,
+        double lambda
+    ) const;
+};
+
+class bullseye_mtlmap1 : public mtlmap<1>
+{
+public:
+    double period;
+    bool volumetric;
+
+    bullseye_mtlmap1(
+        double period_in,
+        bool volumetric_in
+    );
+
+    virtual ~bullseye_mtlmap1();
 
     virtual fixvec<double, 1> value(
         const fixvec<double, 2> &mtl2,

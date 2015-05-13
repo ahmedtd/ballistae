@@ -89,7 +89,7 @@ contact<double> sphere_priv::ray_exit(
     std::ranlux24 &thread_rng
 ) const
 {
-    using std::acos;
+    using std::asin;
     using std::atan2;
     using std::sqrt;
 
@@ -106,7 +106,7 @@ contact<double> sphere_priv::ray_exit(
         result.t = t_max;
         result.p = p;
         result.n = normalise(p);
-        result.mtl2 = {atan2(p(0), p(1)), acos(p(2))};
+        result.mtl2 = {atan2(p(0), p(1)), asin(p(2))};
         result.mtl3 = p;
         result.r = query.the_ray;
 

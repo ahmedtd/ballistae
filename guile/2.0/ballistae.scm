@@ -133,6 +133,7 @@ Arguments:
     ((lerp) (bsta/backend/mtlmap1/lerp scene config))
     ((level) (bsta/backend/mtlmap1/level scene config))
     ((checkerboard) (bsta/backend/mtlmap1/checkerboard scene config))
+    ((bullseye) (bsta/backend/mtlmap1/bullseye scene config))
     ((perlinval) (bsta/backend/mtlmap1/perlinval scene config))
     (else (let* ((soname (string-append "ballistae_mtlmap1_" type))
                 (sohndl (dynamic-link soname))

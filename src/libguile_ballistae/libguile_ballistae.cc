@@ -913,13 +913,41 @@ SCM mtlmap1_create_checkerboard(SCM scene, SCM config)
     SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
 
     SCM lu_period      = scm_assq_ref(config, sym_period);
-    SCM lu_volumetric  = scm_assq_ref(config, sym_volumetric);
+
+    // Boolean values need to be looked up differently.
+    SCM lu_volumetric_cons  = scm_assq(sym_volumetric, config);
 
     if(scm_is_true(lu_period))
         up->period = scm_to_double(lu_period);
 
-    if(scm_is_true(lu_volumetric))
-        up->volumetric = scm_is_true(lu_volumetric);
+    if(scm_is_true(lu_volumetric_cons))
+        up->volumetric = scm_is_true(scm_cdr(lu_volumetric_cons));
+
+    size_t index = scene_from_scm(scene)->mtlmaps_1.size();
+    scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
+
+    return scm_from_size_t(index);
+}
+
+SCM mtlmap1_create_bullseye(SCM scene, SCM config)
+{
+    auto up = std::make_unique<ballistae::bullseye_mtlmap1>(
+        1.0,
+        true
+    );
+
+    SCM sym_period = scm_from_utf8_symbol("period");
+    SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
+
+    SCM lu_period      = scm_assq_ref(config, sym_period);
+    // Boolean values need to be looked up differently.
+    SCM lu_volumetric_cons  = scm_assq(sym_volumetric, config);
+
+    if(scm_is_true(lu_period))
+        up->period = scm_to_double(lu_period);
+
+    if(scm_is_true(lu_volumetric_cons))
+        up->volumetric = scm_is_true(scm_cdr(lu_volumetric_cons));
 
     size_t index = scene_from_scm(scene)->mtlmaps_1.size();
     scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
@@ -935,13 +963,14 @@ SCM mtlmap1_create_perlinval(SCM scene, SCM config)
     );
 
     SCM sym_volumetric = scm_from_utf8_symbol("volumetric");
-    SCM lu_volumetric = scm_assq_ref(config, sym_volumetric);
+    // Boolean values need to be looked up differently.
+    SCM lu_volumetric_cons  = scm_assq(sym_volumetric, config);
 
     SCM sym_period = scm_from_utf8_symbol("period");
     SCM lu_period = scm_assq_ref(config, sym_period);
 
-    if(scm_is_true(lu_volumetric))
-        up->volumetric = scm_is_true(lu_volumetric);
+    if(scm_is_true(lu_volumetric_cons))
+        up->volumetric = scm_is_true(scm_cdr(lu_volumetric_cons));
 
     if(scm_is_true(lu_period))
         up->period = scm_to_double(lu_period);
@@ -1092,6 +1121,7 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/mtlmap1/lerp",          2, 0, 0, (scm_t_subr) mtlmap1_create_lerp);
     scm_c_define_gsubr("bsta/backend/mtlmap1/level",         2, 0, 0, (scm_t_subr) mtlmap1_create_level);
     scm_c_define_gsubr("bsta/backend/mtlmap1/checkerboard",  2, 0, 0, (scm_t_subr) mtlmap1_create_checkerboard);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/bullseye",  2, 0, 0, (scm_t_subr) mtlmap1_create_bullseye);
     scm_c_define_gsubr("bsta/backend/mtlmap1/perlinval",     2, 0, 0, (scm_t_subr) mtlmap1_create_perlinval);
     scm_c_define_gsubr("bsta/backend/mtlmap1/plugin",        3, 0, 0, (scm_t_subr) mtlmap1_create_plugin);
 }
