@@ -1121,7 +1121,7 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/mtlmap1/lerp",          2, 0, 0, (scm_t_subr) mtlmap1_create_lerp);
     scm_c_define_gsubr("bsta/backend/mtlmap1/level",         2, 0, 0, (scm_t_subr) mtlmap1_create_level);
     scm_c_define_gsubr("bsta/backend/mtlmap1/checkerboard",  2, 0, 0, (scm_t_subr) mtlmap1_create_checkerboard);
-    scm_c_define_gsubr("bsta/backend/mtlmap1/bullseye",  2, 0, 0, (scm_t_subr) mtlmap1_create_bullseye);
+    scm_c_define_gsubr("bsta/backend/mtlmap1/bullseye",      2, 0, 0, (scm_t_subr) mtlmap1_create_bullseye);
     scm_c_define_gsubr("bsta/backend/mtlmap1/perlinval",     2, 0, 0, (scm_t_subr) mtlmap1_create_perlinval);
     scm_c_define_gsubr("bsta/backend/mtlmap1/plugin",        3, 0, 0, (scm_t_subr) mtlmap1_create_plugin);
 }
