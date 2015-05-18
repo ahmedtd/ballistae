@@ -522,7 +522,7 @@ std::tuple<int, size_t, tri_mesh> tri_mesh_load_obj(
         goto cleanup_close_file;
     }
 
-    buf = mmap(nullptr, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    buf = mmap(nullptr, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
     if(buf == MAP_FAILED)
     {
         errc = OBJ_ERRC_FILE_NOT_LOADABLE;
