@@ -64,14 +64,14 @@ shade_info<double> pc_smooth::shade(
     return result;
 }
 
-ballistae_guile::updatable_material*
+std::unique_ptr<ballistae_guile::updatable_material>
 guile_ballistae_material(scene *p_scene, SCM config)
 {
-    pc_smooth *p = new pc_smooth();
+    auto p = std::make_unique<pc_smooth>();
 
     p->reflectance = p_scene->mtlmaps_1[0].get();
 
     p->guile_update(p_scene, config);
 
-    return p;
+    return std::move(p);
 }

@@ -3,6 +3,7 @@
 
 #include <cmath>
 
+#include <memory>
 #include <random>
 #include <utility>
 
@@ -148,15 +149,15 @@ shade_info<double> nc_smooth::shade(
     return result;
 }
 
-ballistae_guile::updatable_material*
+std::unique_ptr<ballistae_guile::updatable_material>
 guile_ballistae_material(scene *p_scene, SCM config)
 {
-    nc_smooth *p = new nc_smooth();
+    auto up = std::make_unique<nc_smooth>();
 
-    p->n_interior = p_scene->mtlmaps_1[0].get();
-    p->n_exterior = p_scene->mtlmaps_1[0].get();
+    up->n_interior = p_scene->mtlmaps_1[0].get();
+    up->n_exterior = p_scene->mtlmaps_1[0].get();
 
-    p->guile_update(p_scene, config);
+    up->guile_update(p_scene, config);
 
-    return p;
+    return std::move(up);
 }

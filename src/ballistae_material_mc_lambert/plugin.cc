@@ -76,16 +76,16 @@ void mc_lambert::guile_update(scene *p_scene, SCM config)
         this->reflectance = p_scene->mtlmaps_1[scm_to_size_t(lu_reflectance)].get();
 }
 
-ballistae_guile::updatable_material*
+std::unique_ptr<ballistae_guile::updatable_material>
 guile_ballistae_material(scene *p_scene, SCM config)
 {
     using namespace ballistae_guile;
 
-    mc_lambert *p = new mc_lambert();
+    auto p = std::make_unique<mc_lambert>();
 
     // mtlmap 0 is *always* a constant smits_white mtlmap.
     p->reflectance = p_scene->mtlmaps_1[0].get();
     p->guile_update(p_scene, config);
 
-    return p;
+    return std::move(p);
 }

@@ -73,10 +73,9 @@ SCM smob_set_data(SCM obj, T data)
 /// Values used in the 16-bit flag field.
 constexpr scm_t_bits flag_scene            = 0;
 constexpr scm_t_bits flag_camera           = 1;
-constexpr scm_t_bits flag_material         = 2;
-constexpr scm_t_bits flag_illuminator      = 3;
-constexpr scm_t_bits flag_affine_transform = 4;
-constexpr scm_t_bits flag_dense_signal     = 5;
+constexpr scm_t_bits flag_illuminator      = 2;
+constexpr scm_t_bits flag_affine_transform = 3;
+constexpr scm_t_bits flag_dense_signal     = 4;
 
 /// The MSB of the flags field is used to track whether or not the subsmob has
 /// been registered with a scene.  If it is, then the scene controls the
@@ -501,48 +500,6 @@ int illuminator_print(SCM obj, SCM port, scm_print_state *pstate)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Material subsmob
-////////////////////////////////////////////////////////////////////////////////
-
-SCM material_make(SCM scene, SCM create_fn_scm, SCM config)
-{
-    auto void_fn = scm_to_pointer(create_fn_scm);
-    auto create_fn = reinterpret_cast<create_material_t>(void_fn);
-
-    updatable_material *p_um = create_fn(scene_from_scm(scene), config);
-    auto p_m = static_cast<ballistae::material*>(p_um);
-    return new_smob(flag_material, p_m);
-}
-
-SCM material_update(SCM scene, SCM index, SCM config)
-{
-    ballistae::material *p_matr = scene_from_scm(scene)->materials[scm_to_size_t(index)].get();
-    auto p_updatable = dynamic_cast<updatable_material*>(p_matr);
-    p_updatable->guile_update(scene_from_scm(scene), config);
-
-    return index;
-}
-
-ballistae::material* material_from_scm(SCM matr)
-{
-    ensure_smob(matr, flag_material);
-    return smob_get_data<ballistae::material*>(matr);
-}
-
-size_t material_free(SCM obj)
-{
-    if(! is_registered(obj))
-        delete material_from_scm(obj);
-    return 0;
-}
-
-int material_print(SCM obj, SCM port, scm_print_state *pstate)
-{
-    scm_write_line(scm_from_utf8_string("#<bsta/material>"), SCM_UNDEFINED);
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 /// Scene subsmob
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -572,26 +529,6 @@ ballistae::scene* scene_from_scm(SCM scene)
     return smob_get_data<ballistae::scene*>(scene);
 }
 
-/// Functions for registering components into a scene.
-///
-/// These functions are idempotent, and should be safe against garbage
-/// collection running during their extent.
-
-SCM register_material(SCM scene, SCM material)
-{
-    if(! is_registered(material))
-    {
-        set_registered(material, true);
-
-        auto scene_p = scene_from_scm(scene);
-        auto matr_p = material_from_scm(material);
-
-        scene_p->materials.push_back(std::unique_ptr<ballistae::material>(matr_p));
-    }
-
-    return scene;
-}
-
 SCM register_illuminator(SCM scene, SCM illuminator)
 {
     if(! is_registered(illuminator))
@@ -609,11 +546,9 @@ SCM register_illuminator(SCM scene, SCM illuminator)
 
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
 {
-    register_material(scene, material);
-
     ballistae::scene_element elt = {
         scene_from_scm(scene)->geometries[scm_to_size_t(geometry)].get(),
-        material_from_scm(material),
+        scene_from_scm(scene)->materials[scm_to_size_t(material)].get(),
         ballistae::inverse(affine_from_scm(transform)),
         affine_from_scm(transform)
     };
@@ -633,17 +568,6 @@ SCM set_element_transform(SCM scene, SCM index, SCM transform)
     elt.reverse_transform = affine_from_scm(transform);
 
     return index;
-}
-
-SCM get_element_material(SCM scene, SCM index)
-{
-    ballistae::scene_element &elt
-        = scene_from_scm(scene)->elements[scm_to_size_t(index)];
-
-    SCM result = new_smob(flag_material, elt.the_material);
-    set_registered(result, true);
-
-    return result;
 }
 
 SCM add_illuminator(SCM scene, SCM illuminator)
@@ -996,6 +920,36 @@ SCM mtlmap2_create_plugin(SCM scene, SCM create_fn, SCM config)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Materials
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Materials are wholly-owned by the scene, and are manipulated from guile by
+/// indices into the scene.
+
+SCM material_plugin(SCM scene, SCM create_fn_scm, SCM config)
+{
+    auto void_fn = scm_to_pointer(create_fn_scm);
+    auto create_fn = reinterpret_cast<create_material_t>(void_fn);
+
+    auto up_um = create_fn(scene_from_scm(scene), config);
+    auto up_m = std::unique_ptr<ballistae::material>(std::move(up_um));
+
+    size_t index = scene_from_scm(scene)->materials.size();
+    scene_from_scm(scene)->materials.push_back(std::move(up_m));
+
+    return scm_from_size_t(index);
+}
+
+SCM material_update(SCM scene, SCM index, SCM config)
+{
+    ballistae::material *p_matr = scene_from_scm(scene)->materials[scm_to_size_t(index)].get();
+    auto p_updatable = dynamic_cast<updatable_material*>(p_matr);
+    p_updatable->guile_update(scene_from_scm(scene), config);
+
+    return index;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Subsmob dispatch machinery.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -1013,7 +967,6 @@ struct subsmob_fns
 static subsmob_fns subsmob_dispatch_table [] = {
     {&scene_free, &scene_print, nullptr},
     {&camera_free, &camera_print, nullptr},
-    {&material_free, &material_print, nullptr},
     {&illuminator_free, &illuminator_print, nullptr},
     {&affine_free, &affine_print, nullptr},
     {&signal_free, &signal_print, &signal_equalp}
@@ -1106,13 +1059,12 @@ extern "C" void libguile_ballistae_init()
 
     scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
 
-    scm_c_define_gsubr("bsta/backend/matr/make",   3, 0, 0, (scm_t_subr) material_make);
+    scm_c_define_gsubr("bsta/backend/matr/plugin", 3, 0, 0, (scm_t_subr) material_plugin);
     scm_c_define_gsubr("bsta/backend/matr/update", 3, 0, 0, (scm_t_subr) material_update);
 
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
     scm_c_define_gsubr("bsta/backend/scene/add-element",     4, 0, 0, (scm_t_subr) add_element);
     scm_c_define_gsubr("bsta/backend/scene/set-element-transform", 3, 0, 0, (scm_t_subr) set_element_transform);
-    scm_c_define_gsubr("bsta/backend/scene/get-element-material",  2, 0, 0, (scm_t_subr) get_element_material);
     scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);

@@ -1,6 +1,8 @@
 #ifndef LIBGUILE_BALLISTAE_MATR_PLUGIN_INTERFACE_HH
 #define LIBGUILE_BALLISTAE_MATR_PLUGIN_INTERFACE_HH
 
+#include <memory>
+
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
@@ -26,7 +28,9 @@ struct __attribute__((visibility("default"))) updatable_material
 ////////////////////////////////////////////////////////////////////////////////
 /// Initialize a material instance from the values in [alist].
 ////////////////////////////////////////////////////////////////////////////////
-extern "C" ballistae_guile::updatable_material* guile_ballistae_material(
+extern "C"
+std::unique_ptr<ballistae_guile::updatable_material>
+guile_ballistae_material(
     ballistae::scene *p_scene,
     SCM config_alist
 ) __attribute__((visibility("default")));

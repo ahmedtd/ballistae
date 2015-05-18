@@ -79,15 +79,15 @@ shade_info<double> omnidirectional_emitter::shade(
     return result;
 }
 
-ballistae_guile::updatable_material*
+std::unique_ptr<ballistae_guile::updatable_material>
 guile_ballistae_material(scene *p_scene, SCM config)
 {
-    omnidirectional_emitter *p = new omnidirectional_emitter();
+    auto p = std::make_unique<omnidirectional_emitter>();
 
     p->spectrum = cie_d65<double>();
     p->level = 1.0;
 
     p->guile_update(p_scene, config);
 
-    return p;
+    return std::move(p);
 }

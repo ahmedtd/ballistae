@@ -109,13 +109,13 @@ shade_info<double> directional_emitter::shade(
     return result;
 }
 
-ballistae_guile::updatable_material*
+std::unique_ptr<ballistae_guile::updatable_material>
 guile_ballistae_material(scene *p_scene, SCM config)
 {
     using namespace ballistae_guile;
     using namespace guile_frustum;
 
-    directional_emitter *p = new directional_emitter();
+    auto p = std::make_unique<directional_emitter>();
 
     p->cutoff = 0.0;
     p->spectrum = cie_d65<double>();
@@ -126,5 +126,5 @@ guile_ballistae_material(scene *p_scene, SCM config)
 
     p->guile_update(p_scene, config);
 
-    return p;
+    return std::move(p);
 }

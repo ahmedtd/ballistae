@@ -144,11 +144,12 @@ Arguments:
 ;; Functions for dealing with materials.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (bsta/matr/make scene plugname config-alist)
-  (let* ((soname (string-append "ballistae_material_" plugname))
-         (sohndl (dynamic-link soname))
-         (create-fn (dynamic-pointer "guile_ballistae_material" sohndl)))
-    (bsta/backend/matr/make scene create-fn config-alist)))
+(define-public (bsta/matr/make scene type config-alist)
+  (case type
+    (else (let* ((soname (string-append "ballistae_material_" type))
+                 (sohndl (dynamic-link soname))
+                 (create-fn (dynamic-pointer "guile_ballistae_material" sohndl)))
+            (bsta/backend/matr/plugin scene create-fn config-alist)))))
 
 (define-public (bsta/matr/update plugname material config)
   (let* ((soname (string-append "ballistae_material_" plugname))
