@@ -42,7 +42,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
- (bsta/matr/make "omnidirectional_emitter" `((spectrum . ,(bsta/dsig/cie-d65))))
+ (bsta/matr/make "directional_emitter" `())
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)

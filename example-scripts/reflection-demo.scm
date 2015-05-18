@@ -107,14 +107,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "infinity" `())
- (bsta/matr/make
-  scene
-  "directional_emitter"
-  `((spectrum . ,(bsta/dsig/cie-d65))
-    (dir . ,(frst/dvec3 -1 -0.5 -0.5))
-    (cutoff . 0.95)
-    (lo-level . 0.05)
-    (hi-level . 1.0)))
+ (bsta/matr/make scene "directional_emitter" `())
  (bsta/aff-t/identity))
 
 (define sphere-geom

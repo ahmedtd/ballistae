@@ -44,10 +44,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "infinity" `())
- (bsta/matr/make
-  scene
-  "omnidirectional_emitter"
-  `((spectrum . ,(bsta/dsig/cie-d65))))
+ (bsta/matr/make scene "directional_emitter" `())
  (bsta/aff-t/identity))
 
 (define sphere-geom

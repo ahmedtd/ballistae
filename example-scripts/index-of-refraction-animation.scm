@@ -21,7 +21,7 @@
 (define gridsize  (string->number (option-ref options 'gridsize  "4")))
 (define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
 (define depthlim  (string->number (option-ref options 'depthlim  "16")))
-(define output-folder (option-ref options 'output "mc-index-of-refraction-animation"))
+(define output-folder (option-ref options 'output "index-of-refraction-animation"))
 
 (when (file-exists? output-folder)
       (error "Output folder ~a already exists." output-folder))
@@ -52,7 +52,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
- (bsta/matr/make "omnidirectional_emitter" `((spectrum . ,(bsta/dsig/cie-d65))))
+ (bsta/matr/make "directional_emitter" `())
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)

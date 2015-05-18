@@ -32,11 +32,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "infinity" `())
- (bsta/matr/make
-  scene
-  "omnidirectional_emitter"
-  `((spectrum . ,(bsta/dsig/cie-d65))
-    (level . 0.0)))
+ (bsta/matr/make scene "directional_emitter" `())
  (bsta/aff-t/identity))
 
 (define bunny-geom
@@ -57,11 +53,7 @@
 (bsta/scene/add-element
  scene
  sphere-geom
- (bsta/matr/make
-  scene
-  "omnidirectional_emitter"
-  `((spectrum . ,(bsta/dsig/cie-d65))
-    (level . 1.0)))
+ (bsta/matr/make scene "emitter" `())
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 3)

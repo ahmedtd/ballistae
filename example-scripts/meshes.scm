@@ -15,7 +15,7 @@
 (define gridsize  (string->number (option-ref options 'gridsize  "4")))
 (define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
 (define depthlim  (string->number (option-ref options 'depthlim  "16")))
-(define output    (option-ref options 'output "mc-simple-texmap.pfm"))
+(define output    (option-ref options 'output "meshes.pfm"))
 
 (define scene (bsta/scene/make))
 
@@ -23,37 +23,41 @@
   (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.8 0.8 0.8)))))
 
 (define blue-mtlmap
-  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.2 0.8)))))
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.2 0.9)))))
 
 (define green-mtlmap
-  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.8 0.2)))))
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.2 0.9 0.2)))))
 
 (define red-mtlmap
-  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.8 0.2 0.2)))))
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/rgb-to-spectral 0.9 0.2 0.2)))))
 
-(define bullseye-2d-blue
+(define perlin-blue
   (bsta/mtlmap1/make
    scene
    'level
-   `((t . ,(bsta/mtlmap1/make scene 'bullseye `((volumetric . #f)
-                                                 (period . 0.5))))
+   `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
+                                                 (period . 1))))
+     (t-lo . -0.8)
+     (t-hi .  0.8)
      (a . ,blue-mtlmap)
      (b . ,white-mtlmap))))
 
-(define bullseye-2d-green
+(define perlin-green
   (bsta/mtlmap1/make
    scene
    'level
-   `((t . ,(bsta/mtlmap1/make scene 'bullseye `((volumetric . #f)
+   `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
                                                  (period . 2))))
+     (t-lo . -0.8)
+     (t-hi .  0.8)
      (a . ,green-mtlmap)
      (b . ,white-mtlmap))))
 
-(define perlin-2d-red
+(define perlin-red
   (bsta/mtlmap1/make
    scene
    'level
-   `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #f)
+   `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
                                                  (period . 128))))
      (t-lo . -0.8)
      (t-hi .  0.8)
@@ -63,7 +67,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "plane" `())
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,bullseye-2d-green)))
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,white-mtlmap)))
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
@@ -73,14 +77,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "infinity" `())
- (bsta/matr/make
-  scene
-  "directional_emitter"
-  `((spectrum . ,(bsta/dsig/cie-d65))
-    (dir . ,(frst/dvec3 -1 -1 -0.5))
-    (cutoff . 0.95)
-    (lo-level . 0.05)
-    (hi-level . 1.0)))
+ (bsta/matr/make scene "directional_emitter" `())
  (bsta/aff-t/compose
   (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)
@@ -92,21 +89,31 @@
 
 (bsta/scene/add-element
  scene
- sphere-geom
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,bullseye-2d-blue)))
+ (bsta/geom/make scene "surface_mesh" `((file . "tetrahedron.obj")))
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-blue)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 -3 1 2))))
+  (bsta/aff-t/translation (frst/dvec3 -2 2 -2))))
 
 (bsta/scene/add-element
  scene
- sphere-geom
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-2d-red)))
+ (bsta/geom/make scene "surface_mesh" `((file . "cube.obj")))
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red)))
  (bsta/aff-t/compose
   (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
   (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 3 -3 2))))
+  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+
+(bsta/scene/add-element
+ scene
+ (bsta/geom/make scene "surface_mesh" `((file . "bunny.obj")
+                                        (swapyz . #t)))
+ (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-green)))
+ (bsta/aff-t/compose
+  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
+  (bsta/aff-t/scaling 30)
+  (bsta/aff-t/translation (frst/dvec3 2 -2 0))))
 
 (define cam-center (frst/dvec3 -5 -11  5))
 (define cam-eye (frst/- (frst/dvec3 0 0 2) cam-center))
