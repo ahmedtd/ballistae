@@ -73,7 +73,6 @@ SCM smob_set_data(SCM obj, T data)
 /// Values used in the 16-bit flag field.
 constexpr scm_t_bits flag_scene            = 0;
 constexpr scm_t_bits flag_camera           = 1;
-constexpr scm_t_bits flag_illuminator      = 2;
 constexpr scm_t_bits flag_affine_transform = 3;
 constexpr scm_t_bits flag_dense_signal     = 4;
 
@@ -394,112 +393,6 @@ SCM signal_equalp(SCM a, SCM b)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-/// Geometry subsmob
-////////////////////////////////////////////////////////////////////////////////
-
-SCM geometry_plugin(SCM scene, SCM create_fn_scm, SCM config)
-{
-    auto void_fn = scm_to_pointer(create_fn_scm);
-    auto create_fn = reinterpret_cast<create_geometry_t>(void_fn);
-
-    auto up_g = create_fn(scene_from_scm(scene), config);
-
-    size_t idx = scene_from_scm(scene)->geometries.size();
-    scene_from_scm(scene)->geometries.push_back(std::move(up_g));
-
-    return scm_from_size_t(idx);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// Illuminator subsmob
-////////////////////////////////////////////////////////////////////////////////
-
-SCM dir_illuminator_make(SCM config_alist)
-{
-    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
-    SCM sym_direction = scm_from_utf8_symbol("direction");
-
-    SCM lu_spectrum = scm_assq_ref(config_alist, sym_spectrum);
-    SCM lu_direction = scm_assq_ref(config_alist, sym_direction);
-
-    auto result = new ballistae::dir_illuminator();
-
-    result->spectrum = signal_from_scm(lu_spectrum);
-    result->direction = guile_frustum::dvec3_from_scm(lu_direction);
-
-    result->direction = normalise(result->direction);
-
-    return new_smob(flag_illuminator, result);
-}
-
-SCM point_isotropic_illuminator_make(SCM config_alist)
-{
-    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
-    SCM sym_position = scm_from_utf8_symbol("position");
-
-    SCM lu_spectrum = scm_assq_ref(config_alist, sym_spectrum);
-    SCM lu_position = scm_assq_ref(config_alist, sym_position);
-
-    auto result = new ballistae::point_isotropic_illuminator();
-
-    result->spectrum = signal_from_scm(lu_spectrum);
-    result->position = guile_frustum::dvec3_from_scm(lu_position);
-
-    return new_smob(flag_illuminator, result);
-}
-
-SCM illuminator_make(SCM name, SCM config_alist)
-{
-    if(scm_is_true(scm_equal_p(name, scm_from_utf8_string("dir"))))
-        return dir_illuminator_make(config_alist);
-
-    if(scm_is_true(scm_equal_p(name, scm_from_utf8_string("point-isotropic"))))
-        return point_isotropic_illuminator_make(config_alist);
-
-    // Otherwise, load from plugin.
-
-    SCM plug_soname = scm_string_append(
-        scm_list_2(
-            scm_from_utf8_string("ballistae_illuminator_"),
-            name
-        )
-    );
-
-    SCM so_handle = scm_dynamic_link(plug_soname);
-
-    auto create_fn = reinterpret_cast<create_illuminator_t>(
-        scm_to_pointer(
-            scm_dynamic_pointer(
-                scm_from_utf8_string("guile_ballistae_illuminator"),
-                so_handle
-            )
-        )
-    );
-
-    return new_smob(flag_illuminator, create_fn(config_alist));
-}
-
-ballistae::illuminator* illuminator_from_scm(SCM geom)
-{
-    ensure_smob(geom, flag_illuminator);
-    return smob_get_data<ballistae::illuminator*>(geom);
-}
-
-size_t illuminator_free(SCM obj)
-{
-    if(! is_registered(obj))
-        delete illuminator_from_scm(obj);
-    return 0;
-}
-
-int illuminator_print(SCM obj, SCM port, scm_print_state *pstate)
-{
-    SCM fmt = scm_from_utf8_string("#<bsta/illuminator>");
-    scm_simple_format(port, fmt, SCM_EOL);
-    return 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 /// Scene subsmob
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -529,21 +422,6 @@ ballistae::scene* scene_from_scm(SCM scene)
     return smob_get_data<ballistae::scene*>(scene);
 }
 
-SCM register_illuminator(SCM scene, SCM illuminator)
-{
-    if(! is_registered(illuminator))
-    {
-        set_registered(illuminator, true);
-
-        auto scene_p = scene_from_scm(scene);
-        auto illum_p = illuminator_from_scm(illuminator);
-
-        scene_p->illuminators.push_back(std::unique_ptr<ballistae::illuminator>(illum_p));
-    }
-
-    return scene;
-}
-
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
 {
     ballistae::scene_element elt = {
@@ -568,12 +446,6 @@ SCM set_element_transform(SCM scene, SCM index, SCM transform)
     elt.reverse_transform = affine_from_scm(transform);
 
     return index;
-}
-
-SCM add_illuminator(SCM scene, SCM illuminator)
-{
-    register_illuminator(scene, illuminator);
-    return scene;
 }
 
 SCM crush(SCM scene)
@@ -950,6 +822,84 @@ SCM material_update(SCM scene, SCM index, SCM config)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+/// Geometry.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Geometry is wholly-owned by the scene.  Guile code interacts with geometry
+/// by index.
+
+SCM geometry_plugin(SCM scene, SCM create_fn_scm, SCM config)
+{
+    auto void_fn = scm_to_pointer(create_fn_scm);
+    auto create_fn = reinterpret_cast<create_geometry_t>(void_fn);
+
+    auto up_g = create_fn(scene_from_scm(scene), config);
+
+    size_t idx = scene_from_scm(scene)->geometries.size();
+    scene_from_scm(scene)->geometries.push_back(std::move(up_g));
+
+    return scm_from_size_t(idx);
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// Illuminators.
+////////////////////////////////////////////////////////////////////////////////
+///
+/// Illuminators are wholly-owned by the scene.  Guile code interacts with
+/// illuminators by index.
+
+SCM illuminator_directional(SCM scene, SCM config_alist)
+{
+    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
+    SCM sym_direction = scm_from_utf8_symbol("direction");
+
+    SCM lu_spectrum = scm_assq_ref(config_alist, sym_spectrum);
+    SCM lu_direction = scm_assq_ref(config_alist, sym_direction);
+
+    auto p = std::make_unique<ballistae::dir_illuminator>();
+
+    p->spectrum = signal_from_scm(lu_spectrum);
+    p->direction = guile_frustum::dvec3_from_scm(lu_direction);
+
+    p->direction = normalise(p->direction);
+
+    size_t index = scene_from_scm(scene)->illuminators.size();
+    scene_from_scm(scene)->illuminators.push_back(std::move(p));
+    return scm_from_size_t(index);
+}
+
+SCM illuminator_point(SCM scene, SCM config_alist)
+{
+    SCM sym_spectrum = scm_from_utf8_symbol("spectrum");
+    SCM sym_position = scm_from_utf8_symbol("position");
+
+    SCM lu_spectrum = scm_assq_ref(config_alist, sym_spectrum);
+    SCM lu_position = scm_assq_ref(config_alist, sym_position);
+
+    auto p = std::make_unique<ballistae::point_illuminator>();
+
+    p->spectrum = signal_from_scm(lu_spectrum);
+    p->position = guile_frustum::dvec3_from_scm(lu_position);
+
+    size_t index = scene_from_scm(scene)->illuminators.size();
+    scene_from_scm(scene)->illuminators.push_back(std::move(p));
+    return scm_from_size_t(index);
+}
+
+SCM illuminator_plugin(SCM scene, SCM create_fn_scm, SCM config)
+{
+    auto void_fn = scm_to_pointer(create_fn_scm);
+    auto create_fn = reinterpret_cast<create_illuminator_t>(void_fn);
+
+    auto p = create_fn(scene, config);
+
+    size_t idx = scene_from_scm(scene)->illuminators.size();
+    scene_from_scm(scene)->illuminators.push_back(std::move(p));
+
+    return scm_from_size_t(idx);
+}
+
+////////////////////////////////////////////////////////////////////////////////
 /// Subsmob dispatch machinery.
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -967,7 +917,6 @@ struct subsmob_fns
 static subsmob_fns subsmob_dispatch_table [] = {
     {&scene_free, &scene_print, nullptr},
     {&camera_free, &camera_print, nullptr},
-    {&illuminator_free, &illuminator_print, nullptr},
     {&affine_free, &affine_print, nullptr},
     {&signal_free, &signal_print, &signal_equalp}
 };
@@ -1057,7 +1006,9 @@ extern "C" void libguile_ballistae_init()
 
     scm_c_define_gsubr("bsta/backend/geom/plugin", 3, 0, 0, (scm_t_subr) geometry_plugin);
 
-    scm_c_define_gsubr("bsta/backend/illum/make", 2, 0, 0, (scm_t_subr) illuminator_make);
+    scm_c_define_gsubr("bsta/backend/illum/directional", 2, 0, 0, (scm_t_subr) illuminator_directional);
+    scm_c_define_gsubr("bsta/backend/illum/point",       2, 0, 0, (scm_t_subr) illuminator_point);
+    scm_c_define_gsubr("bsta/backend/illum/plugin",      3, 0, 0, (scm_t_subr) illuminator_plugin);
 
     scm_c_define_gsubr("bsta/backend/matr/plugin", 3, 0, 0, (scm_t_subr) material_plugin);
     scm_c_define_gsubr("bsta/backend/matr/update", 3, 0, 0, (scm_t_subr) material_update);
@@ -1065,7 +1016,6 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
     scm_c_define_gsubr("bsta/backend/scene/add-element",     4, 0, 0, (scm_t_subr) add_element);
     scm_c_define_gsubr("bsta/backend/scene/set-element-transform", 3, 0, 0, (scm_t_subr) set_element_transform);
-    scm_c_define_gsubr("bsta/backend/scene/add-illuminator", 2, 0, 0, (scm_t_subr) add_illuminator);
     scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);
 

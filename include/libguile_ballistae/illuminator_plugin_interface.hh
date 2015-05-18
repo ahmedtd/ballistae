@@ -5,7 +5,11 @@
 
 #include <libguile_ballistae/libguile_ballistae.hh>
 
-extern "C" ballistae::illuminator* guile_ballistae_illuminator(SCM alist)
+extern "C" std::unique_ptr<ballistae::illuminator>
+guile_ballistae_illuminator(
+    SCM scene,
+    SCM alist
+)
     __attribute__((visibility("default")));
 
 namespace ballistae_guile

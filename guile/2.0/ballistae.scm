@@ -141,7 +141,7 @@ Arguments:
            (bsta/backend/mtlmap1/plugin scene create-fn config)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Functions for dealing with materials.
+;; Functions for materials.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (bsta/matr/make scene type config-alist)
@@ -161,8 +161,14 @@ Arguments:
 ;; Functions for illuminators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (bsta/illum/make name config-alist)
-  (bsta/backend/illum/make name config-alist))
+(define-public (bsta/illum/make scene type config)
+  (case type
+    ((directional) (bsta/backend/illum/directional scene config))
+    ((point) (bsta/backend/illum/point scene config))
+    (else (let* ((soname (string-append "ballistae_illuminator_" type))
+                 (sohndl (dynamic-link soname))
+                 (create-fn (dynamic-pointer "guile_ballistae_illuminator" sohndl)))
+            (bsta/backend/illum/make scene create-fn config)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions dealing with cameras.
@@ -195,13 +201,6 @@ present, specifies the affine mapping from world space to model space.
 
 (define*-public (bsta/scene/set-element-transform scene index tform)
   (bsta/backend/scene/set-element-transform scene index tform))
-
-(define*-public (bsta/scene/get-element-material scene index )
-  (bsta/backend/scene/get-element-material scene index))
-
-(define*-public (bsta/scene/add-illuminator scene illuminator)
-  "Add ILLUMINATOR to SCENE."
-  (bsta/backend/scene/add-illuminator scene illuminator))
 
 (define*-public (bsta/scene/crush scene)
   "Make SCENE ready for rendering."

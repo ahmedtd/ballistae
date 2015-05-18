@@ -53,7 +53,8 @@ shade_info<double> mc_lambert::shade(
 ) const
 {
     shade_info<double> result;
-    result.emitted_power = 0;
+
+    // Monte-carlo part.
 
     hemisphere_unitv_distribution<double, 3> dist(glb_contact.n);
     auto dir = dist(thread_rng);
@@ -63,6 +64,27 @@ shade_info<double> mc_lambert::shade(
 
     double r = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
     result.propagation_k = iprod(glb_contact.n, dir) * r;
+
+    // Standard illuminator part.
+
+    result.emitted_power = 0.0;
+
+    for(const auto& illum : the_scene.illuminators)
+    {
+        // illum is a unique_pointer.
+        auto illum_info = illum->power_at_point(
+            the_scene,
+            glb_contact.p,
+            lambda_cur,
+            thread_rng
+        );
+
+        double cosine = -iprod(illum_info.arrival, glb_contact.n);
+        cosine = (cosine < 0.0) ? 0.0 : cosine;
+        result.emitted_power += illum_info.power * cosine;
+    }
+
+    result.emitted_power *= r;
 
     return result;
 }

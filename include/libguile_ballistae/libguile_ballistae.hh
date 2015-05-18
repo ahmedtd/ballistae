@@ -47,23 +47,10 @@ SCM sunlight(SCM intensity) BG_PUBLIC;
 SCM cie_d65() BG_PUBLIC;
 SCM rgb_to_spectral(SCM red, SCM green, SCM blue) BG_PUBLIC;
 
-SCM geometry_plugin(SCM scene, SCM create_fn, SCM config_alist) BG_PUBLIC;
-
-ballistae::illuminator* illuminator_from_scm(SCM geom) BG_PUBLIC;
-SCM dir_illuminator_make(SCM config_alist) BG_PUBLIC;
-SCM point_isotropic_illuminator_make(SCM config_alist) BG_PUBLIC;
-SCM illuminator_make(SCM name, SCM config_alist) BG_PUBLIC;
-
-ballistae::material* material_from_scm(SCM matr) BG_PUBLIC;
-SCM material_make(SCM scene, SCM create_fn_scm, SCM config) BG_PUBLIC;
-SCM material_update(SCM update_fn_scm, SCM material, SCM config) BG_PUBLIC;
-
 ballistae::scene* scene_from_scm(SCM scene) BG_PUBLIC;
 SCM scene_make() BG_PUBLIC;
 SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform) BG_PUBLIC;
 SCM set_element_transform(SCM scene, SCM index, SCM transform) BG_PUBLIC;
-SCM get_element_transform(SCM scene, SCM index) BG_PUBLIC;
-SCM add_illuminator(SCM scene, SCM illuminator) BG_PUBLIC;
 SCM render(
     SCM scene,
     SCM camera,

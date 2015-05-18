@@ -43,11 +43,11 @@ illumination_info dir_illuminator::power_at_point(
         return {0.0, {0.0, 0.0, 0.0}};
 }
 
-point_isotropic_illuminator::~point_isotropic_illuminator()
+point_illuminator::~point_illuminator()
 {
 }
 
-illumination_info point_isotropic_illuminator::power_at_point(
+illumination_info point_illuminator::power_at_point(
     const scene &the_scene,
     const fixvec<double, 3> &query_point,
     double lambda_nm,

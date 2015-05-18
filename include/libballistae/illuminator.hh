@@ -61,7 +61,7 @@ public:
     ) const;
 };
 
-class point_isotropic_illuminator : public illuminator
+class point_illuminator : public illuminator
 {
 public:
     dense_signal<double> spectrum;
@@ -69,7 +69,7 @@ public:
 
 public:
 
-    virtual ~point_isotropic_illuminator();
+    virtual ~point_illuminator();
     
     virtual illumination_info power_at_point(
         const scene &the_scene,
