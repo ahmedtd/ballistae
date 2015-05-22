@@ -20,13 +20,13 @@ namespace ballistae
 ///
 /// The LINK field is an index into the kd tree's NODES field, and points to a
 /// the source of a two-node block holding the children of this node.
-template<typename Field, typename StoredIt, size_t D>
+template<typename Field, typename Stored, size_t D>
 struct aanode
 {
     size_t depth;
     aabox<Field, D> bounds;
-    StoredIt src;
-    StoredIt lim;
+    typename std::vector<Stored>::iterator src;
+    typename std::vector<Stored>::iterator lim;
     size_t link;
 };
 
@@ -35,9 +35,19 @@ template<typename Field, size_t D, typename Stored>
 struct kd_tree final
 {
     std::vector<Stored> storage;
-    std::vector<aanode<Field, decltype(storage.begin()), D>> nodes;
+    std::vector<aanode<Field, Stored, D>> nodes;
+
+    /// The storage vector is partitioned into elements with finite aaboxes in
+    /// the range [finite_src, finite_lim), and infinite aaboxes in the range
+    /// [finite_lim, infinite_lim).
+    typename std::vector<Stored>::iterator finite_src;
+    typename std::vector<Stored>::iterator finite_lim;
+    typename std::vector<Stored>::iterator infinite_lim;
 
     size_t max_depth;
+
+    kd_tree(const kd_tree<Field, D, Stored> &other) = delete;
+    kd_tree(kd_tree<Field, D, Stored> &&other) = default;
 
     template<typename StoredToAABox>
     kd_tree(
@@ -47,6 +57,9 @@ struct kd_tree final
 
     template<typename Selector, typename Computor>
     void query(Selector selector, Computor computor) const;
+
+    kd_tree<Field, D, Stored>& operator=(const kd_tree<Field, D, Stored> &other) = delete;
+    kd_tree<Field, D, Stored>& operator=(kd_tree<Field, D, Stored> &&other) = default;
 };
 
 template<typename Field, size_t D, typename Stored>
@@ -56,24 +69,35 @@ kd_tree<Field, D, Stored>::kd_tree(
     StoredToAABox get_aabox
 )
     : storage(storage_in),
+      finite_src(storage.begin()),
+      finite_lim(storage.end()),
+      infinite_lim(storage.end()),
       max_depth(0)
 {
+    // Pull finite boxes forward, push infinite ones back.
+    finite_lim = std::partition(
+        finite_src,
+        infinite_lim,
+        [&](auto &x){return isfinite(get_aabox(x));}
+    );
+
     aabox<Field, D> max_box;
-    if(storage.cbegin() != storage.cend())
+    if(finite_src != finite_lim)
     {
         max_box = std::accumulate(
-            storage.cbegin(),
-            storage.cend(),
+            finite_src,
+            finite_lim,
             get_aabox(storage[0]),
             [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
         );
     }
 
-    aanode<Field, decltype(storage.begin()), D> root_node = {
+    // Root node encompasses all finite boxes.
+    aanode<Field, Stored, D> root_node = {
         0,
         max_box,
-        storage.begin(),
-        storage.end(),
+        finite_src,
+        finite_lim,
         std::numeric_limits<size_t>::max()
     };
 
@@ -88,8 +112,6 @@ void kd_tree_refine_sah(
     Field threshold
 )
 {
-    using stored_it = typename std::vector<Stored>::iterator;
-
     size_t cur_node_idx = 0;
     while(cur_node_idx != tree.nodes.size())
     {
@@ -122,7 +144,7 @@ void kd_tree_refine_sah(
 
         // Calculate the preceding, covering, and succeeding ranges for the
         // selected cut.
-        std::array<stored_it, 4> split = {
+        std::array<typename std::vector<Stored>::iterator, 4> split = {
             tree.nodes[cur_node_idx].src,
             tree.nodes[cur_node_idx].lim,
             tree.nodes[cur_node_idx].lim,
@@ -161,7 +183,7 @@ void kd_tree_refine_sah(
             );
         }
 
-        aanode<Field, stored_it, D> lo_child = {
+        aanode<Field, Stored, D> lo_child = {
             cur_depth + 1,
             lo_bounds,
             split[0],
@@ -184,7 +206,7 @@ void kd_tree_refine_sah(
             );
         }
 
-        aanode<Field, stored_it, D> hi_child = {
+        aanode<Field, Stored, D> hi_child = {
             cur_depth + 1,
             hi_bounds,
             split[2],
@@ -198,9 +220,9 @@ void kd_tree_refine_sah(
     }
 }
 
-template<typename Field, size_t D, typename StoredIt, typename StoredToAABox>
+template<typename Field, size_t D, typename Stored, typename StoredToAABox>
 std::tuple<bool, size_t, Field> split_sah(
-    aanode<Field, StoredIt, D> &parent,
+    aanode<Field, Stored, D> &parent,
     StoredToAABox get_aabox,
     Field split_cost,
     Field termination_threshold
@@ -231,7 +253,7 @@ std::tuple<bool, size_t, Field> split_sah(
 
             // Calculate the preceding, covering, and succeeding ranges for the
             // selected cut.
-            std::array<StoredIt, 4> split = {
+            std::array<typename std::vector<Stored>::iterator, 4> split = {
                 parent.src,
                 parent.lim,
                 parent.lim,
@@ -314,6 +336,9 @@ void kd_tree<Field, D, Stored>::query(
 )
     const
 {
+    // We always have to query all non-finite elements.
+    std::for_each(finite_lim, infinite_lim, computor);
+
     static thread_local std::vector<size_t> work_stack(max_depth);
 
     auto top = work_stack.begin();
