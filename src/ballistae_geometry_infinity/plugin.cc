@@ -47,7 +47,7 @@ contact<double> infty_priv::ray_into(
 
     auto infty = std::numeric_limits<double>::infinity();
 
-    if(query.the_segment.hi == infty)
+    if(query.the_segment.hi() == infty)
     {
         fixvec<double, 3> p = eval_ray(query.the_ray, infty);
         contact<double> result = {
@@ -80,7 +80,7 @@ contact<double> infty_priv::ray_exit(
 
     auto infty = std::numeric_limits<double>::infinity();
 
-    if(query.the_segment.lo == -infty)
+    if(query.the_segment.lo() == -infty)
     {
         fixvec<double, 3> p = eval_ray(query.the_ray, infty);
         contact<double> result = {

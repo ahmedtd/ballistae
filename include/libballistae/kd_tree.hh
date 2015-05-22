@@ -249,7 +249,7 @@ std::tuple<bool, size_t, Field> split_sah(
         for(auto el = parent.src; el != parent.lim; ++el)
         {
             auto box = get_aabox(*el);
-            Field cut = box.spans[axis].hi;
+            Field cut = box.spans[axis].hi();
 
             // Calculate the preceding, covering, and succeeding ranges for the
             // selected cut.

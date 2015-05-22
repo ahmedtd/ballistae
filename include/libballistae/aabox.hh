@@ -16,7 +16,7 @@ struct aabox final
 {
     std::array<span<Field>, D> spans;
 
-    static aabox<Field, D> nan() __attribute__((visibility("hidden")));
+    static aabox<Field, D> nan();
 };
 
 template<typename Field, size_t D>
@@ -36,25 +36,12 @@ bool aabox_axial_comparator(
     size_t axis,
     const aabox<Field, D> &a,
     const aabox<Field, D> &b
-) __attribute__((visibility("hidden")));
-
-template<typename Field, size_t D>
-bool aabox_axial_comparator(
-    size_t axis,
-    const aabox<Field, D> &a,
-    const aabox<Field, D> &b
 )
 {
     return a.spans[axis] < b.spans[axis];
 }
 
 /// Smallest aabox containing A and B.
-template<typename Field, size_t D>
-aabox<Field, D> min_containing(
-    const aabox<Field, D> &a,
-    const aabox<Field, D> &b
-) __attribute__((visibility("hidden")));
-
 template<typename Field, size_t D>
 aabox<Field, D> min_containing(
     const aabox<Field, D> &a,
@@ -77,13 +64,6 @@ std::array<aabox<Field, D>, 2> cut(
     const aabox<Field, D> &box,
     size_t axis,
     const Field &cut_plane
-) __attribute__((visibility("hidden")));
-
-template<typename Field, size_t D>
-std::array<aabox<Field, D>, 2> cut(
-    const aabox<Field, D> &box,
-    size_t axis,
-    const Field &cut_plane
 )
 {
     auto span_cut = cut(box.spans[axis], cut_plane);
@@ -94,12 +74,6 @@ std::array<aabox<Field, D>, 2> cut(
     hi.spans[axis] = span_cut[1];
     return {lo, hi};
 }
-
-template<typename Field, size_t D>
-span<Field> ray_test(
-    const ray_segment<Field, D> &r,
-    const aabox<Field, D> &b
-) __attribute__((visibility("hidden")));
 
 template<typename Field, size_t D>
 span<Field> ray_test(
@@ -117,12 +91,12 @@ span<Field> ray_test(
     for(size_t i = 0; i < D; ++i)
     {
         span<double> cur = {
-            (b.spans[i].lo - r.the_ray.point(i)) / r.the_ray.slope(i),
-            (b.spans[i].hi - r.the_ray.point(i)) / r.the_ray.slope(i)
+            (b.spans[i].lo() - r.the_ray.point(i)) / r.the_ray.slope(i),
+            (b.spans[i].hi() - r.the_ray.point(i)) / r.the_ray.slope(i)
         };
 
-        if(cur.hi < cur.lo)
-            swap(cur.lo, cur.hi);
+        if(cur.hi() < cur.lo())
+            swap(cur.lo(), cur.hi());
 
         if(!(overlaps(cover, cur)))
             return span<double>::nan();

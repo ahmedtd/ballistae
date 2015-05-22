@@ -396,9 +396,9 @@ SCM render(
     if(scm_is_true(lu_gridsize))
         opts.gridsize = scm_to_size_t(lu_gridsize);
     if(scm_is_true(lu_bw_lo))
-        opts.bandwidth.lo = scm_to_double(lu_bw_lo);
+        opts.bandwidth.lo() = scm_to_double(lu_bw_lo);
     if(scm_is_true(lu_bw_hi))
-        opts.bandwidth.hi = scm_to_double(lu_bw_hi);
+        opts.bandwidth.hi() = scm_to_double(lu_bw_hi);
     if(scm_is_true(lu_nlambdas))
         opts.n_lambdas = scm_to_size_t(lu_nlambdas);
     if(scm_is_true(lu_depthlim))

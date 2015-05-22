@@ -244,7 +244,7 @@ image<float> render_scene(
     double lambda_step = measure(opts.bandwidth) / opts.n_lambdas;
     std::vector<double> lambdas(opts.n_lambdas);
     for(size_t i = 0; i < lambdas.size(); ++i)
-        lambdas[i] = opts.bandwidth.lo + i * lambda_step;
+        lambdas[i] = opts.bandwidth.lo() + i * lambda_step;
 
 # pragma omp parallel for firstprivate(thread_rng, lambdas) schedule(dynamic, 16)
     for(size_t cr = 0; cr < img_rows; ++cr)

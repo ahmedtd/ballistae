@@ -12,8 +12,37 @@ namespace ballistae
 template<class Field>
 struct span
 {
-    Field lo;
-    Field hi;
+    std::array<Field, 2> limits;
+
+    Field& operator[](size_t i)
+    {
+        return limits[i];
+    }
+
+    const Field& operator[](size_t i) const
+    {
+        return limits[i];
+    }
+
+    Field& lo()
+    {
+        return limits[0];
+    }
+
+    const Field& lo() const
+    {
+        return limits[0];
+    }
+
+    Field& hi()
+    {
+        return limits[1];
+    }
+
+    const Field& hi() const
+    {
+        return limits[1];
+    }
 
     static span<Field> pos_half()
     {
@@ -32,18 +61,11 @@ struct span
 
 template<class Field>
 bool isnan(const span<Field> &s)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool isnan(const span<Field> &s)
 {
     using std::isnan;
-    return isnan(s.lo) || isnan(s.hi);
+    return isnan(s.lo()) || isnan(s.hi());
 }
 
-template<class FieldPtr>
-auto from_ptr_pair(const std::pair<FieldPtr, FieldPtr> &p)
-    __attribute__((visibility("hidden")));
 
 template<class FieldPtr>
 auto from_ptr_pair(const std::pair<FieldPtr, FieldPtr> &p)
@@ -55,80 +77,48 @@ auto from_ptr_pair(const std::pair<FieldPtr, FieldPtr> &p)
 
 template<class Field>
 Field measure(const span<Field> &a)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-Field measure(const span<Field> &a)
 {
-    return a.hi - a.lo;
+    return a.hi() - a.lo();
 }
 
 template<class Field>
 bool overlaps(const span<Field> &a, const span<Field> &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool overlaps(const span<Field> &a, const span<Field> &b)
 {
-    return !(a.lo > b.hi || a.hi <= b.lo);
+    return !(a.lo() > b.hi() || a.hi() <= b.lo());
 }
 
 template<class Field>
 bool contains(const span<Field> &a, const span<Field> &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool contains(const span<Field> &a, const span<Field> &b)
 {
-    return a.lo <= b.lo && a.hi >= b.hi;
+    return a.lo() <= b.lo() && a.hi() >= b.hi();
 }
 
 template<class Field>
 bool contains(const span<Field> &a, const Field &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool contains(const span<Field> &a, const Field &b)
 {
-    return a.lo <= b && b <= a.hi;
+    return a.lo() <= b && b <= a.hi();
 }
 
 template<class Field>
 bool operator<(const span<Field> &a, const span<Field> &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool operator<(const span<Field> &a, const span<Field> &b)
 {
-    if(a.lo != b.lo)
-        return a.lo < b.lo;
+    if(a.lo() != b.lo())
+        return a.lo() < b.lo();
     else
-        return a.hi < b.hi;
+        return a.hi() < b.hi();
 }
 
 template<class Field>
 bool strictly_precedes(const span<Field> &a, const Field &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool strictly_precedes(const span<Field> &a, const Field &b)
 {
-    return a.hi < b;
+    return a.hi() < b;
 }
 
 template<class Field>
 bool strictly_succeeds(const span<Field> &a, const Field &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-bool strictly_succeeds(const span<Field> &a, const Field &b)
 {
-    return a.lo > b;
+    return a.lo() > b;
 }
-
-template<class Field>
-span<Field> min_containing(const span<Field> &a, const span<Field> &b)
-    __attribute__((visibility("hidden")));
 
 /// Smallest span that contains A and B.
 template<class Field>
@@ -136,7 +126,7 @@ span<Field> min_containing(const span<Field> &a, const span<Field> &b)
 {
     using std::max;
     using std::min;
-    return {min(a.lo, b.lo), max(a.hi, b.hi)};
+    return {min(a.lo(), b.lo()), max(a.hi(), b.hi())};
 }
 
 /// Largest span covered by both A and B.
@@ -146,14 +136,10 @@ span<Field> min_containing(const span<Field> &a, const span<Field> &b)
 ///   overlaps(a, b)
 template<class Field>
 span<Field> max_intersecting(const span<Field> &a, const span<Field> &b)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-span<Field> max_intersecting(const span<Field> &a, const span<Field> &b)
 {
     using std::max;
     using std::min;
-    return {max(a.lo, b.lo), min(a.hi, b.hi)};
+    return {max(a.lo(), b.lo()), min(a.hi(), b.hi())};
 }
 
 /// Split A into two spans at CUT.
@@ -163,29 +149,21 @@ span<Field> max_intersecting(const span<Field> &a, const span<Field> &b)
 ///   * contains(a, cut)
 template<class Field>
 std::array<span<Field>, 2> cut(const span<Field> &a, const Field &cut)
-    __attribute__((visibility("hidden")));
-
-template<class Field>
-std::array<span<Field>, 2> cut(const span<Field> &a, const Field &cut)
 {
     span<Field> lo = a;
     span<Field> hi = a;
 
-    lo.hi = cut;
-    hi.lo = cut;
+    lo.hi() = cut;
+    hi.lo() = cut;
 
     return {lo, hi};
 }
 
 template<class FieldA, class FieldB>
 auto operator*(const FieldA &a, const span<FieldB> b)
-    __attribute__((visibility("hidden")));
-
-template<class FieldA, class FieldB>
-auto operator*(const FieldA &a, const span<FieldB> b)
 {
     // TODO: think carefully about multiplication by a negative number.
-    span<decltype(a * b.lo)> result = {a * b.lo, a * b.hi};
+    span<decltype(a * b.lo())> result = {a * b.lo(), a * b.hi()};
     return result;
 }
 
