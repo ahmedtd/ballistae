@@ -33,6 +33,7 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
         const auto geom  = the_scene.elements[i].the_geometry;
         const auto &ftran = the_scene.elements[i].forward_transform;
         const auto &rtran = the_scene.elements[i].reverse_transform;
+        const auto &rnorm = the_scene.elements[i].reverse_normal_linear_map;
 
         auto mdl_query = ftran * query;
 
@@ -42,7 +43,7 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
             thread_rng
         );
 
-        contact<double> glb_contact = rtran * mdl_contact;
+        auto glb_contact = contact_transform(mdl_contact, rtran, rnorm);
 
         if(glb_contact.t <= min_contact.t)
         {
@@ -58,7 +59,7 @@ std::tuple<contact<double>, size_t> scene_ray_intersect(
             thread_rng
         );
 
-        glb_contact = rtran * mdl_contact;
+        glb_contact = contact_transform(mdl_contact, rtran, rnorm);
 
         if(glb_contact.t <= min_contact.t)
         {

@@ -28,10 +28,15 @@ struct contact final
     }
 };
 
+/// Apply an affine transform to a contact.
+///
+/// We require the transpose inverse of the linear part of the transform.
+/// Rather than calculate it every time, we take it as an argument.
 template<class Field>
-contact<Field> operator*(
+contact<Field> contact_transform(
+    const contact<Field> &c,
     const affine_transform<Field, 3> &t,
-    const contact<Field> &c
+    const fixmat<Field, 3, 3> &nm
 )
 {
     contact<Field> result = c;
@@ -47,7 +52,7 @@ contact<Field> operator*(
     result.r.slope /= scale_factor;
 
     result.p = t * result.p;
-    result.n = normalise(t.linear * result.n);
+    result.n = normalise(nm * result.n);
     result.t *= scale_factor;
     return result;
 }

@@ -301,13 +301,16 @@ ballistae::scene* scene_from_scm(SCM scene)
     return smob_get_data<ballistae::scene*>(scene);
 }
 
-SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
+SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform_scm)
 {
+    auto transform = daff3_from_scm(transform_scm);
+
     ballistae::scene_element elt = {
         scene_from_scm(scene)->geometries[scm_to_size_t(geometry)].get(),
         scene_from_scm(scene)->materials[scm_to_size_t(material)].get(),
-        ballistae::inverse(daff3_from_scm(transform)),
-        daff3_from_scm(transform)
+        inverse(transform),
+        transform,
+        normal_linear_map(transform)
     };
 
     size_t index = scene_from_scm(scene)->elements.size();
@@ -316,13 +319,16 @@ SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
     return scm_from_size_t(index);
 }
 
-SCM set_element_transform(SCM scene, SCM index, SCM transform)
+SCM set_element_transform(SCM scene, SCM index, SCM transform_scm)
 {
     ballistae::scene_element &elt
         = scene_from_scm(scene)->elements[scm_to_size_t(index)];
 
-    elt.forward_transform = ballistae::inverse(daff3_from_scm(transform));
-    elt.reverse_transform = daff3_from_scm(transform);
+    auto transform = daff3_from_scm(transform_scm);
+
+    elt.forward_transform = inverse(transform);
+    elt.reverse_transform = transform;
+    elt.reverse_normal_linear_map = normal_linear_map(transform);
 
     return index;
 }

@@ -22,8 +22,17 @@ struct scene_element
 {
     geometry *the_geometry;
     material *the_material;
+
+    /// The transform that takes a ray from world space to model space.
     affine_transform<double, 3> forward_transform;
+
+    /// The transform that takes rays and contacts from model space to world
+    /// space.
     affine_transform<double, 3> reverse_transform;
+
+    /// The linear map that takes normal vectors from model space to world
+    /// space.
+    fixmat<double, 3, 3> reverse_normal_linear_map;
 };
 
 struct scene
