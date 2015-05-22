@@ -4,7 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include <libballistae/affine_transform.hh>
+#include <frustum-0/geometry/affine_transform.hh>
+
 #include <libballistae/contact.hh>
 #include <libballistae/illuminator.hh>
 #include <libballistae/vector.hh>

@@ -64,11 +64,11 @@
  scene
  (bsta/geom/make scene "plane" `())
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,bullseye-2d-green)))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+  (frst/daff3/translation (frst/dvec3 0 0 0))))
 
 (define sphere-geom
   (bsta/geom/make scene "sphere" `()))
@@ -77,19 +77,19 @@
  scene
  sphere-geom
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,bullseye-2d-blue)))
- (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 -3 1 2))))
+ (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 2)
+  (frst/daff3/translation (frst/dvec3 -3 1 2))))
 
 (bsta/scene/add-element
  scene
  sphere-geom
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-2d-red)))
- (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 3 -3 2))))
+ (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 2)
+  (frst/daff3/translation (frst/dvec3 3 -3 2))))
 
 (define dir-illum
   (bsta/illum/make scene 'directional `((spectrum . ,(bsta/dsig/cie-d65))

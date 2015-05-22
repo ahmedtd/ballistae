@@ -76,14 +76,12 @@ fixvec<double, 1> lerp_mtlmap1::value(
 }
 
 level_mtlmap1::level_mtlmap1(
-    double t_lo_in,
-    double t_hi_in,
+    double t_switch_in,
     const mtlmap<1> *t_in,
     const mtlmap<1> *a_in,
     const mtlmap<1> *b_in
 )
-    : t_lo(t_lo_in),
-      t_hi(t_hi_in),
+    : t_switch(t_switch_in),
       t(t_in),
       a(a_in),
       b(b_in)
@@ -102,10 +100,7 @@ fixvec<double, 1> level_mtlmap1::value(
 {
     double tval = t->value(mtl2, mtl3, lambda)(0);
 
-    tval -= t_lo;
-    tval /= t_hi - t_lo;
-
-    if(tval < 0.5)
+    if(tval < t_switch)
         return a->value(mtl2, mtl3, lambda);
     else
         return b->value(mtl2, mtl3, lambda);

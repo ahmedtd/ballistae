@@ -69,40 +69,6 @@
   (bsta/backend/signal/rgb-to-spectral red green blue))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Functions dealing with affine transform subsmobs.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-public bsta/aff-t/identity
-  (lambda ()
-    "The identity transform."
-    (bsta/backend/aff-t/identity)))
-
-(define-public (bsta/aff-t/translation offset)
-  "A transform that translates by OFFSET."
-  (bsta/backend/aff-t/translation offset))
-
-(define-public (bsta/aff-t/scaling scalar)
-  "A transform that uniformly scales by SCALAR."
-  (bsta/backend/aff-t/scaling scalar))
-
-(define-public (bsta/aff-t/rotation axis angle)
-  "A transform that rotates around AXIS by ANGLE (radians).
-
-AXIS does not need to be normalized."
-  (bsta/backend/aff-t/rotation axis angle))
-
-(define-public (bsta/aff-t/basis-mapping e0 e1 e2)
-  "A transform that maps the current principle axes to E0,E1,E2."
-  (bsta/backend/aff-t/basis-mapping e0 e1 e2))
-
-(define*-public (bsta/aff-t/compose #:rest tform-list)
-  "Compose TFORM-LIST to a single transform.
-
-Multiplication proceeds in list order, with the first element forming the base
-transform and every subsequent element left-multiplied in."
-  (apply bsta/backend/aff-t/compose tform-list))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions for dealing with geometry.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

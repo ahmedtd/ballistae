@@ -37,8 +37,7 @@
    'level
    `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
                                                  (period . 1))))
-     (t-lo . -0.8)
-     (t-hi .  0.8)
+     (t-switch . 0.0)
      (a . ,blue-mtlmap)
      (b . ,white-mtlmap))))
 
@@ -57,8 +56,7 @@
    'level
    `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
                                                  (period . 128))))
-     (t-lo . -0.8)
-     (t-hi .  0.8)
+     (t-switch . 0.0)
      (a . ,red-mtlmap)
      (b . ,white-mtlmap))))
 
@@ -98,65 +96,79 @@
  scene
  (bsta/geom/make scene "plane" `())
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,checkerboard-green)))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+  (frst/daff3/translation (frst/dvec3 0 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "infinity" `())
  (bsta/matr/make scene "directional_emitter" `())
- (bsta/aff-t/identity))
+ (frst/daff3/identity))
 
 (define sphere-geom
   (bsta/geom/make scene "sphere" `()))
 
+(define gauss-level-t
+  (bsta/mtlmap1/make scene 'checkerboard `((period . 1.0)
+                                           (volumetric . true))))
+(define gauss-lo-variance
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/pulse 390 835 0)))))
+
+(define gauss-hi-variance
+  (bsta/mtlmap1/make scene 'constant `((spectrum . ,(bsta/dsig/pulse 390 835 0.0001)))))
+
+(define gauss-variance
+  (bsta/mtlmap1/make scene 'level `((t . ,gauss-level-t)
+                                    (a . ,gauss-lo-variance)
+                                    (b . ,gauss-hi-variance))))
+
 (bsta/scene/add-element
  scene
  sphere-geom
- (bsta/matr/make scene "pc_smooth" `((reflectance . ,simple-reflective-mtlmap)))
-  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 -3 3 2))))
+ (bsta/matr/make scene "gauss" `((variance . ,gauss-variance)))
+  (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 2)
+  (frst/daff3/translation (frst/dvec3 -3 3 2))))
 
 (bsta/scene/add-element
  scene
  sphere-geom
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red)))
-  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 1)
-  (bsta/aff-t/translation (frst/dvec3 -3 3 6))))
+  (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 1)
+  (frst/daff3/translation (frst/dvec3 -3 3 6))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
  (bsta/matr/make scene "pc_smooth" `((reflectance . ,simple-reflective-mtlmap)))
-  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 30)
-  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+  (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 30)
+  (frst/daff3/translation (frst/dvec3 0 0 0))))
 
 (bsta/scene/add-element
  scene
  sphere-geom
  (bsta/matr/make scene "pc_smooth" `((reflectance . ,iridescent-mtlmap)))
-  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 3 -3 2))))
+  (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 2)
+  (frst/daff3/translation (frst/dvec3 3 -3 2))))
 
 (bsta/scene/add-element
  scene
  sphere-geom
  (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red)))
-  (bsta/aff-t/compose
-  (bsta/aff-t/rotation (frst/dvec3 0 0 1) 1.0)
-  (bsta/aff-t/scaling 1)
-  (bsta/aff-t/translation (frst/dvec3 3 -3 6))))
+  (frst/daff3/compose
+  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
+  (frst/daff3/scaling 1)
+  (frst/daff3/translation (frst/dvec3 3 -3 6))))
 
 (define cam-center (frst/dvec3 -5 -11  5))
 (define cam-eye (frst/- (frst/dvec3 0 0 2) cam-center))

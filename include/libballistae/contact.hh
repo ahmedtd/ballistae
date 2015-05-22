@@ -1,7 +1,8 @@
 #ifndef LIBBALLISTAE_CONTACT_HH
 #define LIBBALLISTAE_CONTACT_HH
 
-#include <libballistae/affine_transform.hh>
+#include <frustum-0/geometry/affine_transform.hh>
+
 #include <libballistae/ray.hh>
 #include <libballistae/vector.hh>
 

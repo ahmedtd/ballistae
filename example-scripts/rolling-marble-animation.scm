@@ -33,61 +33,61 @@
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+  (frst/daff3/translation (frst/dvec3 0 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3  0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3  0 0 1)
                             (frst/dvec3  0 1 0)
                             (frst/dvec3 -1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 20))))
+  (frst/daff3/translation (frst/dvec3 0 0 20))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "directional_emitter" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 0 0 1))
-  (bsta/aff-t/translation (frst/dvec3 -10 0 0))))
+  (frst/daff3/translation (frst/dvec3 -10 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.1 0.95))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 -1 0 0)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 -1 0 0)
                             (frst/dvec3  0 1 0)
                             (frst/dvec3  0 0 1))
-  (bsta/aff-t/translation (frst/dvec3 10 0 0))))
+  (frst/daff3/translation (frst/dvec3 10 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.95 0.1))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0))
-  (bsta/aff-t/translation (frst/dvec3 0 -10 0))))
+  (frst/daff3/translation (frst/dvec3 0 -10 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.95 0.1 0.1))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3  0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3  0 0 1)
                             (frst/dvec3 -1 0 0)
                             (frst/dvec3  0 1 0))
-  (bsta/aff-t/translation (frst/dvec3 0 10 0))))
+  (frst/daff3/translation (frst/dvec3 0 10 0))))
 
 (define (lerp v1 v2 t)
   (+ (* (- 1 t) v1) (* t v2)))
@@ -98,12 +98,12 @@
   (lerp 1.8 1.2 s))
 
 (define (rolling-transform t)
-  (bsta/aff-t/compose
-   (bsta/aff-t/rotation (frst/dvec3 0 1 0) t)
-   (bsta/aff-t/translation (frst/dvec3 (+ -5 (* 2 t)) -2.5 2))))
+  (frst/daff3/compose
+   (frst/daff3/rotation (frst/dvec3 0 1 0) t)
+   (frst/daff3/translation (frst/dvec3 (+ -5 (* 2 t)) -2.5 2))))
 
 (define sphere-base-transform
-  (bsta/aff-t/scaling 2))
+  (frst/daff3/scaling 2))
 
 (define sphere-index
   (bsta/scene/add-element
@@ -113,29 +113,29 @@
    sphere-base-transform))
 
 (define bubble-0-base-transform
-  (bsta/aff-t/compose
-   (bsta/aff-t/scaling 0.2)
-   (bsta/aff-t/translation (frst/dvec3 1.03 0.21 0.67))))
+  (frst/daff3/compose
+   (frst/daff3/scaling 0.2)
+   (frst/daff3/translation (frst/dvec3 1.03 0.21 0.67))))
 
 (define bubble-1-base-transform
-  (bsta/aff-t/compose
-   (bsta/aff-t/scaling 0.39)
-   (bsta/aff-t/translation (frst/dvec3 -0.86 0.39 -0.29))))
+  (frst/daff3/compose
+   (frst/daff3/scaling 0.39)
+   (frst/daff3/translation (frst/dvec3 -0.86 0.39 -0.29))))
 
 (define bubble-2-base-transform
-  (bsta/aff-t/compose
-   (bsta/aff-t/scaling 0.25)
-   (bsta/aff-t/translation (frst/dvec3 -0.22 -0.8 -0.24))))
+  (frst/daff3/compose
+   (frst/daff3/scaling 0.25)
+   (frst/daff3/translation (frst/dvec3 -0.22 -0.8 -0.24))))
 
 (define bubble-3-base-transform
-  (bsta/aff-t/compose
-   (bsta/aff-t/scaling 0.34)
-   (bsta/aff-t/translation (frst/dvec3 0.1 -0.67 1.02))))
+  (frst/daff3/compose
+   (frst/daff3/scaling 0.34)
+   (frst/daff3/translation (frst/dvec3 0.1 -0.67 1.02))))
 
 (define bubble-4-base-transform
-  (bsta/aff-t/compose
-   (bsta/aff-t/scaling 0.2)
-   (bsta/aff-t/translation (frst/dvec3 1.05 -0.31 0.50))))
+  (frst/daff3/compose
+   (frst/daff3/scaling 0.2)
+   (frst/daff3/translation (frst/dvec3 1.05 -0.31 0.50))))
 
 (define bubble-0-index
   (bsta/scene/add-element
@@ -192,42 +192,42 @@
    (bsta/scene/set-element-transform
     scene
     sphere-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      sphere-base-transform
      (rolling-transform t)))
 
    (bsta/scene/set-element-transform
     scene
     bubble-0-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      bubble-0-base-transform
      (rolling-transform t)))
 
    (bsta/scene/set-element-transform
     scene
     bubble-1-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      bubble-1-base-transform
      (rolling-transform t)))
 
    (bsta/scene/set-element-transform
     scene
     bubble-2-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      bubble-2-base-transform
      (rolling-transform t)))
 
    (bsta/scene/set-element-transform
     scene
     bubble-3-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      bubble-3-base-transform
      (rolling-transform t)))
 
    (bsta/scene/set-element-transform
     scene
     bubble-4-index
-    (bsta/aff-t/compose
+    (frst/daff3/compose
      bubble-4-base-transform
      (rolling-transform t)))
 

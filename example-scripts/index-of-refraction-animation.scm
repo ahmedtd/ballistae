@@ -33,61 +33,61 @@
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 0))))
+  (frst/daff3/translation (frst/dvec3 0 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3  0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3  0 0 1)
                             (frst/dvec3  0 1 0)
                             (frst/dvec3 -1 0 0))
-  (bsta/aff-t/translation (frst/dvec3 0 0 20))))
+  (frst/daff3/translation (frst/dvec3 0 0 20))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "directional_emitter" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 1 0 0)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0)
                             (frst/dvec3 0 0 1))
-  (bsta/aff-t/translation (frst/dvec3 -10 0 0))))
+  (frst/daff3/translation (frst/dvec3 -10 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.1 0.95))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 -1 0 0)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 -1 0 0)
                             (frst/dvec3  0 1 0)
                             (frst/dvec3  0 0 1))
-  (bsta/aff-t/translation (frst/dvec3 10 0 0))))
+  (frst/daff3/translation (frst/dvec3 10 0 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.1 0.95 0.1))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3 0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 1 0 0)
                             (frst/dvec3 0 1 0))
-  (bsta/aff-t/translation (frst/dvec3 0 -10 0))))
+  (frst/daff3/translation (frst/dvec3 0 -10 0))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "plane" `())
  (bsta/matr/make "mc_lambert" `((reflectance . ,(bsta/dsig/rgb-to-spectral 0.95 0.1 0.1))))
- (bsta/aff-t/compose
-  (bsta/aff-t/basis-mapping (frst/dvec3  0 0 1)
+ (frst/daff3/compose
+  (frst/daff3/basis-mapping (frst/dvec3  0 0 1)
                             (frst/dvec3 -1 0 0)
                             (frst/dvec3  0 1 0))
-  (bsta/aff-t/translation (frst/dvec3 0 10 0))))
+  (frst/daff3/translation (frst/dvec3 0 10 0))))
 
 (define (lerp v1 v2 t)
   (+ (* (- 1 t) v1) (* t v2)))
@@ -103,26 +103,26 @@
  scene
  (bsta/geom/make "sphere" `())
  (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 (lambda (wl) (dispersive-n wl 3))))))
- (bsta/aff-t/compose
-  (bsta/aff-t/scaling 2)
-  (bsta/aff-t/translation (frst/dvec3 -5 2.5 2))))
+ (frst/daff3/compose
+  (frst/daff3/scaling 2)
+  (frst/daff3/translation (frst/dvec3 -5 2.5 2))))
 
 (define sphere-index
   (bsta/scene/add-element
    scene
    (bsta/geom/make "sphere" `())
    (bsta/matr/make "nonconductive_smooth" `((n-interior . ,(bsta/dsig/from-fn 390 835 89 (lambda (wl) (dispersive-n wl 0))))))
-   (bsta/aff-t/compose
-    (bsta/aff-t/scaling 2)
-    (bsta/aff-t/translation (frst/dvec3 -5 -2.5 2)))))
+   (frst/daff3/compose
+    (frst/daff3/scaling 2)
+    (frst/daff3/translation (frst/dvec3 -5 -2.5 2)))))
 
 (bsta/scene/add-element
  scene
  (bsta/geom/make "surface_mesh" `((file . "bunny-lo.obj") (swapyz . #t)))
  (bsta/matr/make "mc_lambert" `())
- (bsta/aff-t/compose
-  (bsta/aff-t/scaling 5)
-  (bsta/aff-t/translation (frst/dvec3 -5 -2.5 2))))
+ (frst/daff3/compose
+  (frst/daff3/scaling 5)
+  (frst/daff3/translation (frst/dvec3 -5 -2.5 2))))
 
 (define cam-center (frst/dvec3 -5 -9  5))
 (define cam-eye (frst/- (frst/dvec3 -2 0 2) cam-center))

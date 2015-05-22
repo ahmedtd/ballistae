@@ -12,6 +12,7 @@ $(guile (augmk/enter "ballistae_geometry_sphere"))
 $(guile (augmk/enter "ballistae_geometry_surface_mesh"))
 
 # Material plugins
+$(guile (augmk/enter "ballistae_material_gauss"))
 $(guile (augmk/enter "ballistae_material_nonconductive_smooth"))
 $(guile (augmk/enter "ballistae_material_mc_lambert"))
 $(guile (augmk/enter "ballistae_material_pc_smooth"))

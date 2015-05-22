@@ -4,7 +4,6 @@
 #include <cstddef> // workaround for bug in GMP.
 #include <libguile.h>
 
-#include <libballistae/affine_transform.hh>
 #include <libballistae/camera.hh>
 #include <libballistae/dense_signal.hh>
 #include <libballistae/geometry.hh>
@@ -24,14 +23,6 @@ extern "C" void libguile_ballistae_init() BG_PUBLIC;
 
 namespace ballistae_guile
 {
-
-ballistae::affine_transform<double, 3> affine_from_scm(SCM t_scm) BG_PUBLIC;
-SCM compose(SCM rest_scm) BG_PUBLIC;
-SCM identity() BG_PUBLIC;
-SCM translation(SCM t_scm) BG_PUBLIC;
-SCM scaling(SCM s_scm) BG_PUBLIC;
-SCM rotation(SCM axis_scm, SCM angle_scm) BG_PUBLIC;
-SCM basis_mapping(SCM t0_scm, SCM t1_scm, SCM t2_scm) BG_PUBLIC;
 
 ballistae::camera* camera_from_scm(SCM obj) BG_PUBLIC;
 SCM camera_make(SCM plug_name, SCM config_alist) BG_PUBLIC;

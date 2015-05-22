@@ -1,7 +1,8 @@
 #ifndef LIBBALLISTAE_RAY_HH
 #define LIBBALLISTAE_RAY_HH
 
-#include <libballistae/affine_transform.hh>
+#include <frustum-0/geometry/affine_transform.hh>
+
 #include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 

@@ -31,6 +31,8 @@ static scm_t_bits ballistae_guile_smob_tag;
 namespace ballistae_guile
 {
 
+using namespace guile_frustum;
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Create a ballistae smob with given flags and data.
 ////////////////////////////////////////////////////////////////////////////////
@@ -73,8 +75,7 @@ SCM smob_set_data(SCM obj, T data)
 /// Values used in the 16-bit flag field.
 constexpr scm_t_bits flag_scene            = 0;
 constexpr scm_t_bits flag_camera           = 1;
-constexpr scm_t_bits flag_affine_transform = 3;
-constexpr scm_t_bits flag_dense_signal     = 4;
+constexpr scm_t_bits flag_dense_signal     = 2;
 
 /// The MSB of the flags field is used to track whether or not the subsmob has
 /// been registered with a scene.  If it is, then the scene controls the
@@ -95,128 +96,6 @@ SCM ensure_smob(SCM obj, scm_t_bits flag)
     if(get_subsmob_type(obj) != flag)
         scm_wrong_type_arg(nullptr, SCM_ARG1, obj);
     return obj;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// Functions related to registration with a scene.
-////////////////////////////////////////////////////////////////////////////////
-
-bool is_registered(SCM obj)
-{
-    return SCM_SMOB_FLAGS(obj) & mask_registered;
-}
-
-SCM set_registered(SCM obj, bool registered)
-{
-    scm_t_bits bits = SCM_SMOB_FLAGS(obj);
-    if(registered)
-        bits = (bits | mask_registered) & 0xffff;
-    else
-        bits = (bits & ~mask_registered) & 0xffff;
-    SCM_SET_SMOB_FLAGS(obj, bits);
-    return obj;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-/// Affine transform subsmob.
-////////////////////////////////////////////////////////////////////////////////
-
-ballistae::affine_transform<double, 3> affine_from_scm(SCM t_scm)
-{
-    ensure_smob(t_scm, flag_affine_transform);
-    return *smob_get_data<ballistae::affine_transform<double, 3>*>(t_scm);
-}
-
-SCM compose(SCM rest_scm)
-{
-    auto total = ballistae::affine_transform<double, 3>::identity() ;
-
-    for(SCM cur = rest_scm; !scm_is_null(cur); cur = scm_cdr(cur))
-    {
-        SCM aff = ensure_smob(scm_car(cur), flag_affine_transform);
-        total = affine_from_scm(aff) * total;
-    }
-
-    auto affine_p = new ballistae::affine_transform<double, 3>(total);
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-SCM identity()
-{
-    auto affine_p = new ballistae::affine_transform<double, 3>(
-        ballistae::affine_transform<double, 3>::identity()
-    );
-
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-SCM translation(SCM t_scm)
-{
-    ballistae::fixvec<double, 3> t = guile_frustum::dvec3_from_scm(t_scm);
-
-    auto affine_p = new ballistae::affine_transform<double, 3>(
-        ballistae::affine_transform<double, 3>::translation(t)
-    );
-
-    scm_remember_upto_here_1(t_scm);
-
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-SCM scaling(SCM s_scm)
-{
-    double s = scm_to_double(s_scm);
-
-    auto affine_p = new ballistae::affine_transform<double, 3>(
-        ballistae::affine_transform<double, 3>::scaling(s)
-    );
-
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-SCM rotation(SCM axis_scm, SCM angle_scm)
-{
-    ballistae::fixvec<double, 3> axis = guile_frustum::dvec3_from_scm(axis_scm);
-    double angle = scm_to_double(angle_scm);
-
-    auto affine_p = new ballistae::affine_transform<double, 3>(
-        ballistae::affine_transform<double, 3>::rotation(axis, angle)
-    );
-
-    scm_remember_upto_here_1(axis_scm);
-
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-SCM basis_mapping(SCM t0_scm, SCM t1_scm, SCM t2_scm)
-{
-    auto t0 = guile_frustum::dvec3_from_scm(t0_scm);
-    auto t1 = guile_frustum::dvec3_from_scm(t1_scm);
-    auto t2 = guile_frustum::dvec3_from_scm(t2_scm);
-
-    scm_remember_upto_here_1(t0_scm);
-    scm_remember_upto_here_1(t1_scm);
-    scm_remember_upto_here_1(t2_scm);
-
-    auto affine_p = new ballistae::affine_transform<double, 3>(
-        ballistae::affine_transform<double, 3>::basis_mapping(t0, t1, t2)
-    );
-
-    return new_smob(flag_affine_transform, affine_p);
-}
-
-size_t affine_free(SCM obj)
-{
-    auto a_p = smob_get_data<ballistae::affine_transform<double, 3>*>(obj);
-    delete a_p;
-    return 0;
-}
-
-int affine_print(SCM obj, SCM port, scm_print_state *pstate)
-{
-    SCM fmt = scm_from_utf8_string("#<ballistae/affine_transform>");
-    scm_simple_format(port, fmt, SCM_EOL);
-    return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -427,8 +306,8 @@ SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform)
     ballistae::scene_element elt = {
         scene_from_scm(scene)->geometries[scm_to_size_t(geometry)].get(),
         scene_from_scm(scene)->materials[scm_to_size_t(material)].get(),
-        ballistae::inverse(affine_from_scm(transform)),
-        affine_from_scm(transform)
+        ballistae::inverse(daff3_from_scm(transform)),
+        daff3_from_scm(transform)
     };
 
     size_t index = scene_from_scm(scene)->elements.size();
@@ -442,8 +321,8 @@ SCM set_element_transform(SCM scene, SCM index, SCM transform)
     ballistae::scene_element &elt
         = scene_from_scm(scene)->elements[scm_to_size_t(index)];
 
-    elt.forward_transform = ballistae::inverse(affine_from_scm(transform));
-    elt.reverse_transform = affine_from_scm(transform);
+    elt.forward_transform = ballistae::inverse(daff3_from_scm(transform));
+    elt.reverse_transform = daff3_from_scm(transform);
 
     return index;
 }
@@ -657,31 +536,25 @@ SCM mtlmap1_create_lerp(SCM scene, SCM config)
 SCM mtlmap1_create_level(SCM scene, SCM config)
 {
     auto up = std::make_unique<ballistae::level_mtlmap1>(
-        0.0,
-        1.0,
+        0.5,
         scene_from_scm(scene)->mtlmaps_1[0].get(),
         scene_from_scm(scene)->mtlmaps_1[0].get(),
         scene_from_scm(scene)->mtlmaps_1[0].get()
     );
 
-    SCM sym_t_lo = scm_from_utf8_symbol("t-lo");
-    SCM sym_t_hi = scm_from_utf8_symbol("t-hi");
+    SCM sym_t_switch = scm_from_utf8_symbol("t-switch");
 
     SCM sym_t = scm_from_utf8_symbol("t");
     SCM sym_a = scm_from_utf8_symbol("a");
     SCM sym_b = scm_from_utf8_symbol("b");
 
-    SCM lu_t_lo = scm_assq_ref(config, sym_t_lo);
-    SCM lu_t_hi = scm_assq_ref(config, sym_t_hi);
+    SCM lu_t_switch = scm_assq_ref(config, sym_t_switch);
     SCM lu_t = scm_assq_ref(config, sym_t);
     SCM lu_a = scm_assq_ref(config, sym_a);
     SCM lu_b = scm_assq_ref(config, sym_b);
 
-    if(scm_is_true(lu_t_lo))
-        up->t_lo = scm_to_double(lu_t_lo);
-
-    if(scm_is_true(lu_t_hi))
-        up->t_hi = scm_to_double(lu_t_hi);
+    if(scm_is_true(lu_t_switch))
+        up->t_switch = scm_to_double(lu_t_switch);
 
     if(scm_is_true(lu_t))
         up->t = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_t)].get();
@@ -859,7 +732,7 @@ SCM illuminator_directional(SCM scene, SCM config_alist)
     auto p = std::make_unique<ballistae::dir_illuminator>();
 
     p->spectrum = signal_from_scm(lu_spectrum);
-    p->direction = guile_frustum::dvec3_from_scm(lu_direction);
+    p->direction = dvec3_from_scm(lu_direction);
 
     p->direction = normalise(p->direction);
 
@@ -879,7 +752,7 @@ SCM illuminator_point(SCM scene, SCM config_alist)
     auto p = std::make_unique<ballistae::point_illuminator>();
 
     p->spectrum = signal_from_scm(lu_spectrum);
-    p->position = guile_frustum::dvec3_from_scm(lu_position);
+    p->position = dvec3_from_scm(lu_position);
 
     size_t index = scene_from_scm(scene)->illuminators.size();
     scene_from_scm(scene)->illuminators.push_back(std::move(p));
@@ -917,7 +790,6 @@ struct subsmob_fns
 static subsmob_fns subsmob_dispatch_table [] = {
     {&scene_free, &scene_print, nullptr},
     {&camera_free, &camera_print, nullptr},
-    {&affine_free, &affine_print, nullptr},
     {&signal_free, &signal_print, &signal_equalp}
 };
 
@@ -983,13 +855,6 @@ extern "C" void libguile_ballistae_init()
     scm_set_smob_mark(  ballistae_guile_smob_tag, &smob_mark  );
     scm_set_smob_print( ballistae_guile_smob_tag, &smob_print );
     scm_set_smob_equalp(ballistae_guile_smob_tag, &smob_equalp);
-
-    scm_c_define_gsubr("bsta/backend/aff-t/identity",      0, 0, 0, (scm_t_subr) identity);
-    scm_c_define_gsubr("bsta/backend/aff-t/translation",   1, 0, 0, (scm_t_subr) translation);
-    scm_c_define_gsubr("bsta/backend/aff-t/scaling",       1, 0, 0, (scm_t_subr) scaling);
-    scm_c_define_gsubr("bsta/backend/aff-t/rotation",      2, 0, 0, (scm_t_subr) rotation);
-    scm_c_define_gsubr("bsta/backend/aff-t/basis-mapping", 3, 0, 0, (scm_t_subr) basis_mapping);
-    scm_c_define_gsubr("bsta/backend/aff-t/compose",       0, 0, 1, (scm_t_subr) compose);
 
     scm_c_define_gsubr("bsta/backend/cam/make", 2, 0, 0, (scm_t_subr) camera_make);
 

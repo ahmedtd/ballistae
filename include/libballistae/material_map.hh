@@ -68,16 +68,14 @@ public:
 class level_mtlmap1 : public mtlmap<1>
 {
 public:
-    double t_lo;
-    double t_hi;
+    double t_switch;
 
     const mtlmap<1> *t;
     const mtlmap<1> *a;
     const mtlmap<1> *b;
     
     level_mtlmap1(
-        double t_lo_in,
-        double t_hi_in,
+        double t_switch_in,
         const mtlmap<1> *t_in,
         const mtlmap<1> *a_in,
         const mtlmap<1> *b_in
