@@ -16,6 +16,7 @@ using namespace ballistae;
 class emitter : public ballistae_guile::updatable_material
 {
 public:
+    size_t emissivity_ind;
     mtlmap<1> *emissivity;
 
 public:
@@ -23,14 +24,12 @@ public:
     emitter();
     virtual ~emitter();
 
+    virtual void crush(const scene &the_scene, double time);
+    
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_src,
-        double lambda_lim,
-        double lambda_cur,
-        size_t sample_index,
-        std::ranlux24 &thread_rng
+        double lambda_cur
     ) const;
 
     virtual void guile_update(scene *p_scene, SCM config);
@@ -44,6 +43,12 @@ emitter::~emitter()
 {
 }
 
+void emitter::crush(const scene &the_scene, double time)
+{
+    emissivity = the_scene.mtlmaps_1[emissivity_ind].get();
+    emissivity->crush(the_scene, time);
+}
+
 void emitter::guile_update(scene *p_scene, SCM config)
 {
     using namespace ballistae_guile;
@@ -52,17 +57,13 @@ void emitter::guile_update(scene *p_scene, SCM config)
     SCM lu_emissivity = scm_assq_ref(config, sym_emissivity);
 
     if(scm_is_true(lu_emissivity))
-        this->emissivity = p_scene->mtlmaps_1[scm_to_size_t(lu_emissivity)].get();
+        this->emissivity_ind = scm_to_size_t(lu_emissivity);
 }
 
 shade_info<double> emitter::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    size_t sample_index,
-    std::ranlux24 &thread_rng
+    double lambda
 ) const
 {
 
@@ -71,7 +72,7 @@ shade_info<double> emitter::shade(
     
     shade_info<double> result;
     result.propagation_k = 0.0;
-    result.emitted_power = emissivity->value(mtl2, mtl3, lambda_cur)(0);
+    result.emitted_power = emissivity->value(mtl2, mtl3, lambda)(0);
 
     return result;
 }
@@ -82,7 +83,7 @@ guile_ballistae_material(scene *p_scene, SCM config)
     auto p = std::make_unique<emitter>();
 
     p->guile_update(p_scene, config);
-    p->emissivity = p_scene->mtlmaps_1[1].get();
+    p->emissivity_ind = 1;
     
     return std::move(p);
 }

@@ -12,63 +12,120 @@
 #include <libballistae/illuminator.hh>
 #include <libballistae/image.hh>
 #include <libballistae/material.hh>
+#include <libballistae/material_map.hh>
 #include <libballistae/ray.hh>
 #include <libballistae/span.hh>
 
 namespace ballistae
 {
 
-std::tuple<contact<double>, size_t> scene_ray_intersect(
+void crush(scene &the_scene, double time)
+{
+    // Crush individual geometries, materials, material maps, etc.
+    //
+    // Their crush procedures will resolve scene indexes to pointers, compute
+    // internal kd trees, and so on.  After crushing, their bounding boxes must
+    // be constant (for geometries).
+    for(auto &up : the_scene.illuminators)
+    {
+        up->crush(the_scene, time);
+    }
+
+    // Geometry, materials, and material maps are crushed in a dependency-based
+    // fashion, with each crushing its own dependencies.  To prevent redundant
+    // (potentially-expensive) crushes, objects should cache the last time they
+    // were crushed.
+
+    // Produce crushed scene elements from the uncrushed scene elements.  Again,
+    // it's mostly index resolution to pointers.  We also precompute transforms
+    // derived from each element's transform.
+    std::vector<crushed_scene_element> crushed_elts;
+    for(const auto &elt : the_scene.elements)
+    {
+        geometry *p_geom = the_scene.geometries[elt.geometry_index].get();
+        material *p_matr = the_scene.materials[elt.material_index].get();
+
+        p_geom->crush(the_scene, time);
+        p_matr->crush(the_scene, time);
+
+        auto model_aabox = p_geom->get_aabox();
+        auto world_aabox = elt.model_to_world * model_aabox;
+
+        crushed_scene_element crush_elt = {
+            p_geom,
+            the_scene.materials[elt.material_index].get(),
+            inverse(elt.model_to_world),
+            elt.model_to_world,
+            normal_linear_map(elt.model_to_world),
+            world_aabox
+        };
+        crushed_elts.push_back(crush_elt);
+    }
+
+    the_scene.crushed_elements = kd_tree<double, 3, crushed_scene_element>(
+        std::move(crushed_elts),
+        [](const auto &s){return s.world_aabox;}
+    );
+
+    // Refine using the surface area heuristic.
+    kd_tree_refine_sah(
+        the_scene.crushed_elements,
+        [](const auto &s){return s.world_aabox;},
+        1.0,
+        0.9
+    );
+}
+
+std::tuple<contact<double>, const crushed_scene_element*>
+scene_ray_intersect(
     const scene &the_scene,
-    const ray_segment<double, 3> &query,
-    std::ranlux24 &thread_rng
+    ray_segment<double, 3> query
 )
 {
     contact<double> min_contact;
-    min_contact.t = std::numeric_limits<double>::infinity();
-    size_t min_ind = the_scene.elements.size();
+    const crushed_scene_element *min_element = nullptr;
 
-    for(size_t i = 0; i < the_scene.elements.size(); ++i)
-    {
-        const auto geom  = the_scene.elements[i].the_geometry;
-        const auto &ftran = the_scene.elements[i].forward_transform;
-        const auto &rtran = the_scene.elements[i].reverse_transform;
-        const auto &rnorm = the_scene.elements[i].reverse_normal_linear_map;
+    auto selector = [&](const aabox<double, 3> &box) -> bool {
+        using std::isnan;
+        auto overlap = ray_test(query, box);
+        return !isnan(overlap);
+    };
 
-        auto mdl_query = ftran * query;
-
-        contact<double> mdl_contact = geom->ray_into(
-            the_scene,
-            mdl_query,
-            thread_rng
-        );
-
-        auto glb_contact = contact_transform(mdl_contact, rtran, rnorm);
-
-        if(glb_contact.t <= min_contact.t)
+    auto computor = [&](const crushed_scene_element &elt) -> void {
+        using std::isnan;
+        auto mdl_query = elt.world_to_model * query;
+        auto entry_contact = elt.the_geometry->ray_into(the_scene, mdl_query);
+        if(!isnan(entry_contact.t) && contains(mdl_query.the_segment, entry_contact.t))
         {
-            min_contact = glb_contact;
-            min_ind = i;
+            entry_contact = contact_transform(
+                entry_contact,
+                elt.model_to_world,
+                elt.model_to_world_normals
+            );
+            query.the_segment.hi() = entry_contact.t;
+            min_contact = entry_contact;
+            min_element = &elt;
+
+            // Remake mdl_query from the updated world-space query.
+            mdl_query = elt.world_to_model * query;
         }
-
-        // Now check if there is a closer exit.
-
-        mdl_contact = geom->ray_exit(
-            the_scene,
-            mdl_query,
-            thread_rng
-        );
-
-        glb_contact = contact_transform(mdl_contact, rtran, rnorm);
-
-        if(glb_contact.t <= min_contact.t)
+        auto exit_contact = elt.the_geometry->ray_exit(the_scene, mdl_query);
+        if(!isnan(exit_contact.t) && contains(mdl_query.the_segment, exit_contact.t))
         {
-            min_contact = glb_contact;
-            min_ind = i;
+            exit_contact = contact_transform(
+                exit_contact,
+                elt.model_to_world,
+                elt.model_to_world_normals
+            );
+            query.the_segment.hi() = exit_contact.t;
+            min_contact = exit_contact;
+            min_element = &elt;
         }
-    }
+    };
 
-    return std::make_tuple(min_contact, min_ind);
+    the_scene.crushed_elements.query(selector, computor);
+
+    return std::make_tuple(min_contact, min_element);
 }
 
 static fixvec<double, 3> scan_plane_to_image_space(
@@ -96,10 +153,7 @@ static fixvec<double, 3> scan_plane_to_image_space(
 shade_info<double> shade_ray(
     const scene &the_scene,
     const dray3 &reflected_ray,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    std::ranlux24 &thread_rng
+    double lambda_cur
 )
 {
     ray_segment<double, 3> refl_query = {
@@ -108,25 +162,18 @@ shade_info<double> shade_ray(
     };
 
     contact<double> glb_contact;
-    size_t element_index;
-    std::tie(glb_contact, element_index) = scene_ray_intersect(
+    const crushed_scene_element *hit_element;
+    std::tie(glb_contact, hit_element) = scene_ray_intersect(
         the_scene,
-        refl_query,
-        thread_rng
+        refl_query
     );
 
-    if(element_index < the_scene.elements.size())
+    if(hit_element != nullptr)
     {
-        const auto &matr = the_scene.elements[element_index].the_material;
-
-        auto shade_result = matr->shade(
+        auto shade_result = hit_element->the_material->shade(
             the_scene,
             glb_contact,
-            lambda_src,
-            lambda_lim,
-            lambda_cur,
-            0,
-            thread_rng
+            lambda_cur
         );
 
         return shade_result;
@@ -160,10 +207,7 @@ double sample_ray(
         shade_info<double> shading = shade_ray(
             the_scene,
             cur_ray,
-            lambda_src,
-            lambda_lim,
-            lambda_cur,
-            thread_rng
+            lambda_cur
         );
 
         accum_power += cur_k * shading.emitted_power;

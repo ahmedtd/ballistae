@@ -150,7 +150,7 @@ contact<double> tri_mesh_contact(
     auto selector = [&](const aabox<double, 3> &box) -> bool {
         using std::isnan;
         auto t = ray_test(r, box);
-        return !isnan(t) && t.lo() < least_contact.ray_t;
+        return !isnan(t);
     };
 
     // When any stored object is indicated suspected to be relevant,

@@ -86,19 +86,18 @@ struct gaussian_dist
 
 struct material_gauss : public ballistae_guile::updatable_material
 {
+    size_t variance_ind;
     mtlmap<1> *variance;
 
     material_gauss();
     virtual ~material_gauss();
 
+    virtual void crush(const scene &the_scene, double time);
+
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_src,
-        double lambda_lim,
-        double lambda_cur,
-        size_t sample_index,
-        std::ranlux24 &thread_rng
+        double lambda
     ) const;
 
     virtual void guile_update(scene *p_scene, SCM config);
@@ -112,16 +111,20 @@ material_gauss::~material_gauss()
 {
 }
 
+void material_gauss::crush(const scene &the_scene, double time)
+{
+    variance = the_scene.mtlmaps_1[variance_ind].get();
+    variance->crush(the_scene, time);
+}
+
 shade_info<double> material_gauss::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    size_t sample_index,
-    std::ranlux24 &thread_rng
+    double lambda
 ) const
 {
+    static thread_local std::ranlux24 thread_rng;
+    
     const auto &geom_p = glb_contact.p;
     const auto &refl_s = glb_contact.r.slope;
     const auto &geom_n = glb_contact.n;
@@ -130,7 +133,7 @@ shade_info<double> material_gauss::shade(
 
     gaussian_dist<double, 3> facet_n_dist(
         geom_n,
-        variance->value(mtl2, mtl3, lambda_cur)(0)
+        variance->value(mtl2, mtl3, lambda)(0)
     );
     
     auto incident_slope = refl_s;
@@ -162,7 +165,7 @@ void material_gauss::guile_update(scene *p_scene, SCM config)
     SCM lu_variance = scm_assq_ref(config, sym_variance);
 
     if(scm_is_true(lu_variance))
-        this->variance = p_scene->mtlmaps_1[scm_to_size_t(lu_variance)].get();
+        this->variance_ind = scm_to_size_t(lu_variance);
 }
 
 std::unique_ptr<ballistae_guile::updatable_material>
@@ -173,7 +176,7 @@ guile_ballistae_material(scene *p_scene, SCM config)
     auto p = std::make_unique<material_gauss>();
 
     // mtlmap 0 is *always* a constant smits_white mtlmap.
-    p->variance = p_scene->mtlmaps_1[0].get();
+    p->variance_ind = 0;
     p->guile_update(p_scene, config);
 
     return std::move(p);

@@ -34,12 +34,13 @@ class illuminator
 {
 public:
     virtual ~illuminator() {}
-    
+
+    virtual void crush(const scene &the_scene, double time) = 0;
+
     virtual illumination_info power_at_point(
         const scene &the_scene,
         const fixvec<double, 3> &query_point,
-        double lambda_nm,
-        std::ranlux24& thread_rng
+        double lambda_nm
     ) const = 0;
 };
 
@@ -48,16 +49,17 @@ class dir_illuminator : public illuminator
 public:
     dense_signal<double> spectrum;
     fixvec<double, 3> direction;
-    
+
 public:
 
     virtual ~dir_illuminator();
 
+    virtual void crush(const scene &the_scene, double time);
+    
     virtual illumination_info power_at_point(
         const scene &the_scene,
         const fixvec<double, 3> &query_point,
-        double lambda_nm,
-        std::ranlux24& thread_rng
+        double lambda_nm
     ) const;
 };
 
@@ -70,12 +72,13 @@ public:
 public:
 
     virtual ~point_illuminator();
+
+    virtual void crush(const scene &the_scene, double time);
     
     virtual illumination_info power_at_point(
         const scene &the_scene,
         const fixvec<double, 3> &query_point,
-        double lambda_nm,
-        std::ranlux24& thread_rng
+        double lambda_nm
     ) const;
 };
 

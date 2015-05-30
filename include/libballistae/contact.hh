@@ -50,10 +50,10 @@ contact<Field> contact_transform(
     // Assume that the incoming ray has normalized slope.
     double scale_factor = norm(result.r.slope);
     result.r.slope /= scale_factor;
+    result.t *= scale_factor;
 
     result.p = t * result.p;
     result.n = normalise(nm * result.n);
-    result.t *= scale_factor;
     return result;
 }
 

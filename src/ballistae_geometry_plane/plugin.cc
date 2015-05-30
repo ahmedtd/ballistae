@@ -25,16 +25,18 @@ public:
     plane_priv();
     virtual ~plane_priv();
 
+    virtual aabox<double, 3> get_aabox();
+
+    virtual void crush(const scene &the_scene, double time);
+
     virtual contact<double> ray_into(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const;
 
     virtual contact<double> ray_exit(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const;
 };
 
@@ -46,10 +48,26 @@ plane_priv::~plane_priv()
 {
 }
 
+aabox<double, 3> plane_priv::get_aabox()
+{
+    // Very few planes are not infinite on all principle axes.
+    aabox<double, 3> infinity = {
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()
+    };
+
+    return infinity;
+}
+
+void plane_priv::crush(const scene &the_scene, double time)
+{
+    // Nothing to do.
+}
+
 contact<double> plane_priv::ray_into(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     auto height = query.the_ray.point(0);
@@ -78,8 +96,7 @@ contact<double> plane_priv::ray_into(
 
 contact<double> plane_priv::ray_exit(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     auto height = query.the_ray.point(0);

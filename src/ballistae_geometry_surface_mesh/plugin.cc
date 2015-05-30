@@ -23,16 +23,18 @@ public:
     virtual ~surface_mesh_priv()
         __attribute__((visibility("default")));
 
+    virtual aabox<double, 3> get_aabox();
+
+    virtual void crush(const scene &the_scene, double time);
+
     virtual contact<double> ray_into(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const __attribute__((visibility("default")));
 
     virtual contact<double> ray_exit(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const __attribute__((visibility("default")));
 };
 
@@ -45,10 +47,18 @@ surface_mesh_priv::~surface_mesh_priv()
 {
 }
 
+aabox<double, 3> surface_mesh_priv::get_aabox()
+{
+    return mesh.nodes[0].bounds;
+}
+
+void surface_mesh_priv::crush(const scene &the_scene, double time)
+{
+}
+
 contact<double> surface_mesh_priv::ray_into(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     return tri_mesh_contact(query, mesh, CONTACT_INTO);
@@ -56,8 +66,7 @@ contact<double> surface_mesh_priv::ray_into(
 
 contact<double> surface_mesh_priv::ray_exit(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     return tri_mesh_contact(query, mesh, CONTACT_EXIT);

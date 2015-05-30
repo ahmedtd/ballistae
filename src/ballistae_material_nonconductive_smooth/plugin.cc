@@ -20,21 +20,22 @@ class nc_smooth : public ballistae_guile::updatable_material
 {
 public:
 
-    const mtlmap<1>* n_interior;
-    const mtlmap<1>* n_exterior;
+    size_t n_interior_ind;
+    size_t n_exterior_ind;
+
+    mtlmap<1>* n_interior;
+    mtlmap<1>* n_exterior;
 
 public:
 
     virtual ~nc_smooth();
 
+    virtual void crush(const scene &the_scene, double time);
+
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_src,
-        double lambda_lim,
-        double lambda_cur,
-        size_t sample_index,
-        std::ranlux24 &thread_rng
+        double lambda
     ) const;
 
     virtual void guile_update(scene *p_scene, SCM config);
@@ -42,6 +43,15 @@ public:
 
 nc_smooth::~nc_smooth()
 {
+}
+
+void nc_smooth::crush(const scene &the_scene, double time)
+{
+    n_interior = the_scene.mtlmaps_1[n_interior_ind].get();
+    n_exterior = the_scene.mtlmaps_1[n_exterior_ind].get();
+
+    n_interior->crush(the_scene, time);
+    n_exterior->crush(the_scene, time);
 }
 
 void nc_smooth::guile_update(scene *p_scene, SCM config)
@@ -55,25 +65,23 @@ void nc_smooth::guile_update(scene *p_scene, SCM config)
     SCM lu_n_exterior = scm_assq_ref(config, sym_n_exterior);
 
     if(scm_is_true(lu_n_interior))
-        this->n_interior = p_scene->mtlmaps_1[scm_to_size_t(lu_n_interior)].get();
+        this->n_interior_ind = scm_to_size_t(lu_n_interior);
 
     if(scm_is_true(lu_n_exterior))
-        this->n_exterior = p_scene->mtlmaps_1[scm_to_size_t(lu_n_exterior)].get();
+        this->n_exterior_ind = scm_to_size_t(lu_n_exterior);
 }
 
 shade_info<double> nc_smooth::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    size_t sample_index,
-    std::ranlux24 &thread_rng
+    double lambda
 ) const
 {
     using std::pow;
     using std::sqrt;
     using std::swap;
+
+    static thread_local std::ranlux24 thread_rng;
 
     fixvec<double, 3> p = glb_contact.p;
     fixvec<double, 3> n = glb_contact.n;
@@ -81,8 +89,8 @@ shade_info<double> nc_smooth::shade(
 
     double a_cos = iprod(refl, n);
 
-    double n_a = n_exterior->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
-    double n_b = n_interior->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
+    double n_a = n_exterior->value(glb_contact.mtl2, glb_contact.mtl3, lambda)(0);
+    double n_b = n_interior->value(glb_contact.mtl2, glb_contact.mtl3, lambda)(0);
 
     if(a_cos > 0.0)
     {
@@ -154,8 +162,8 @@ guile_ballistae_material(scene *p_scene, SCM config)
 {
     auto up = std::make_unique<nc_smooth>();
 
-    up->n_interior = p_scene->mtlmaps_1[0].get();
-    up->n_exterior = p_scene->mtlmaps_1[0].get();
+    up->n_interior_ind = 0;
+    up->n_exterior_ind = 0;
 
     up->guile_update(p_scene, config);
 

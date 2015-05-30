@@ -16,19 +16,18 @@ class mc_lambert : public ballistae_guile::updatable_material
 {
 public:
 
+    size_t reflectance_ind;
     mtlmap<1> *reflectance;
 
     mc_lambert();
     virtual ~mc_lambert();
 
+    virtual void crush(const scene &the_scene, double time);
+
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_src,
-        double lambda_lim,
-        double lambda_cur,
-        size_t sample_index,
-        std::ranlux24 &thread_rng
+        double lambda
     ) const;
 
     virtual void guile_update(scene *p_scene, SCM config);
@@ -42,16 +41,20 @@ mc_lambert::~mc_lambert()
 {
 }
 
+void mc_lambert::crush(const scene &the_scene, double time)
+{
+    reflectance = the_scene.mtlmaps_1[reflectance_ind].get();
+    reflectance->crush(the_scene, time);
+}
+
 shade_info<double> mc_lambert::shade(
     const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    size_t sample_index,
-    std::ranlux24 &thread_rng
+    double lambda
 ) const
 {
+    static thread_local std::ranlux24 thread_rng;
+
     shade_info<double> result;
 
     // Monte-carlo part.
@@ -62,7 +65,7 @@ shade_info<double> mc_lambert::shade(
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = dir;
 
-    double r = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
+    double r = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda)(0);
     result.propagation_k = iprod(glb_contact.n, dir) * r;
 
     // Standard illuminator part.
@@ -75,8 +78,7 @@ shade_info<double> mc_lambert::shade(
         auto illum_info = illum->power_at_point(
             the_scene,
             glb_contact.p,
-            lambda_cur,
-            thread_rng
+            lambda
         );
 
         double cosine = -iprod(illum_info.arrival, glb_contact.n);
@@ -95,7 +97,7 @@ void mc_lambert::guile_update(scene *p_scene, SCM config)
     SCM lu_reflectance = scm_assq_ref(config, sym_reflectance);
 
     if(scm_is_true(lu_reflectance))
-        this->reflectance = p_scene->mtlmaps_1[scm_to_size_t(lu_reflectance)].get();
+        this->reflectance_ind = scm_to_size_t(lu_reflectance);
 }
 
 std::unique_ptr<ballistae_guile::updatable_material>
@@ -106,7 +108,7 @@ guile_ballistae_material(scene *p_scene, SCM config)
     auto p = std::make_unique<mc_lambert>();
 
     // mtlmap 0 is *always* a constant smits_white mtlmap.
-    p->reflectance = p_scene->mtlmaps_1[0].get();
+    p->reflectance_ind = 0;
     p->guile_update(p_scene, config);
 
     return std::move(p);

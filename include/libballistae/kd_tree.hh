@@ -46,6 +46,8 @@ struct kd_tree final
 
     size_t max_depth;
 
+    kd_tree() = default;
+
     kd_tree(const kd_tree<Field, D, Stored> &other) = delete;
     kd_tree(kd_tree<Field, D, Stored> &&other) = default;
 
@@ -81,16 +83,12 @@ kd_tree<Field, D, Stored>::kd_tree(
         [&](auto &x){return isfinite(get_aabox(x));}
     );
 
-    aabox<Field, D> max_box;
-    if(finite_src != finite_lim)
-    {
-        max_box = std::accumulate(
-            finite_src,
-            finite_lim,
-            get_aabox(storage[0]),
-            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-        );
-    }
+    aabox<Field, D> max_box = std::accumulate(
+        finite_src,
+        finite_lim,
+        aabox<Field, D>::accum_zero(),
+        [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+    );
 
     // Root node encompasses all finite boxes.
     aanode<Field, Stored, D> root_node = {
@@ -172,16 +170,12 @@ void kd_tree_refine_sah(
         // Create and record the low child node.  It will hold all elements
         // preceding and overlapping the cut.
 
-        aabox<Field, D> lo_bounds;
-        if(split[2] - split[0] != 0)
-        {
-            lo_bounds = std::accumulate(
-                split[0],
-                split[2],
-                get_aabox(*(split[0])),
-                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-            );
-        }
+        aabox<Field, D> lo_bounds = std::accumulate(
+            split[0],
+            split[2],
+            aabox<Field, D>::accum_zero(),
+            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+        );
 
         aanode<Field, Stored, D> lo_child = {
             cur_depth + 1,
@@ -195,16 +189,12 @@ void kd_tree_refine_sah(
 
         // Create and record the hi child node
 
-        aabox<Field, D> hi_bounds;
-        if(split[3] - split[2] != 0)
-        {
-            hi_bounds = std::accumulate(
-                split[2],
-                split[3],
-                get_aabox(*(split[2])),
-                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-            );
-        }
+        aabox<Field, D> hi_bounds = std::accumulate(
+            split[2],
+            split[3],
+            aabox<Field, D>::accum_zero(),
+            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+        );
 
         aanode<Field, Stored, D> hi_child = {
             cur_depth + 1,
@@ -339,7 +329,7 @@ void kd_tree<Field, D, Stored>::query(
     // We always have to query all non-finite elements.
     std::for_each(finite_lim, infinite_lim, computor);
 
-    static thread_local std::vector<size_t> work_stack(max_depth);
+    static thread_local std::vector<size_t> work_stack(max_depth+1);
 
     auto top = work_stack.begin();
     auto base = work_stack.begin();

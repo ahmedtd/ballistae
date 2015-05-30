@@ -12,8 +12,8 @@
 
 (define options (getopt-long (command-line) option-spec))
 
-(define gridsize  (string->number (option-ref options 'gridsize  "4")))
-(define nlambdas  (string->number (option-ref options 'nlambdas  "16")))
+(define gridsize  (string->number (option-ref options 'gridsize  "10")))
+(define nlambdas  (string->number (option-ref options 'nlambdas  "10")))
 (define depthlim  (string->number (option-ref options 'depthlim  "16")))
 (define output    (option-ref options 'output "anisotropic-scaling-demo.pfm"))
 
@@ -50,15 +50,21 @@
      (a . ,green-mtlmap)
      (b . ,white-mtlmap))))
 
+(define material-checkerboard-green
+  (bsta/matr/make scene "mc_lambert" `((reflectance . ,checkerboard-green))))
+
 (define perlin-red
   (bsta/mtlmap1/make
    scene
    'level
    `((t . ,(bsta/mtlmap1/make scene 'perlinval `((volumetric . #t)
-                                                 (period . 128))))
+                                                 (period . 64))))
      (t-switch . 0.0)
      (a . ,red-mtlmap)
      (b . ,white-mtlmap))))
+
+(define material-perlin-red
+  (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red))))
 
 (define simple-reflective-mtlmap
   (bsta/mtlmap1/make
@@ -95,7 +101,7 @@
 (bsta/scene/add-element
  scene
  (bsta/geom/make scene "plane" `())
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,checkerboard-green)))
+ material-checkerboard-green
  (frst/daff3/compose
   (frst/daff3/basis-mapping (frst/dvec3 0 0 1)
                             (frst/dvec3 0 1 0)
@@ -128,7 +134,7 @@
 (bsta/scene/add-element
  scene
  sphere-geom
- (bsta/matr/make scene "gauss" `((variance . ,gauss-variance)))
+ material-perlin-red
  (frst/daff3/compose
   (frst/daff3/anisotropic-scaling 2 3 2)
   (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
@@ -136,17 +142,8 @@
 
 (bsta/scene/add-element
  scene
- sphere-geom
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red)))
- (frst/daff3/compose
-  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
-  (frst/daff3/scaling 1)
-  (frst/daff3/translation (frst/dvec3 -3 3 6))))
-
-(bsta/scene/add-element
- scene
  (bsta/geom/make scene "surface_mesh" `((file . "bunny.obj") (swapyz . #t)))
- (bsta/matr/make scene "pc_smooth" `((reflectance . ,simple-reflective-mtlmap)))
+ material-perlin-red
  (frst/daff3/compose
   (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
   (frst/daff3/scaling 30)
@@ -160,15 +157,6 @@
   (frst/daff3/anisotropic-scaling 3 2 2)
   (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
   (frst/daff3/translation (frst/dvec3 3 -3 2))))
-
-(bsta/scene/add-element
- scene
- sphere-geom
- (bsta/matr/make scene "mc_lambert" `((reflectance . ,perlin-red)))
- (frst/daff3/compose
-  (frst/daff3/rotation (frst/dvec3 0 0 1) 1.0)
-  (frst/daff3/scaling 1)
-  (frst/daff3/translation (frst/dvec3 3 -3 6))))
 
 (define cam-center (frst/dvec3 -5 -11  5))
 (define cam-eye (frst/- (frst/dvec3 0 0 2) cam-center))

@@ -13,18 +13,17 @@ using namespace ballistae;
 class pc_smooth : public ballistae_guile::updatable_material
 {
 public:
-    const mtlmap<1> *reflectance;
+    size_t reflectance_ind;
+    mtlmap<1> *reflectance;
 
     virtual ~pc_smooth();
+
+    virtual void crush(const scene &the_scene, double time);
 
     virtual shade_info<double> shade(
         const scene &the_scene,
         const contact<double> &glb_contact,
-        double lambda_src,
-        double lambda_lim,
-        double lambda_cur,
-        size_t sample_index,
-        std::ranlux24 &thread_rng
+        double lambda
     ) const;
 
     virtual void guile_update(scene *p_scene, SCM config);
@@ -32,6 +31,12 @@ public:
 
 pc_smooth::~pc_smooth()
 {
+}
+
+void pc_smooth::crush(const scene &the_scene, double time)
+{
+    reflectance = the_scene.mtlmaps_1[reflectance_ind].get();
+    reflectance->crush(the_scene, time);
 }
 
 void pc_smooth::guile_update(scene *p_scene, SCM config)
@@ -42,22 +47,18 @@ void pc_smooth::guile_update(scene *p_scene, SCM config)
     SCM lu_reflectance = scm_assq_ref(config, sym_reflectance);
 
     if(scm_is_true(lu_reflectance))
-        this->reflectance = p_scene->mtlmaps_1[scm_to_size_t(lu_reflectance)].get();
+        this->reflectance_ind = scm_to_size_t(lu_reflectance);
 }
 
 shade_info<double> pc_smooth::shade(
      const scene &the_scene,
     const contact<double> &glb_contact,
-    double lambda_src,
-    double lambda_lim,
-    double lambda_cur,
-    size_t sample_index,
-    std::ranlux24 &thread_rng
+    double lambda
 ) const
 {
     shade_info<double> result;
     result.emitted_power = 0.0;
-    result.propagation_k = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda_cur)(0);
+    result.propagation_k = reflectance->value(glb_contact.mtl2, glb_contact.mtl3, lambda)(0);
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = reflect(glb_contact.r.slope, glb_contact.n);
 
@@ -69,7 +70,7 @@ guile_ballistae_material(scene *p_scene, SCM config)
 {
     auto p = std::make_unique<pc_smooth>();
 
-    p->reflectance = p_scene->mtlmaps_1[0].get();
+    p->reflectance_ind = 0;
 
     p->guile_update(p_scene, config);
 

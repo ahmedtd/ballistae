@@ -18,6 +18,10 @@ constant_mtlmap1::~constant_mtlmap1()
 {
 }
 
+void constant_mtlmap1::crush(const scene &the_scene, double time)
+{
+}
+
 fixvec<double, 1> constant_mtlmap1::value(
     const fixvec<double, 2> &mtl2,
     const fixvec<double, 3> &mtl3,
@@ -36,9 +40,9 @@ auto lerp(Scalar t, QA a, QB b)
 lerp_mtlmap1::lerp_mtlmap1(
     double t_lo_in,
     double t_hi_in,
-    const mtlmap<1> *t_in,
-    const mtlmap<1> *a_in,
-    const mtlmap<1> *b_in
+    mtlmap<1> *t_in,
+    mtlmap<1> *a_in,
+    mtlmap<1> *b_in
 )
     : t_lo(t_lo_in),
       t_hi(t_hi_in),
@@ -50,6 +54,17 @@ lerp_mtlmap1::lerp_mtlmap1(
 
 lerp_mtlmap1::~lerp_mtlmap1()
 {
+}
+
+void lerp_mtlmap1::crush(const scene &the_scene, double time)
+{
+    t = the_scene.mtlmaps_1[t_ind].get();
+    a = the_scene.mtlmaps_1[a_ind].get();
+    b = the_scene.mtlmaps_1[b_ind].get();
+
+    t->crush(the_scene, time);
+    a->crush(the_scene, time);
+    b->crush(the_scene, time);
 }
 
 fixvec<double, 1> lerp_mtlmap1::value(
@@ -77,9 +92,9 @@ fixvec<double, 1> lerp_mtlmap1::value(
 
 level_mtlmap1::level_mtlmap1(
     double t_switch_in,
-    const mtlmap<1> *t_in,
-    const mtlmap<1> *a_in,
-    const mtlmap<1> *b_in
+    mtlmap<1> *t_in,
+    mtlmap<1> *a_in,
+    mtlmap<1> *b_in
 )
     : t_switch(t_switch_in),
       t(t_in),
@@ -90,6 +105,17 @@ level_mtlmap1::level_mtlmap1(
 
 level_mtlmap1::~level_mtlmap1()
 {
+}
+
+void level_mtlmap1::crush(const scene &the_scene, double time)
+{
+    t = the_scene.mtlmaps_1[t_ind].get();
+    a = the_scene.mtlmaps_1[a_ind].get();
+    b = the_scene.mtlmaps_1[b_ind].get();
+
+    t->crush(the_scene, time);
+    a->crush(the_scene, time);
+    b->crush(the_scene, time);
 }
 
 fixvec<double, 1> level_mtlmap1::value(
@@ -116,6 +142,10 @@ checkerboard_mtlmap1::checkerboard_mtlmap1(
 }
 
 checkerboard_mtlmap1::~checkerboard_mtlmap1()
+{
+}
+
+void checkerboard_mtlmap1::crush(const scene &the_scene, double time)
 {
 }
 
@@ -164,6 +194,10 @@ bullseye_mtlmap1::bullseye_mtlmap1(
 }
 
 bullseye_mtlmap1::~bullseye_mtlmap1()
+{
+}
+
+void bullseye_mtlmap1::crush(const scene &the_scene, double time)
 {
 }
 
@@ -296,6 +330,10 @@ perlinval_mtlmap1::perlinval_mtlmap1(
 }
 
 perlinval_mtlmap1::~perlinval_mtlmap1()
+{
+}
+
+void perlinval_mtlmap1::crush(const scene &the_scene, double time)
 {
 }
 

@@ -23,23 +23,42 @@ using namespace ballistae;
 class infty_priv final : public geometry
 {
 public:
+
+    virtual aabox<double, 3> get_aabox();
+
+    virtual void crush(const scene &the_scene, double time);
+
     virtual contact<double> ray_into(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const;
 
     virtual contact<double> ray_exit(
         const scene &the_scene,
-        const ray_segment<double,3> &query,
-        std::ranlux24 &thread_rng
+        const ray_segment<double,3> &query
     ) const;
 };
 
+aabox<double, 3> infty_priv::get_aabox()
+{
+    // What were you expecting?
+    aabox<double, 3> infinity = {
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(), std::numeric_limits<double>::infinity()
+    };
+
+    return infinity;
+}
+
+void infty_priv::crush(const scene &the_scene, double time)
+{
+    // Nothing to do.
+}
+
 contact<double> infty_priv::ray_into(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     using std::acos;
@@ -71,8 +90,7 @@ contact<double> infty_priv::ray_into(
 
 contact<double> infty_priv::ray_exit(
     const scene &the_scene,
-    const ray_segment<double,3> &query,
-    std::ranlux24 &thread_rng
+    const ray_segment<double,3> &query
 ) const
 {
     using std::acos;

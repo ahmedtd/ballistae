@@ -1,6 +1,8 @@
 #ifndef LIBBALLISTAE_AABOX_HH
 #define LIBBALLISTAE_AABOX_HH
 
+#include <cmath>
+
 #include <array>
 #include <utility>
 
@@ -16,7 +18,30 @@ struct aabox final
 {
     std::array<span<Field>, D> spans;
 
+    span<Field>& operator[](size_t i)
+    {
+        return spans[i];
+    }
+
+    const span<Field>& operator[](size_t i) const
+    {
+        return spans[i];
+    }
+
     static aabox<Field, D> nan();
+
+    // A bounding box suitable for use as the zero element in a call to
+    // std::accumulate with the min_containing aggregator function.
+    static aabox<Field, D> accum_zero()
+    {
+        aabox<Field, D> result;
+        for(size_t i = 0; i < D; ++i)
+        {
+            result[i].lo() = std::numeric_limits<Field>::infinity();
+            result[i].hi() = -std::numeric_limits<Field>::infinity();
+        }
+        return result;
+    }
 };
 
 template<typename Field, size_t D>
@@ -51,6 +76,19 @@ aabox<Field, D> min_containing(
     aabox<Field, D> result;
     for(size_t i = 0; i < D; ++i)
         result.spans[i] = min_containing(a.spans[i], b.spans[i]);
+    return result;
+}
+
+/// Grow BOX to include P.
+template<typename Field, size_t D>
+aabox<Field, D> min_containing(
+    const aabox<Field, D> &box,
+    const fixvec<Field, D> &p
+)
+{
+    aabox<Field, D> result;
+    for(size_t i = 0; i < D; ++i)
+        result.spans[i] = min_containing(box[i], p(i));
     return result;
 }
 
@@ -105,7 +143,7 @@ span<Field> ray_test(
     }
 
     return overlaps(cover, r.the_segment)
-        ? cover
+        ? max_intersecting(cover, r.the_segment)
         : span<double>::nan();
 }
 
@@ -124,6 +162,45 @@ Field surface_area(const aabox<Field, D> &box)
     }
 
     return accum;
+}
+
+template<typename Field, size_t D>
+bool isfinite(const aabox<Field, D> &box)
+{
+    using std::isfinite;
+
+    for(size_t i = 0; i < D; ++i)
+    {
+        if(!isfinite(measure(box.spans[i])))
+            return false;
+    }
+
+    return true;
+}
+
+/// Get a bounding box that contains a transformed bounding box.
+///
+/// Note that incremental updates using these grown bounding boxes could cause
+/// the bounding box to grow without bound.
+template<typename Field, size_t D>
+aabox<Field, D> operator*(
+    const affine_transform<Field, D> &t,
+    const aabox<Field, D> &box
+)
+{
+    auto result = aabox<Field, D>::accum_zero();
+
+    size_t npoints = size_t(1) << D;
+    for(size_t i = 0; i < npoints; ++i)
+    {
+        fixvec<Field, D> cur_point;
+        for(size_t j = 0; j < D; ++j)
+            cur_point(j) = box[j][(i>>j) & 0x1];
+
+        result = min_containing(result, t * cur_point);
+    }
+
+    return result;
 }
 
 }

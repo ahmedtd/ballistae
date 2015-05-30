@@ -129,6 +129,20 @@ span<Field> min_containing(const span<Field> &a, const span<Field> &b)
     return {min(a.lo(), b.lo()), max(a.hi(), b.hi())};
 }
 
+/// Grow A to contain value B.
+template<class Field>
+span<Field> min_containing(const span<Field> &a, const Field &b)
+{
+    span<Field> result = a;
+
+    if(b < result.lo())
+        result.lo() = b;
+    if(b > result.hi())
+        result.hi() = b;
+
+    return result;
+}
+
 /// Largest span covered by both A and B.
 ///
 /// Preconditions:

@@ -168,9 +168,10 @@ present, specifies the affine mapping from world space to model space.
 (define*-public (bsta/scene/set-element-transform scene index tform)
   (bsta/backend/scene/set-element-transform scene index tform))
 
-(define*-public (bsta/scene/crush scene)
+(define*-public (bsta/scene/crush scene #:optional time)
   "Make SCENE ready for rendering."
-  (bsta/backend/scene/crush scene))
+  (unless time (set! time 0))
+  (bsta/backend/scene/crush scene time))
 
 (define*-public (bsta/scene/render scene
                                    camera

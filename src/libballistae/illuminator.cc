@@ -15,11 +15,14 @@ dir_illuminator::~dir_illuminator()
 {
 }
 
+void dir_illuminator::crush(const scene &the_scene, double time)
+{
+}
+
 illumination_info dir_illuminator::power_at_point(
     const scene &the_scene,
     const fixvec<double, 3> &query_point,
-    double lambda_nm,
-    std::ranlux24& thread_rng
+    double lambda_nm
 ) const
 {
     // Query ray.
@@ -29,12 +32,11 @@ illumination_info dir_illuminator::power_at_point(
     };
 
     contact<double> contact;
-    size_t geom_ind;
+    const crushed_scene_element *hit_element;
 
-    std::tie(contact, geom_ind) = scene_ray_intersect(
+    std::tie(contact, hit_element) = scene_ray_intersect(
         the_scene,
-        shadow_ray,
-        thread_rng
+        shadow_ray
     );
 
     if(contact.t == std::numeric_limits<double>::infinity())
@@ -47,11 +49,14 @@ point_illuminator::~point_illuminator()
 {
 }
 
+void point_illuminator::crush(const scene &the_scene, double time)
+{
+}
+
 illumination_info point_illuminator::power_at_point(
     const scene &the_scene,
     const fixvec<double, 3> &query_point,
-    double lambda_nm,
-    std::ranlux24& thread_rng
+    double lambda_nm
 ) const
 {
     using std::pow;
@@ -66,12 +71,11 @@ illumination_info point_illuminator::power_at_point(
     };
 
     contact<double> contact;
-    size_t geom_ind;
+    const crushed_scene_element *hit_element;
 
-    std::tie(contact, geom_ind) = scene_ray_intersect(
+    std::tie(contact, hit_element) = scene_ray_intersect(
         the_scene,
-        shadow_ray,
-        thread_rng
+        shadow_ray
     );
 
     if(! std::isnan(contact.t))

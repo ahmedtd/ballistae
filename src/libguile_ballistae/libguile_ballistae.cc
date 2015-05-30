@@ -306,11 +306,9 @@ SCM add_element(SCM scene, SCM geometry, SCM material, SCM transform_scm)
     auto transform = daff3_from_scm(transform_scm);
 
     ballistae::scene_element elt = {
-        scene_from_scm(scene)->geometries[scm_to_size_t(geometry)].get(),
-        scene_from_scm(scene)->materials[scm_to_size_t(material)].get(),
-        inverse(transform),
+        scm_to_size_t(geometry),
+        scm_to_size_t(material),
         transform,
-        normal_linear_map(transform)
     };
 
     size_t index = scene_from_scm(scene)->elements.size();
@@ -324,17 +322,14 @@ SCM set_element_transform(SCM scene, SCM index, SCM transform_scm)
     ballistae::scene_element &elt
         = scene_from_scm(scene)->elements[scm_to_size_t(index)];
 
-    auto transform = daff3_from_scm(transform_scm);
-
-    elt.forward_transform = inverse(transform);
-    elt.reverse_transform = transform;
-    elt.reverse_normal_linear_map = normal_linear_map(transform);
+    elt.model_to_world = daff3_from_scm(transform_scm);
 
     return index;
 }
 
-SCM crush(SCM scene)
+SCM crush(SCM scene, SCM time)
 {
+    ballistae::crush(*scene_from_scm(scene), scm_to_double(time));
     return scene;
 }
 
@@ -525,13 +520,13 @@ SCM mtlmap1_create_lerp(SCM scene, SCM config)
         up->t_hi = scm_to_double(lu_t_hi);
 
     if(scm_is_true(lu_t))
-        up->t = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_t)].get();
+        up->t_ind = scm_to_size_t(lu_t);
 
     if(scm_is_true(lu_a))
-        up->a = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_a)].get();
+        up->a_ind = scm_to_size_t(lu_a);
 
     if(scm_is_true(lu_b))
-        up->b = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_b)].get();
+        up->b_ind = scm_to_size_t(lu_b);
 
     size_t index = scene_from_scm(scene)->mtlmaps_1.size();
     scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
@@ -563,13 +558,13 @@ SCM mtlmap1_create_level(SCM scene, SCM config)
         up->t_switch = scm_to_double(lu_t_switch);
 
     if(scm_is_true(lu_t))
-        up->t = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_t)].get();
+        up->t_ind = scm_to_size_t(lu_t);
 
     if(scm_is_true(lu_a))
-        up->a = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_a)].get();
+        up->a_ind = scm_to_size_t(lu_a);
 
     if(scm_is_true(lu_b))
-        up->b = scene_from_scm(scene)->mtlmaps_1[scm_to_size_t(lu_b)].get();
+        up->b_ind = scm_to_size_t(lu_b);
 
     size_t index = scene_from_scm(scene)->mtlmaps_1.size();
     scene_from_scm(scene)->mtlmaps_1.push_back(std::move(up));
@@ -887,7 +882,7 @@ extern "C" void libguile_ballistae_init()
     scm_c_define_gsubr("bsta/backend/scene/make",            0, 0, 0, (scm_t_subr) scene_make);
     scm_c_define_gsubr("bsta/backend/scene/add-element",     4, 0, 0, (scm_t_subr) add_element);
     scm_c_define_gsubr("bsta/backend/scene/set-element-transform", 3, 0, 0, (scm_t_subr) set_element_transform);
-    scm_c_define_gsubr("bsta/backend/scene/crush",           1, 0, 0, (scm_t_subr) crush);
+    scm_c_define_gsubr("bsta/backend/scene/crush",           2, 0, 0, (scm_t_subr) crush);
     scm_c_define_gsubr("bsta/backend/scene/render",          6, 0, 0, (scm_t_subr) render);
 
     scm_c_define_gsubr("bsta/backend/mtlmap1/constant",      2, 0, 0, (scm_t_subr) mtlmap1_create_constant);
