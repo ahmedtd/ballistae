@@ -14,7 +14,9 @@ using namespace ballistae;
 class __attribute__((visibility("default")))
 surface_mesh_priv : public ballistae::geometry
 {
-    kd_tree<double, 3, tri_face_crunched> mesh;
+    tri_mesh mesh;
+    kd_tree<double, 3, tri_face_crunched> mesh_crushed;
+    double last_crush_time = std::numeric_limits<double>::quiet_NaN();
 
 public:
     surface_mesh_priv(const tri_mesh &mesh_in)
@@ -39,7 +41,7 @@ public:
 };
 
 surface_mesh_priv::surface_mesh_priv(const tri_mesh &mesh_in)
-    : mesh(crunch(mesh_in))
+    : mesh(mesh_in)
 {
 }
 
@@ -49,11 +51,14 @@ surface_mesh_priv::~surface_mesh_priv()
 
 aabox<double, 3> surface_mesh_priv::get_aabox()
 {
-    return mesh.nodes[0].bounds;
+    return mesh_crushed.nodes[0].bounds;
 }
 
 void surface_mesh_priv::crush(const scene &the_scene, double time)
 {
+    if(time != last_crush_time)
+        mesh_crushed = crunch(mesh);
+    last_crush_time = time;
 }
 
 contact<double> surface_mesh_priv::ray_into(
@@ -61,7 +66,7 @@ contact<double> surface_mesh_priv::ray_into(
     const ray_segment<double,3> &query
 ) const
 {
-    return tri_mesh_contact(query, mesh, CONTACT_INTO);
+    return tri_mesh_contact(query, mesh_crushed, CONTACT_INTO);
 }
 
 contact<double> surface_mesh_priv::ray_exit(
@@ -69,7 +74,7 @@ contact<double> surface_mesh_priv::ray_exit(
     const ray_segment<double,3> &query
 ) const
 {
-    return tri_mesh_contact(query, mesh, CONTACT_EXIT);
+    return tri_mesh_contact(query, mesh_crushed, CONTACT_EXIT);
 }
 
 // Declared with default visibility in libguile_ballistae /
