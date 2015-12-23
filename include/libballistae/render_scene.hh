@@ -3,8 +3,7 @@
 
 #include <cstdlib>
 
-#include <atomic>
-#include <vector>
+#include <functional>
 
 #include <libballistae/camera.hh>
 #include <libballistae/image.hh>
@@ -15,21 +14,11 @@
 namespace ballistae
 {
 
-struct render_opts
-{
-    size_t gridsize;
-    span<double> bandwidth;
-    size_t n_lambdas;
-    size_t depth_lim;
-};
-
-image<float> render_scene(
-    size_t img_rows,
-    size_t img_cols,
+void render_scene(
+    const options &the_options,
     const camera &the_camera,
     const scene &scene,
-    const render_opts &opts,
-    std::atomic_size_t &cur_progress
+    std::function<void(size_t, size_t)> progress_function
 );
 
 }

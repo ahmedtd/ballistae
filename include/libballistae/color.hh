@@ -7,6 +7,8 @@
 #include <array>
 #include <vector>
 
+#include <libballistae/dense_signal.hh>
+
 namespace ballistae
 {
 

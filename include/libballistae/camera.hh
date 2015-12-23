@@ -16,7 +16,7 @@ public:
 
     virtual ray<double, 3> image_to_ray(
         const fixvec<double, 3> &image_coords,
-        std::ranlux24 &thread_rng
+        std::mt19937 &thread_rng
     ) const = 0;
 };
 

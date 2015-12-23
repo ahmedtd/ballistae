@@ -9,7 +9,6 @@
 #include <libballistae/color.hh>
 #include <libballistae/contact.hh>
 #include <libballistae/geometry.hh>
-#include <libballistae/illuminator.hh>
 #include <libballistae/image.hh>
 #include <libballistae/material.hh>
 #include <libballistae/material_map.hh>
@@ -23,37 +22,26 @@ void crush(scene &the_scene, double time)
 {
     // Crush individual geometries, materials, material maps, etc.
     //
-    // Their crush procedures will resolve scene indexes to pointers, compute
-    // internal kd trees, and so on.  After crushing, their bounding boxes must
-    // be constant (for geometries).
-    for(auto &up : the_scene.illuminators)
-    {
-        up->crush(the_scene, time);
-    }
+    // After crushing, their bounding boxes must be constant (for geometries).
 
     // Geometry, materials, and material maps are crushed in a dependency-based
     // fashion, with each crushing its own dependencies.  To prevent redundant
     // (potentially-expensive) crushes, objects should cache the last time they
     // were crushed.
 
-    // Produce crushed scene elements from the uncrushed scene elements.  Again,
-    // it's mostly index resolution to pointers.  We also precompute transforms
-    // derived from each element's transform.
+    // Produce crushed scene elements from the uncrushed scene elements.  We
+    // also precompute transforms derived from each element's transform.
     std::vector<crushed_scene_element> crushed_elts;
     for(const auto &elt : the_scene.elements)
     {
-        geometry *p_geom = the_scene.geometries[elt.geometry_index].get();
-        material *p_matr = the_scene.materials[elt.material_index].get();
+        elt.the_geometry->crush(the_scene, time);
+        elt.the_material->crush(the_scene, time);
 
-        p_geom->crush(the_scene, time);
-        p_matr->crush(the_scene, time);
-
-        auto model_aabox = p_geom->get_aabox();
-        auto world_aabox = elt.model_to_world * model_aabox;
+        auto world_aabox = elt.model_to_world * elt.the_geometry->get_aabox();
 
         crushed_scene_element crush_elt = {
-            p_geom,
-            the_scene.materials[elt.material_index].get(),
+            elt.the_geometry,
+            elt.the_material,
             inverse(elt.model_to_world),
             elt.model_to_world,
             normal_linear_map(elt.model_to_world),
@@ -69,7 +57,7 @@ void crush(scene &the_scene, double time)
 
     // Refine using the surface area heuristic.
     kd_tree_refine_sah(
-        the_scene.crushed_elements,
+        the_scene.crushed_elements.root.get(),
         [](const auto &s){return s.world_aabox;},
         1.0,
         0.9
@@ -133,19 +121,17 @@ static fixvec<double, 3> scan_plane_to_image_space(
     std::size_t img_rows,
     std::size_t cur_col,
     std::size_t img_cols,
-    std::ranlux24 &ss_pert_engn,
-    std::uniform_real_distribution<double> &ss_pert_dist
+    std::mt19937 &thread_rng
 ) {
     double d_cur_col = static_cast<double>(cur_col);
     double d_cur_row = static_cast<double>(cur_row);
     double d_img_cols = static_cast<double>(img_cols);
     double d_img_rows = static_cast<double>(img_rows);
 
-    double y_pert = ss_pert_dist(ss_pert_engn);
-    double z_pert = ss_pert_dist(ss_pert_engn);
+    std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
 
-    double y = 1.0 - 2.0 * (d_cur_col - y_pert) / d_img_cols;
-    double z = 1.0 - 2.0 * (d_cur_row - z_pert) / d_img_rows;
+    double y = 1.0 - 2.0 * (d_cur_col - ss_dist(thread_rng)) / d_img_cols;
+    double z = 1.0 - 2.0 * (d_cur_row - ss_dist(thread_rng)) / d_img_rows;
 
     return {1.0, y, z};
 }
@@ -191,10 +177,8 @@ shade_info<double> shade_ray(
 double sample_ray(
     const dray3 &initial_query,
     const scene &the_scene,
-    double lambda_src,
-    double lambda_lim,
     double lambda_cur,
-    std::ranlux24 &thread_rng,
+    std::mt19937 &thread_rng,
     size_t depth_lim
 )
 {
@@ -226,103 +210,94 @@ color_d_XYZ shade_pixel(
     const camera &the_camera,
     const scene &the_scene,
     unsigned int ss_gridsize,
-    std::ranlux24 &thread_rng,
-    const std::vector<double> &lambdas,
-    const double sample_bandwidth,
+    double lambda_min,
+    double lambda_max,
+    std::mt19937 &thread_rng,
     size_t depth_lim
 )
 {
-    std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
-    std::uniform_real_distribution<double> lambda_dist(0.0, sample_bandwidth);
+    std::uniform_real_distribution<double> lambda_dist(lambda_min, lambda_max);
+
+    double sample_bandwidth = (lambda_max - lambda_min) / (ss_gridsize * ss_gridsize);
 
     color_d_XYZ result = {0, 0, 0};
 
-    for(size_t sr = 0; sr < ss_gridsize; ++sr)
+    for(size_t i = 0; i < ss_gridsize * ss_gridsize; ++i)
     {
-        for(size_t sc = 0; sc < ss_gridsize; ++sc)
-        {
-            size_t idx = sr * ss_gridsize + sc;
+        double lambda_cur = lambda_dist(thread_rng);
 
-            double lambda_src = lambdas[idx % lambdas.size()];
-            double lambda_lim = lambda_src + sample_bandwidth;
-            double lambda_cur = lambda_src + lambda_dist(thread_rng);
+        auto image_coords = scan_plane_to_image_space(
+            cur_row, img_rows,
+            cur_col, img_cols,
+            thread_rng
+        );
 
-            auto image_coords = scan_plane_to_image_space(
-                cur_row * ss_gridsize + sr, img_rows * ss_gridsize,
-                cur_col * ss_gridsize + sc, img_cols * ss_gridsize,
-                thread_rng,
-                ss_dist
-            );
+        dray3 cur_query = the_camera.image_to_ray(image_coords, thread_rng);
 
-            dray3 cur_query = the_camera.image_to_ray(image_coords, thread_rng);
+        double sampled_power = sample_ray(
+            cur_query,
+            the_scene,
+            lambda_cur,
+            thread_rng,
+            depth_lim
+        );
 
-            double sampled_power = sample_ray(
-                cur_query,
-                the_scene,
-                lambda_src,
-                lambda_lim,
-                lambda_cur,
-                thread_rng,
-                depth_lim
-            ) / (ss_gridsize * ss_gridsize);
-
-            result += spectral_to_XYZ(lambda_src, lambda_lim, sampled_power);
-        }
+        result += spectral_to_XYZ(lambda_cur - sample_bandwidth / 2, lambda_cur + sample_bandwidth / 2, sampled_power);
     }
 
     return result;
 }
 
-image<float> render_scene(
-    const std::size_t img_rows,
-    const std::size_t img_cols,
+void render_scene(
+    const options &the_options,
     const camera &the_camera,
     const scene &the_scene,
-    const render_opts &opts,
-    std::atomic_size_t &cur_progress
+    std::function<void(size_t, size_t)> progress_function
 )
 {
-    std::ranlux24 thread_rng(1235);
-    image<float> result({img_rows, img_cols, 3}, 0.0f);
+    image<float> result({the_options.img_rows, the_options.img_cols, 3}, 0.0f);
+    size_t cur_progress = 0;
 
-    double lambda_step = measure(opts.bandwidth) / opts.n_lambdas;
-    std::vector<double> lambdas(opts.n_lambdas);
-    for(size_t i = 0; i < lambdas.size(); ++i)
-        lambdas[i] = opts.bandwidth.lo() + i * lambda_step;
-
-# pragma omp parallel for firstprivate(thread_rng, lambdas) schedule(dynamic, 16)
-    for(size_t cr = 0; cr < img_rows; ++cr)
+    #pragma omp parallel
     {
-        for(size_t cc = 0; cc < img_cols; ++cc)
+        std::mt19937 thread_rng;
+
+        #pragma omp for schedule(dynamic, 128)
+        for(size_t cr = 0; cr < the_options.img_rows; ++cr)
         {
-            using std::shuffle;
-            shuffle(lambdas.begin(), lambdas.end(), thread_rng);
-
-            color_d_XYZ cur_XYZ = shade_pixel(
-                cr, cc,
-                img_rows, img_cols,
-                the_camera,
-                the_scene,
-                opts.gridsize,
-                thread_rng,
-                lambdas,
-                lambda_step,
-                opts.depth_lim
-            );
-
-            color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
-
-            for(size_t chan = 0; chan < 3; ++chan)
+            for(size_t cc = 0; cc < the_options.img_cols; ++cc)
             {
-                result(cr, cc, chan) = cur_rgb.channels[chan];
-            }
-        }
 
-        // atomic
-        ++cur_progress;
+                color_d_XYZ cur_XYZ = shade_pixel(
+                    cr, cc,
+                    the_options.img_rows, the_options.img_cols,
+                    the_camera,
+                    the_scene,
+                    the_options.gridsize,
+                    the_options.lambda_min,
+                    the_options.lambda_max,
+                    thread_rng,
+                    the_options.maxdepth
+                );
+
+                color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
+
+                for(size_t chan = 0; chan < 3; ++chan)
+                {
+                    result(cr, cc, chan) = cur_rgb.channels[chan];
+                }
+            }
+
+            #pragma omp atomic
+            cur_progress += the_options.img_cols;
+            #pragma omp flush(cur_progress)
+
+            #pragma omp critical
+            progress_function(cur_progress, the_options.img_rows * the_options.img_cols);
+        }
     }
 
-    return result;
+    write_pfm(result, the_options.output_file);
 }
 
 }
