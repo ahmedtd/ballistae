@@ -240,7 +240,7 @@ color_d_XYZ shade_pixel(
             lambda_cur,
             thread_rng,
             depth_lim
-        );
+        ) / (ss_gridsize * ss_gridsize);
 
         result += spectral_to_XYZ(lambda_cur - sample_bandwidth / 2, lambda_cur + sample_bandwidth / 2, sampled_power);
     }
