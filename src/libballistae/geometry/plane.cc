@@ -8,7 +8,6 @@
 
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
-#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 
 using namespace frustum;
@@ -34,13 +33,12 @@ aabox<double, 3> plane::get_aabox()
     return infinity;
 }
 
-void plane::crush(const scene &the_scene, double time)
+void plane::crush(double time)
 {
     // Nothing to do.
 }
 
 contact<double> plane::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -69,7 +67,6 @@ contact<double> plane::ray_into(
 }
 
 contact<double> plane::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {

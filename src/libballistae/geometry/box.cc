@@ -18,12 +18,11 @@ aabox<double, 3> box::get_aabox()
     return bounds;
 }
 
-void box::crush(const scene &the_scene, double time)
+void box::crush(double time)
 {
 }
 
 contact<double> box::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -88,7 +87,6 @@ contact<double> box::ray_into(
 }
 
 contact<double> box::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {

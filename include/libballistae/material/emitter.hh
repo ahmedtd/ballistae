@@ -33,12 +33,11 @@ public:
     {
     }
 
-    virtual void crush(const scene &the_scene, double time)
+    virtual void crush(double time)
     {
     }
 
     virtual shade_info<double> shade(
-        const scene &the_scene,
         const contact<double> &glb_contact,
         double lambda
     ) const

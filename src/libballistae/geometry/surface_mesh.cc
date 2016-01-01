@@ -26,7 +26,7 @@ aabox<double, 3> surface_mesh::get_aabox()
     return mesh_crushed.root->bounds;
 }
 
-void surface_mesh::crush(const scene &the_scene, double time)
+void surface_mesh::crush(double time)
 {
     if(time != last_crush_time)
         mesh_crushed = crunch(mesh);
@@ -34,7 +34,6 @@ void surface_mesh::crush(const scene &the_scene, double time)
 }
 
 contact<double> surface_mesh::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -42,7 +41,6 @@ contact<double> surface_mesh::ray_into(
 }
 
 contact<double> surface_mesh::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {

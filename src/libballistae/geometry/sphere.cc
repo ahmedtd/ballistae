@@ -28,13 +28,12 @@ aabox<double, 3> sphere::get_aabox()
     return infinity;
 }
 
-void sphere::crush(const scene &the_scene, double time)
+void sphere::crush(double time)
 {
     // Nothing to do.
 }
 
 contact<double> sphere::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -69,7 +68,6 @@ contact<double> sphere::ray_into(
 }
 
 contact<double> sphere::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {

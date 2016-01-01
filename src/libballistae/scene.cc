@@ -34,8 +34,8 @@ void crush(scene &the_scene, double time)
     std::vector<crushed_scene_element> crushed_elts;
     for(const auto &elt : the_scene.elements)
     {
-        elt.the_geometry->crush(the_scene, time);
-        elt.the_material->crush(the_scene, time);
+        elt.the_geometry->crush(time);
+        elt.the_material->crush(time);
 
         auto world_aabox = elt.model_to_world * elt.the_geometry->get_aabox();
 
@@ -82,7 +82,7 @@ scene_ray_intersect(
     auto computor = [&](const crushed_scene_element &elt) -> void {
         using std::isnan;
         auto mdl_query = elt.world_to_model * query;
-        auto entry_contact = elt.the_geometry->ray_into(the_scene, mdl_query);
+        auto entry_contact = elt.the_geometry->ray_into( mdl_query);
         if(!isnan(entry_contact.t) && contains(mdl_query.the_segment, entry_contact.t))
         {
             entry_contact = contact_transform(
@@ -97,7 +97,7 @@ scene_ray_intersect(
             // Remake mdl_query from the updated world-space query.
             mdl_query = elt.world_to_model * query;
         }
-        auto exit_contact = elt.the_geometry->ray_exit(the_scene, mdl_query);
+        auto exit_contact = elt.the_geometry->ray_exit(mdl_query);
         if(!isnan(exit_contact.t) && contains(mdl_query.the_segment, exit_contact.t))
         {
             exit_contact = contact_transform(
@@ -157,7 +157,6 @@ shade_info<double> shade_ray(
     if(hit_element != nullptr)
     {
         auto shade_result = hit_element->the_material->shade(
-            the_scene,
             glb_contact,
             lambda_cur
         );
@@ -224,7 +223,8 @@ color_d_XYZ shade_pixel(
 
     for(size_t i = 0; i < ss_gridsize * ss_gridsize; ++i)
     {
-        double lambda_cur = lambda_dist(thread_rng);
+        //double lambda_cur = lambda_dist(thread_rng);
+        double lambda_cur = lambda_min + double(i) * (lambda_max - lambda_min) / double(ss_gridsize * ss_gridsize);
 
         auto image_coords = scan_plane_to_image_space(
             cur_row, img_rows,

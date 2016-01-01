@@ -9,7 +9,6 @@
 
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
-#include <libballistae/scene.hh>
 
 namespace ballistae
 {
@@ -28,10 +27,9 @@ public:
 
     virtual ~material() {}
 
-    virtual void crush(const scene &the_scene, double time) = 0;
+    virtual void crush(double time) = 0;
 
     virtual shade_info<double> shade(
-        const scene &the_scene,
         const contact<double> &glb_contact,
         double lambda
     ) const = 0;

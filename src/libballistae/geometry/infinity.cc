@@ -21,13 +21,12 @@ aabox<double, 3> infinity::get_aabox()
     return infinity;
 }
 
-void infinity::crush(const scene &the_scene, double time)
+void infinity::crush(double time)
 {
     // Nothing to do.
 }
 
 contact<double> infinity::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -59,7 +58,6 @@ contact<double> infinity::ray_into(
 }
 
 contact<double> infinity::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {

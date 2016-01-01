@@ -8,7 +8,6 @@
 
 #include <libballistae/contact.hh>
 #include <libballistae/ray.hh>
-#include <libballistae/scene.hh>
 #include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 
@@ -45,12 +44,11 @@ aabox<double, 3> cylinder::get_aabox()
     return infinity;
 }
 
-void cylinder::crush(const scene &the_scene, double time)
+void cylinder::crush(double time)
 {
 }
 
 contact<double> cylinder::ray_into(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
@@ -112,7 +110,6 @@ contact<double> cylinder::ray_into(
 }
 
 contact<double> cylinder::ray_exit(
-    const scene &the_scene,
     const ray_segment<double,3> &query
 ) const
 {
