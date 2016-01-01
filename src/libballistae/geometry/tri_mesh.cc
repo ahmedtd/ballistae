@@ -159,7 +159,7 @@ contact<double> tri_mesh_contact(
         tri_contact c = tri_face_contact(r, face, want_type);
         if((c.type & CONTACT_HIT) && contains(r.the_segment, c.ray_t))
         {
-            r.the_segment.hi() = c.ray_t;
+            r.the_segment.hi = c.ray_t;
             least_contact = c;
         }
     };

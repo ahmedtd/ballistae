@@ -39,30 +39,30 @@ contact<double> box::ray_into(
     for(size_t i = 0; i < 3; ++i)
     {
         span<double> cur = {
-            (spans[i].lo() - query.the_ray.point(i)) / query.the_ray.slope(i),
-            (spans[i].hi() - query.the_ray.point(i)) / query.the_ray.slope(i)
+            (spans[i].lo - query.the_ray.point(i)) / query.the_ray.slope(i),
+            (spans[i].hi - query.the_ray.point(i)) / query.the_ray.slope(i)
         };
 
         double normal_component = -1;
-        if(cur.hi() < cur.lo())
+        if(cur.hi < cur.lo)
         {
-            swap(cur.lo(), cur.hi());
+            swap(cur.lo, cur.hi);
             normal_component = 1;
         }
 
         if(!(overlaps(cover, cur)))
             return contact<double>::nan();
 
-        if(cover.lo() < cur.lo())
+        if(cover.lo < cur.lo)
         {
-            cover.lo() = cur.lo();
+            cover.lo = cur.lo;
             hit_axis = {0, 0, 0};
             hit_axis[i] = normal_component;
         }
 
-        if(cur.hi() < cover.hi())
+        if(cur.hi < cover.hi)
         {
-            cover.hi() = cur.hi();
+            cover.hi = cur.hi;
         }
 
     }
@@ -71,7 +71,7 @@ contact<double> box::ray_into(
     {
         contact<double> result;
 
-        result.t = max(cover.lo(), query.the_segment.lo());
+        result.t = max(cover.lo, query.the_segment.lo);
         result.r = query.the_ray;
         result.p = eval_ray(query.the_ray, result.t);
         result.n = hit_axis;
@@ -103,28 +103,28 @@ contact<double> box::ray_exit(
     for(size_t i = 0; i < 3; ++i)
     {
         span<double> cur = {
-            (spans[i].lo() - query.the_ray.point(i)) / query.the_ray.slope(i),
-            (spans[i].hi() - query.the_ray.point(i)) / query.the_ray.slope(i)
+            (spans[i].lo - query.the_ray.point(i)) / query.the_ray.slope(i),
+            (spans[i].hi - query.the_ray.point(i)) / query.the_ray.slope(i)
         };
 
         double normal_component = 1;
-        if(cur.hi() < cur.lo())
+        if(cur.hi < cur.lo)
         {
-            swap(cur.lo(), cur.hi());
+            swap(cur.lo, cur.hi);
             normal_component = -1;
         }
 
         if(!(overlaps(cover, cur)))
             return contact<double>::nan();
 
-        if(cover.lo() < cur.lo())
+        if(cover.lo < cur.lo)
         {
-            cover.lo() = cur.lo();
+            cover.lo = cur.lo;
         }
 
-        if(cur.hi() < cover.hi())
+        if(cur.hi < cover.hi)
         {
-            cover.hi() = cur.hi();
+            cover.hi = cur.hi;
             hit_axis = {0, 0, 0};
             hit_axis[i] = normal_component;
         }
@@ -135,7 +135,7 @@ contact<double> box::ray_exit(
     {
         contact<double> result;
 
-        result.t = min(cover.hi(), query.the_segment.hi());
+        result.t = min(cover.hi, query.the_segment.hi);
         result.r = query.the_ray;
         result.p = eval_ray(query.the_ray, result.t);
         result.n = hit_axis;

@@ -90,7 +90,7 @@ scene_ray_intersect(
                 elt.model_to_world,
                 elt.model_to_world_normals
             );
-            query.the_segment.hi() = entry_contact.t;
+            query.the_segment.hi = entry_contact.t;
             min_contact = entry_contact;
             min_element = &elt;
 
@@ -105,7 +105,7 @@ scene_ray_intersect(
                 elt.model_to_world,
                 elt.model_to_world_normals
             );
-            query.the_segment.hi() = exit_contact.t;
+            query.the_segment.hi = exit_contact.t;
             min_contact = exit_contact;
             min_element = &elt;
         }

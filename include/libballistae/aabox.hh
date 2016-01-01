@@ -37,8 +37,8 @@ struct aabox final
         aabox<Field, D> result;
         for(size_t i = 0; i < D; ++i)
         {
-            result[i].lo() = std::numeric_limits<Field>::infinity();
-            result[i].hi() = -std::numeric_limits<Field>::infinity();
+            result[i].lo = std::numeric_limits<Field>::infinity();
+            result[i].hi = -std::numeric_limits<Field>::infinity();
         }
         return result;
     }
@@ -129,12 +129,12 @@ span<Field> ray_test(
     for(size_t i = 0; i < D; ++i)
     {
         span<double> cur = {
-            (b.spans[i].lo() - r.the_ray.point(i)) / r.the_ray.slope(i),
-            (b.spans[i].hi() - r.the_ray.point(i)) / r.the_ray.slope(i)
+            (b.spans[i].lo - r.the_ray.point(i)) / r.the_ray.slope(i),
+            (b.spans[i].hi - r.the_ray.point(i)) / r.the_ray.slope(i)
         };
 
-        if(cur.hi() < cur.lo())
-            swap(cur.lo(), cur.hi());
+        if(cur.hi < cur.lo)
+            swap(cur.lo, cur.hi);
 
         if(!(overlaps(cover, cur)))
             return span<double>::nan();
@@ -195,7 +195,7 @@ aabox<Field, D> operator*(
     {
         fixvec<Field, D> cur_point;
         for(size_t j = 0; j < D; ++j)
-            cur_point(j) = box[j][(i>>j) & 0x1];
+            cur_point(j) = ((i>>j) & 0x1) ? box[j].hi : box[j].lo;
 
         result = min_containing(result, t * cur_point);
     }

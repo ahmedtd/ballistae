@@ -236,7 +236,7 @@ std::tuple<bool, size_t, Field> split_sah(
                 cur.elements_src,
                 cur.elements_lim,
                 [&](auto &e) {
-                    return strictly_precedes(get_aabox(e).spans[axis], get_aabox(*it).spans[axis].hi());
+                    return strictly_precedes(get_aabox(e).spans[axis], get_aabox(*it).spans[axis].hi);
                 }
             );
 
@@ -266,7 +266,7 @@ std::tuple<bool, size_t, Field> split_sah(
             if(objective < piv_objective)
             {
                 piv_axis = axis;
-                piv_cut = get_aabox(*it).spans[axis].hi();
+                piv_cut = get_aabox(*it).spans[axis].hi;
                 piv_objective = objective;
             }
         }
