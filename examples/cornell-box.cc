@@ -16,6 +16,7 @@
 
 #include <libballistae/material/emitter.hh>
 #include <libballistae/material/gauss.hh>
+#include <libballistae/material/mc_lambert.hh>
 
 #include <libballistae/material_map.hh>
 
@@ -31,13 +32,14 @@ int main(int argc, char **argv)
     auto cie_d65_emitter = materials::make_emitter(material_map::make_constant_spectrum(cie_d65<double>()));
     auto cie_a_emitter = materials::make_emitter(material_map::make_constant_spectrum(cie_a<double>()));
     auto matte = materials::make_gauss(material_map::make_constant_scalar(0.1));
+    auto matte2 = materials::make_mc_lambert(material_map::make_constant_scalar(0.8));
 
     infinity infinity;
     sphere sphere;
 
     surface_mesh bunny = surface_mesh_from_obj_file("bunny.obj", true);
 
-    box ground({span<double>{0, 10.1},  span<double>{0, 10.1},  span<double>{-0.1, 0}});
+    box ground({span<double>{0, 10.1},  span<double>{0, 10.1},  span<double>{-0.5, 0}});
     box   roof({span<double>{0, 10.1},  span<double>{0, 10.1},  span<double>{10, 10.1}});
     box wall_e({span<double>{10, 10.1}, span<double>{0, 10},    span<double>{0, 10}});
     box wall_n({span<double>{0, 10},    span<double>{10, 10.1}, span<double>{0, 10}});
@@ -46,9 +48,9 @@ int main(int argc, char **argv)
 
     the_scene.elements = {
         {&infinity, &cie_d65_emitter, affine_transform<double, 3>::identity()},
-        {&sphere, &cie_a_emitter, affine_transform<double, 3>::translation({5, 4, 1})},
+        {&bunny, &cie_a_emitter, affine_transform<double, 3>::translation({5, 4, 0}) * affine_transform<double, 3>::scaling(10)},
         {&bunny, &matte, affine_transform<double, 3>::translation({4, 5, 0}) * affine_transform<double, 3>::scaling(10)},
-        {&ground, &matte, affine_transform<double, 3>::identity()},
+        {&ground, &matte2, affine_transform<double, 3>::identity()},
         {&roof, &matte, affine_transform<double, 3>::identity()},
         {&wall_n, &matte, affine_transform<double, 3>::identity()},
         {&wall_w, &matte, affine_transform<double, 3>::identity()},
