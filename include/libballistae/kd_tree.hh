@@ -212,7 +212,7 @@ std::tuple<bool, size_t, Field> split_sah(
     Field parent_objective
         = distance(cur.elements_src, cur.elements_lim) * surface_area(cur.bounds);
 
-    size_t piv_axis;
+    size_t piv_axis = 0;
     Field piv_cut;
     Field piv_objective = std::numeric_limits<Field>::infinity();
 
