@@ -17,6 +17,7 @@
 #include <libballistae/material/emitter.hh>
 #include <libballistae/material/gauss.hh>
 #include <libballistae/material/mc_lambert.hh>
+#include <libballistae/material/pc_smooth.hh>
 
 #include <libballistae/material_map.hh>
 
@@ -29,15 +30,17 @@ int main(int argc, char **argv)
 
     scene the_scene;
 
-    auto cie_d65_emitter = materials::make_emitter(material_map::make_constant_spectrum(cie_d65<double>()));
+    auto cie_d65_emitter = materials::make_emitter(material_map::make_constant_spectrum(10 * cie_d65<double>()));
     auto cie_a_emitter = materials::make_emitter(material_map::make_constant_spectrum(cie_a<double>()));
-    auto matte = materials::make_gauss(material_map::make_constant_scalar(0.1));
-    auto matte2 = materials::make_mc_lambert(material_map::make_constant_scalar(0.8));
+    auto matte = materials::make_gauss(material_map::make_constant_scalar(10));
+    auto matte2 = materials::make_gauss(material_map::make_constant_scalar(10));
 
     infinity infinity;
     sphere sphere;
 
     surface_mesh bunny = surface_mesh_from_obj_file("bunny.obj", true);
+
+    box center_box({span<double>{0, 0.5}, {0, 0.5}, {0, 0.5}});
 
     box ground({span<double>{0, 10.1},  span<double>{0, 10.1},  span<double>{-0.5, 0}});
     box   roof({span<double>{0, 10.1},  span<double>{0, 10.1},  span<double>{10, 10.1}});
@@ -51,10 +54,10 @@ int main(int argc, char **argv)
         {&bunny, &cie_a_emitter, affine_transform<double, 3>::translation({5, 4, 0}) * affine_transform<double, 3>::scaling(10)},
         {&bunny, &matte, affine_transform<double, 3>::translation({4, 5, 0}) * affine_transform<double, 3>::scaling(10)},
         {&ground, &matte2, affine_transform<double, 3>::identity()},
-        {&roof, &matte, affine_transform<double, 3>::identity()},
-        {&wall_n, &matte, affine_transform<double, 3>::identity()},
-        {&wall_w, &matte, affine_transform<double, 3>::identity()},
-        {&wall_s, &matte, affine_transform<double, 3>::identity()}
+        {&roof, &matte2, affine_transform<double, 3>::identity()},
+        {&wall_n, &matte2, affine_transform<double, 3>::identity()},
+        {&wall_w, &matte2, affine_transform<double, 3>::identity()},
+        {&wall_s, &matte2, affine_transform<double, 3>::identity()}
     };
 
     crush(the_scene, 0.0);

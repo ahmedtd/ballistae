@@ -1,41 +1,137 @@
 #ifndef LIBBALLISTAE_OPTIONS_HH
 #define LIBBALLISTAE_OPTIONS_HH
 
-#include <string>
+#include <climits>
+#include <cstdio>
+#include <cstdlib>
 
-#include <boost/program_options.hpp>
+#include <getopt.h>
+#include <sysexits.h>
 
 #include <libballistae/scene.hh>
 
 namespace ballistae
 {
 
+size_t parse_size_t(const char *const text)
+{
+    char *end = NULL;
+    size_t val = std::strtoull(text, &end, 10);
+    if(end == text)
+    {
+        std::exit(1);
+    }
+    else if((ULLONG_MAX == val) && ERANGE == errno)
+    {
+        std::exit(1);
+    }
+
+    return val;
+}
+
+double parse_double(const char *const text)
+{
+    char *end = NULL;
+    double val = std::strtod(text, &end);
+    if(end == text)
+    {
+        std::exit(1);
+    }
+    else if(ERANGE == errno)
+    {
+        std::exit(1);
+    }
+
+    return val;
+}
+
 options take_options(int argc, char **argv)
 {
-    namespace po = boost::program_options;
-
     options o;
 
-    po::options_description spec("All options");
-    spec.add_options()
-        ("help", "Print this help message.")
-        ("gridsize", po::value<size_t>(&(o.gridsize))->default_value(5), "Size of the supersampling grid.")
+    o.gridsize = 5;
+    o.img_rows = 512;
+    o.img_cols = 512;
+    o.lambda_min = 390;
+    o.lambda_max = 835;
+    o.maxdepth = 8;
+    o.asset_dir = "./";
+    o.output_file = "output.pfm";
 
-        ("img-rows", po::value<size_t>(&(o.img_rows))->default_value(864), "Rows in the output image.")
-        ("img-cols", po::value<size_t>(&(o.img_cols))->default_value(1296), "Columns in the output image.")
+    static option long_options [] = {
+        {"help", no_argument, 0, 0},
+        {"gridsize", required_argument, 0, 0},
+        {"img-rows", required_argument, 0, 0},
+        {"img-cols", required_argument, 0, 0},
+        {"lambda-min", required_argument, 0, 0},
+        {"lambda-max", required_argument, 0, 0},
+        {"maxdepth",  required_argument, 0, 0},
+        {"asset-dir", required_argument, 0, 0},
+        {"output-file", required_argument, 0, 0},
+        {"listen-addr", required_argument, 0, 0},
+        {"listen-port", required_argument, 0, 0},
+        {0, 0, 0, 0},
+    };
 
-        ("lambda-min", po::value<double>(&(o.lambda_min))->default_value(390), "Minimum wavelength.")
-        ("lambda-max", po::value<double>(&(o.lambda_max))->default_value(835), "Maximum wavelength.")
+    while(true)
+    {
+        // Parse an option using getopt_long.  The empty string literal
+        // indicates that we don't accept any short options, which significantly
+        // simplifies our code here.
+        int option_index;
+        int c = getopt_long(
+            argc,
+            argv,
+            "",
+            long_options,
+            &option_index
+        );
 
-        ("maxdepth", po::value<size_t>(&(o.maxdepth))->default_value(8), "Maximum ray depth in the scene.")
+        // Check if argument processing has finished.
+        if(-1 == c)
+            break;
 
-        ("asset_dir", po::value<std::string>(&(o.asset_dir))->default_value("./"), "Path where we should look for assets")
-        ("output_file", po::value<std::string>(&(o.output_file))->default_value("output.pfm"), "Name of the output image.")
-        ;
+        std::string optname = std::string(long_options[option_index].name);
 
-    po::variables_map vm;
-    po::store(po::parse_command_line(argc, argv, spec), vm);
-    po::notify(vm);
+        if("help" == optname)
+        {
+            std::printf("TODO: Print help\n");
+            std::exit(EX_OK);
+        }
+
+        if("gridsize" == optname)
+        {
+            o.gridsize = parse_size_t(optarg);
+        }
+        else if("img-rows" == optname)
+        {
+            o.img_rows = parse_size_t(optarg);
+        }
+        else if("img-cols" == optname)
+        {
+            o.img_cols = parse_size_t(optarg);
+        }
+        else if("lambda-min" == optname)
+        {
+            o.lambda_min = parse_double(optarg);
+        }
+        else if("lambda-max" == optname)
+        {
+            o.lambda_max = parse_double(optarg);
+        }
+        else if("maxdepth" == optname)
+        {
+            o.maxdepth = parse_size_t(optarg);
+        }
+        else if("asset-dir" == optname)
+        {
+            o.asset_dir = std::string(optarg);
+        }
+        else if("output-file" == optname)
+        {
+            o.output_file = std::string(optarg);
+        }
+    }
 
     return o;
 }

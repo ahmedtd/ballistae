@@ -27,10 +27,6 @@ using dray = ray<double, Dim>;
 using dray3 = ray<double, 3>;
 
 /// Evaluate R for the given parameter value T.
-///
-/// Return Value:
-///
-///   (arma::vec3) The point along the ray with parameter value T.
 template<class Field, size_t Dim>
 fixvec<Field, Dim> eval_ray(const ray<Field, Dim> &r, const Field &t)
     __attribute__((visibility("default")));

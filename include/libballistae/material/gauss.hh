@@ -69,7 +69,8 @@ struct gaussian_dist
 
             // We neglect the leading normalization factor, since we can then
             // just use rejection values in [0,1] without changing anything.
-            pdf_val = exp(-cosine * cosine / (Field(2) * variance));
+            // pdf_val = exp(-(cosine * cosine) / (Field(2) * variance));
+            pdf_val = cosine * variance;
         }
         while(rejection_dist(g) < pdf_val);
 
@@ -113,13 +114,16 @@ struct gauss : public material
             variance({mtl2, mtl3, lambda})
         );
 
-        fixvec<double, 3> facet_n = facet_n_dist(thread_rng);
-        // if(iprod(facet_n, refl_s) < 0.0)
-        //     facet_n = geom_n;
+        fixvec<double, 3> facet_n;
+        do
+        {
+            facet_n = facet_n_dist(thread_rng);
+        }
+        while(iprod(facet_n, refl_s) < 0.0);
 
         shade_info<double> result;
         result.emitted_power = 0.0;
-        result.propagation_k = 1.0;
+        result.propagation_k = 0.8;
         result.incident_ray.point = geom_p;
         result.incident_ray.slope = reflect(refl_s, facet_n);
 
