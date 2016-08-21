@@ -19,6 +19,14 @@
 
 #include <libballistae/geometry/tri_mesh.hh>
 
+namespace ballistae
+{
+
+constexpr int OBJ_ERRC_NONE = 0;
+constexpr int OBJ_ERRC_FILE_NOT_LOADABLE = 1;
+constexpr int OBJ_ERRC_PARSE_ERROR = 2;
+constexpr int OBJ_ERRC_INSANE = 3;
+
 /// Test if [a_src, a_lim) begins with [b_src, b_lim)
 template<class ItA, class ItB>
 bool begins_with(
@@ -500,11 +508,6 @@ std::tuple<int, size_t, tri_mesh> parse_obj(
     return std::make_tuple(OBJ_ERRC_NONE, cur_line, the_mesh);
 }
 
-constexpr int OBJ_ERRC_NONE = 0;
-constexpr int OBJ_ERRC_FILE_NOT_LOADABLE = 1;
-constexpr int OBJ_ERRC_PARSE_ERROR = 2;
-constexpr int OBJ_ERRC_INSANE = 3;
-
 std::tuple<int, size_t, tri_mesh> tri_mesh_load_obj(
     const std::string &filename,
     bool swapyz
@@ -565,6 +568,8 @@ std::tuple<int, size_t, tri_mesh> tri_mesh_load_obj(
     close(fd);
  cleanup_exit_error:
     return std::make_tuple(errc, error_line,(tri_mesh()));
+}
+
 }
 
 #endif

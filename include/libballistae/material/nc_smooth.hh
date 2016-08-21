@@ -55,8 +55,8 @@ public:
 
         double a_cos = iprod(refl, n);
 
-        double n_a = n_exterior({glb_contact.mtl2, glb_contact.mtl3, lambda});
-        double n_b = n_interior({glb_contact.mtl2, glb_contact.mtl3, lambda});
+        double n_a = n_exterior(material_coords{glb_contact.mtl2, glb_contact.mtl3, lambda});
+        double n_b = n_interior(material_coords{glb_contact.mtl2, glb_contact.mtl3, lambda});
 
         if(a_cos > 0.0)
         {

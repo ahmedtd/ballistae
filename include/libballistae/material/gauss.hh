@@ -19,16 +19,16 @@ struct gaussian_dist
 {
     uniform_unitv_distribution<Field, D> backing_dist;
     fixvec<Field, D> normal;
-    Field variance;
+    Field mid;
     /// Rejection distribution.
     std::uniform_real_distribution<Field> rejection_dist;
 
     gaussian_dist(
         const fixvec<Field, D> normal_in,
-        const Field &variance_in
+        const Field &mid_in
     )
         : normal(normal_in),
-          variance(variance_in),
+          mid(mid_in),
           rejection_dist(0, 1)
     {
     }
@@ -37,11 +37,6 @@ struct gaussian_dist
     fixvec<Field, D> operator()(Gen &g)
     {
         using std::exp;
-
-        // If the variance is 0, then the pdf is a delta function centered at 0,
-        // which means only the normal would be returned.
-        if(variance == Field(0))
-            return normal;
 
         // By cutting the case variance == 0 from the rejection testing, we
         // ensure that the loop below will terminate, since the result of exp
@@ -67,10 +62,11 @@ struct gaussian_dist
                 cosine = -cosine;
             }
 
-            // We neglect the leading normalization factor, since we can then
-            // just use rejection values in [0,1] without changing anything.
-            // pdf_val = exp(-(cosine * cosine) / (Field(2) * variance));
-            pdf_val = cosine * variance;
+            // PDF is a triangle with peak at `cosine == mid`.
+            if(cosine < mid)
+                pdf_val = cosine / mid;
+            else
+                pdf_val = -(cosine - mid) / (1 - mid) + 1;
         }
         while(rejection_dist(g) < pdf_val);
 
@@ -114,12 +110,11 @@ struct gauss : public material
             variance({mtl2, mtl3, lambda})
         );
 
-        fixvec<double, 3> facet_n;
-        do
-        {
-            facet_n = facet_n_dist(thread_rng);
-        }
-        while(iprod(facet_n, refl_s) < 0.0);
+        fixvec<double, 3> facet_n = facet_n_dist(thread_rng);
+
+        // Performance hack.
+        if(iprod(facet_n, refl_s) < 0.0)
+            facet_n = reflect(facet_n, glb_contact.n);
 
         shade_info<double> result;
         result.emitted_power = 0.0;

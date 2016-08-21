@@ -31,9 +31,9 @@ int main(int argc, char **argv)
     scene the_scene;
 
     auto cie_d65_emitter = materials::make_emitter(material_map::make_constant_spectrum(10 * cie_d65<double>()));
-    auto cie_a_emitter = materials::make_emitter(material_map::make_constant_spectrum(cie_a<double>()));
-    auto matte = materials::make_gauss(material_map::make_constant_scalar(10));
-    auto matte2 = materials::make_gauss(material_map::make_constant_scalar(10));
+    auto cie_a_emitter = materials::make_emitter(material_map::make_constant_spectrum(10 * cie_a<double>()));
+    auto matte = materials::make_gauss(material_map::make_constant_scalar(0.5));
+    auto matte2 = materials::make_gauss(material_map::make_constant_scalar(0.0));
 
     infinity infinity;
     sphere sphere;

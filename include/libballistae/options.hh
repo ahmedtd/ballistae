@@ -68,8 +68,6 @@ options take_options(int argc, char **argv)
         {"maxdepth",  required_argument, 0, 0},
         {"asset-dir", required_argument, 0, 0},
         {"output-file", required_argument, 0, 0},
-        {"listen-addr", required_argument, 0, 0},
-        {"listen-port", required_argument, 0, 0},
         {0, 0, 0, 0},
     };
 

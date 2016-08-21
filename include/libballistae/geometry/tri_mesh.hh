@@ -11,6 +11,9 @@
 #include <libballistae/span.hh>
 #include <libballistae/vector.hh>
 
+namespace ballistae
+{
+
 struct tri_face_verts
 {
     ballistae::fixvec<double, 3> v0;
@@ -165,8 +168,9 @@ struct tri_contact
 };
 
 tri_contact tri_face_contact(
-    const ballistae::ray_segment<double, 3> &r,
-    const tri_face_crunched &f
+    const ballistae::ray_segment<double, 3> &query,
+    const tri_face_crunched &f,
+    const int want_type
 )
 {
     const ray<double, 3> &r = query.the_ray;
@@ -300,6 +304,8 @@ bool tri_mesh_sanity_check(const tri_mesh &the_mesh)
         return false;
 
     return true;
+}
+
 }
 
 #endif

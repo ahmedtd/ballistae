@@ -75,4 +75,8 @@ test_geometry_box_CXXFLAGS = -I$(srcdir)/include -fopenmp $(AM_CXXFLAGS)
 noinst_PROGRAMS += examples/cornell-box
 examples_cornell_box_SOURCES = examples/cornell-box.cc
 examples_cornell_box_CXXFLAGS = -I$(srcdir)/include -fopenmp $(AM_CXXFLAGS)
-examples_cornell_box_LDADD = libballistae.la
+
+noinst_PROGRAMS += examples/lit-crystal
+examples_lit_crystal_SOURCES = examples/lit-crystal.cc
+examples_lit_crystal_CXXFLAGS = -I$(srcdir)/include -fopenmp $(AM_CXXFLAGS)
+
