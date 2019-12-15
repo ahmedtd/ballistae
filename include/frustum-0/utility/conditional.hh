@@ -2,8 +2,7 @@
 #ifndef FRUSTUM_0_CONDITIONAL_HH
 #define FRUSTUM_0_CONDITIONAL_HH
 
-namespace frustum
-{
+namespace frustum {
 
 //////////////////////////////////////////////////////////////////////
 // Begin conditional
@@ -16,22 +15,20 @@ namespace frustum
 // Template parameters:
 //
 //  * Condition: A compile-time constant boolean condition.
-//  
+//
 //  * TrueType: Type to be exposed in the internal "type" typedef if Condition
 //  * is true.
 //
 //  * FalseType: Type to be exposed in the internal "type" typedef if Condition
 //  * is false.
-template<bool Condition, class TrueType, class FalseType>
-struct conditional
-{
-    typedef TrueType type;
+template <bool Condition, class TrueType, class FalseType>
+struct conditional {
+  typedef TrueType type;
 };
 
-template<class TrueType, class FalseType>
-struct conditional<false, TrueType, FalseType>
-{
-    typedef FalseType type;
+template <class TrueType, class FalseType>
+struct conditional<false, TrueType, FalseType> {
+  typedef FalseType type;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -50,16 +47,14 @@ struct conditional<false, TrueType, FalseType>
 //
 // * TrueVal, FalseVal: Values that are exposed if condition is true or false,
 // * respectively.
-template<bool Condition, int TrueVal, int FalseVal>
-struct conditional_int
-{
-    static constexpr int value = TrueVal;
+template <bool Condition, int TrueVal, int FalseVal>
+struct conditional_int {
+  static constexpr int value = TrueVal;
 };
 
-template<int TrueVal, int FalseVal>
-struct conditional_int<false, TrueVal, FalseVal>
-{
-    static constexpr int value = FalseVal;
+template <int TrueVal, int FalseVal>
+struct conditional_int<false, TrueVal, FalseVal> {
+  static constexpr int value = FalseVal;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -70,15 +65,15 @@ struct conditional_int<false, TrueVal, FalseVal>
 // Begin compile time integer comparisons
 //////////////////////////////////////////////////////////////////////
 
-template<int A, int B>
+template <int A, int B>
 using greater_int = conditional_int<(A > B), A, B>;
 
-template<int A, int B>
+template <int A, int B>
 using lesser_int = conditional_int<(A < B), A, B>;
 //////////////////////////////////////////////////////////////////////
 // End compile time integer comparisons
 //////////////////////////////////////////////////////////////////////
 
-}
+}  // namespace frustum
 
 #endif

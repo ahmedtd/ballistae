@@ -10,31 +10,25 @@
 #include "include/libballistae/contact.hh"
 #include "include/libballistae/ray.hh"
 
-namespace ballistae
-{
+namespace ballistae {
 
-template<class Field>
-struct shade_info
-{
-    Field propagation_k;
-    Field emitted_power;
-    ray<Field, 3> incident_ray;
+template <class Field>
+struct shade_info {
+  Field propagation_k;
+  Field emitted_power;
+  ray<Field, 3> incident_ray;
 };
 
-class material
-{
-public:
+class material {
+ public:
+  virtual ~material() {}
 
-    virtual ~material() {}
+  virtual void crush(double time) = 0;
 
-    virtual void crush(double time) = 0;
-
-    virtual shade_info<double> shade(
-        const contact<double> &glb_contact,
-        double lambda
-    ) const = 0;
+  virtual shade_info<double> shade(const contact<double> &glb_contact,
+                                   double lambda) const = 0;
 };
 
-}
+}  // namespace ballistae
 
 #endif

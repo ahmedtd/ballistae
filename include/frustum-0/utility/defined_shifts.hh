@@ -7,8 +7,7 @@
 #include <climits>
 #include <type_traits>
 
-namespace frustum
-{
+namespace frustum {
 
 // Select the wider of two types (not necessarily integral types).
 //
@@ -19,7 +18,7 @@ namespace frustum
 // Result:
 //
 //   ::type contains the wider of A and B.
-template<class A, class B>
+template <class A, class B>
 using wider_of = std::conditional<(sizeof(A) > sizeof(B)), A, B>;
 
 // Well-defined shift: In C++, left- and right-shifts of signed negative values
@@ -31,13 +30,13 @@ using wider_of = std::conditional<(sizeof(A) > sizeof(B)), A, B>;
 // the shifts for signed operands less than 0.
 //
 // Caveats:
-// 
+//
 //  * Undefined Behavior if abs(amount) is greater than or equal to the number
 //  * of bits in Type.
 //
 //  * Undefined behavior if TYPE is a signed type, and the result of the shift
 //  * will not fit in TYPE.
-// 
+//
 // Template parameters:
 //
 //  * Type: The type of the shiftee.
@@ -72,13 +71,11 @@ using wider_of = std::conditional<(sizeof(A) > sizeof(B)), A, B>;
 //  * 4.7.3 If the destination type is signed, the value is unchanged if it can
 //  * be represented in the destination type (and bit-field width); otherwise,
 //  * the value is implementation-defined.
-template<class Type>
-constexpr Type defined_shift(Type a, int amount)
-{
-    return
-        (std::is_signed<Type>::value)
-        ? ( (amount < 0) ? (a / (1 << (-amount))) : (a * (1 << amount)) )
-        : ( (amount < 0) ? (a >> (-amount))       : (a  << amount) );
+template <class Type>
+constexpr Type defined_shift(Type a, int amount) {
+  return (std::is_signed<Type>::value)
+             ? ((amount < 0) ? (a / (1 << (-amount))) : (a * (1 << amount)))
+             : ((amount < 0) ? (a >> (-amount)) : (a << amount));
 }
 
 // Less-significant bitmask: Construct a bitmask with ones in all positions [0,
@@ -108,34 +105,34 @@ constexpr Type defined_shift(Type a, int amount)
 //  * less-significant than "bit_end" set.
 //
 // Notes:
-// 
+//
 //  * The full mask is handled separately, since the general strategy will
 //  * produce an intermediary value that is not representible in type.
-template<class Type>
-constexpr Type make_ls_bitmask(int bit_end)
-{
-    // TODO (Resolved, but left for illumination): Signed types demand special
-    // handling.  For example, a 32-bit unsigned integer cannot accept bit_end
-    // == 32 for the normal case, since the value 2^32 will be produced
-    // temporarily, but can accept bit_end == 31 (meaning a mask with the
-    // highest bit unset).  However, a 32-bit signed integer can handle neither
-    // bit_end == 32 nor bit_end == 31, since the intermediate value 2^31 is
-    // produced, which is larger than 2^31-1
+template <class Type>
+constexpr Type make_ls_bitmask(int bit_end) {
+  // TODO (Resolved, but left for illumination): Signed types demand special
+  // handling.  For example, a 32-bit unsigned integer cannot accept bit_end
+  // == 32 for the normal case, since the value 2^32 will be produced
+  // temporarily, but can accept bit_end == 31 (meaning a mask with the
+  // highest bit unset).  However, a 32-bit signed integer can handle neither
+  // bit_end == 32 nor bit_end == 31, since the intermediate value 2^31 is
+  // produced, which is larger than 2^31-1
 
-    return (bit_end == sizeof(Type) * CHAR_BIT)
-        
-        // Caller wanted full mask
-        ? (1 | ~1)
-        
-        : (bit_end == sizeof(Type) * CHAR_BIT - 1)
-        
-        // This case is also special, if Type is signed.  In general 2^(b-1)-1
-        // is the maximum representible integer for a signed type.  If Type is
-        // unsigned, it is also properly handled.
-        ? ((1 << (bit_end - 1)) | ((1 << (bit_end - 1)) - 1)) 
-  
-        // Caller wanted a general mask (also handles bit_end == 0).
-        : ((1 << bit_end) - 1);
+  return (bit_end == sizeof(Type) * CHAR_BIT)
+
+             // Caller wanted full mask
+             ? (1 | ~1)
+
+             : (bit_end == sizeof(Type) * CHAR_BIT - 1)
+
+                   // This case is also special, if Type is signed.  In general
+                   // 2^(b-1)-1 is the maximum representible integer for a
+                   // signed type.  If Type is unsigned, it is also properly
+                   // handled.
+                   ? ((1 << (bit_end - 1)) | ((1 << (bit_end - 1)) - 1))
+
+                   // Caller wanted a general mask (also handles bit_end == 0).
+                   : ((1 << bit_end) - 1);
 }
 
 // Bitmask: Construct a bitmask with ones in the range [bit_start, bit_end),
@@ -143,7 +140,7 @@ constexpr Type make_ls_bitmask(int bit_end)
 //
 // Preconditions:
 //
-//  * bit_start <= bit_end: 
+//  * bit_start <= bit_end:
 //
 //  * bit_start < sizeof(Type) * CHAR_BIT : It is not legal for the bitmask to
 //  * start beyond the end of the bitfield corresponding to "Type".
@@ -151,11 +148,10 @@ constexpr Type make_ls_bitmask(int bit_end)
 //  * bit_end <= sizeof(Type) * CHAR_BIT : The bitmask must be able to fit in
 //  * "Type".
 //
-//  * bit_end,bit_start >= 0 : 
-template<class Type>
-constexpr Type make_bitmask(int bit_start, int bit_end)
-{
-    return make_ls_bitmask<Type>(bit_end) & ~make_ls_bitmask<Type>(bit_start);
+//  * bit_end,bit_start >= 0 :
+template <class Type>
+constexpr Type make_bitmask(int bit_start, int bit_end) {
+  return make_ls_bitmask<Type>(bit_end) & ~make_ls_bitmask<Type>(bit_start);
 }
 
 // Well-defined bitwise rotation: Rotates word by abs(amount) bits (left if
@@ -179,31 +175,29 @@ constexpr Type make_bitmask(int bit_start, int bit_end)
 //  * a signed type, the number of valid rotation bits is one less than the
 //  * number of bits in the type.  For an unsigned type, the number of valid
 //  * rotation bits is the number of bits in the type.
-template<class Type>
-constexpr Type defined_rotate(Type word, int amount)
-{
-    static_assert(
-        std::is_integral<Type>::value,
-        "frustum::defined_rotate is only valid for types modeling binary"
-        " integer types."
-    );
+template <class Type>
+constexpr Type defined_rotate(Type word, int amount) {
+  static_assert(
+      std::is_integral<Type>::value,
+      "frustum::defined_rotate is only valid for types modeling binary"
+      " integer types.");
 
-#   define TYPE_BIT (sizeof(Type) * CHAR_BIT)
-#   define S_AMOUNT (amount % (TYPE_BIT - 1))
-#   define S_OPP_AMOUNT (-((TYPE_BIT - 1 - amount) % (TYPE_BIT - 1)))
-#   define U_AMOUNT (amount % TYPE_BIT)
-#   define U_OPP_AMOUNT (-((TYPE_BIT - amount) % TYPE_BIT))
+#define TYPE_BIT (sizeof(Type) * CHAR_BIT)
+#define S_AMOUNT (amount % (TYPE_BIT - 1))
+#define S_OPP_AMOUNT (-((TYPE_BIT - 1 - amount) % (TYPE_BIT - 1)))
+#define U_AMOUNT (amount % TYPE_BIT)
+#define U_OPP_AMOUNT (-((TYPE_BIT - amount) % TYPE_BIT))
 
-    return
-        (std::is_signed<Type>::value)
-        ? (defined_shift(word, S_AMOUNT) | defined_shift(word, S_OPP_AMOUNT))
-        : (defined_shift(word, U_AMOUNT) | defined_shift(word, U_OPP_AMOUNT));
+  return (std::is_signed<Type>::value) ? (defined_shift(word, S_AMOUNT) |
+                                          defined_shift(word, S_OPP_AMOUNT))
+                                       : (defined_shift(word, U_AMOUNT) |
+                                          defined_shift(word, U_OPP_AMOUNT));
 
-#   undef TYPE_BIT
-#   undef S_AMOUNT
-#   undef S_OPP_AMOUNT
-#   undef U_AMOUNT
-#   undef U_OPP_AMOUNT
+#undef TYPE_BIT
+#undef S_AMOUNT
+#undef S_OPP_AMOUNT
+#undef U_AMOUNT
+#undef U_OPP_AMOUNT
 }
 
 // Split an integral quantity into low and high halves.
@@ -236,29 +230,25 @@ constexpr Type defined_rotate(Type word, int amount)
 // Notes:
 //
 //   * std::array constexpr behavior is C++14.
-template<class Type>
-constexpr std::array<Type, 2> defined_split(const Type &word)
-{
-    const std::array<Type, 2> splitword;
-    
-    const int whole_bits = (CHAR_BIT * sizeof(Type));
-    const int half_bits = whole_bits / 2;
+template <class Type>
+constexpr std::array<Type, 2> defined_split(const Type &word) {
+  const std::array<Type, 2> splitword;
 
-    const Type min = std::numeric_limits<Type>::min();
+  const int whole_bits = (CHAR_BIT * sizeof(Type));
+  const int half_bits = whole_bits / 2;
 
-    if(word < 0)
-    {
-        splitword[0] = (min & make_bitmask(half_bits, whole_bits))
-            | (word & make_bitmask<Type>(0, half_bits));
-        splitword[1] = defined_shift(word, -half_bits);
-    }
-    else
-    {
-        splitword[0] = word & make_ls_bitmask<Type>(half_bits);
-        splitword[1] = defined_shift(word, -half_bits);
-    }
+  const Type min = std::numeric_limits<Type>::min();
 
-    return splitword; 
+  if (word < 0) {
+    splitword[0] = (min & make_bitmask(half_bits, whole_bits)) |
+                   (word & make_bitmask<Type>(0, half_bits));
+    splitword[1] = defined_shift(word, -half_bits);
+  } else {
+    splitword[0] = word & make_ls_bitmask<Type>(half_bits);
+    splitword[1] = defined_shift(word, -half_bits);
+  }
+
+  return splitword;
 }
 
 // Wide (full-result) addition.
@@ -286,37 +276,30 @@ constexpr std::array<Type, 2> defined_split(const Type &word)
 // Caveats:
 //
 //   * Don't mix signed and unsigned types in the arguments.
-template<class TypeA, class TypeB>
+template <class TypeA, class TypeB>
 constexpr std::array<wider_of<TypeA, TypeB>::type, 2> wide_add(
-    const TypeA &a,
-    const TypeB &b,
-    const TypeC &carry = 0
-) {
-    static_assert(
-        std::is_integral<TypeA>::value && std::is_integral<TypeB>::value,
-        "frustum::wide_add: Both arguments must be integral."
-    );
+    const TypeA &a, const TypeB &b, const TypeC &carry = 0) {
+  static_assert(
+      std::is_integral<TypeA>::value && std::is_integral<TypeB>::value,
+      "frustum::wide_add: Both arguments must be integral.");
 
-    static_assert(
-        std::is_signed<TypeA>::value == std::is_signed<TypeB>::value,
-        "frustum::wide_add: Both arguments must have the same signedness."
-    );
+  static_assert(
+      std::is_signed<TypeA>::value == std::is_signed<TypeB>::value,
+      "frustum::wide_add: Both arguments must have the same signedness.");
 
-    typedef wider_of<TypeA, TypeB>::type WorkType;
-    
-    const int half_bits = (CHAR_BIT * sizeof(WorkType)) / 2;
+  typedef wider_of<TypeA, TypeB>::type WorkType;
 
-    auto a_split = defined_split<WorkType>(a);
-    auto b_split = defined_split<WorkType>(b);
-    
-    auto lo_result = defined_split(a_split[0] + b_split[0] + carry);
-    auto hi_result = defined_split(
-        a_split[1] + b_split[1] + lo_result[1]
-    );
-    
-    std::array<WorkType, 2> result;
-    result[0] = lo_result[0] + defined_shift(hi_result[0], half_bits);
-    result[1] = hi_result[1];
+  const int half_bits = (CHAR_BIT * sizeof(WorkType)) / 2;
+
+  auto a_split = defined_split<WorkType>(a);
+  auto b_split = defined_split<WorkType>(b);
+
+  auto lo_result = defined_split(a_split[0] + b_split[0] + carry);
+  auto hi_result = defined_split(a_split[1] + b_split[1] + lo_result[1]);
+
+  std::array<WorkType, 2> result;
+  result[0] = lo_result[0] + defined_shift(hi_result[0], half_bits);
+  result[1] = hi_result[1];
 }
 
 // Wide (full-result) multiplication.
@@ -324,26 +307,21 @@ constexpr std::array<wider_of<TypeA, TypeB>::type, 2> wide_add(
 // Caveats:
 //
 //   * Don't try to mix signed and unsigned types here.
-template<class TypeA, class TypeB>
+template <class TypeA, class TypeB>
 constexpr std::array<wider_of<TypeA, TypeB>::type, 2> wide_mult(
-    const TypeA &a,
-    const TypeB &b
-) {
-    static_assert(
-        std::is_signed<TypeA>::value == std::is_signed<TypeB>::value,
-        "frustum::wide_mult: Both arguments must have the same signedness."
-    );
+    const TypeA &a, const TypeB &b) {
+  static_assert(
+      std::is_signed<TypeA>::value == std::is_signed<TypeB>::value,
+      "frustum::wide_mult: Both arguments must have the same signedness.");
 
-    typedef wider_of<TypeA, TypeB>::type WorkType;
+  typedef wider_of<TypeA, TypeB>::type WorkType;
 
-    // We split using the width of the larger type.  This causes an implicit
-    // conversion from both types to the larger type.
-    auto a_split = defined_split<WorkType>(a);
-    auto b_split = defined_split<WorkType>(b);
-
-    
+  // We split using the width of the larger type.  This causes an implicit
+  // conversion from both types to the larger type.
+  auto a_split = defined_split<WorkType>(a);
+  auto b_split = defined_split<WorkType>(b);
 }
 
-}
+}  // namespace frustum
 
 #endif

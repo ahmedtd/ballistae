@@ -5,17 +5,15 @@
 
 #include "include/frustum-0/indicial/fixed.hh"
 
-namespace ballistae
-{
+namespace ballistae {
 
 using namespace frustum;
 
-template<class Field>
-constexpr Field epsilon()
-{
-    return Field(1) / Field(10000);
+template <class Field>
+constexpr Field epsilon() {
+  return Field(1) / Field(10000);
 }
 
-}
+}  // namespace ballistae
 
 #endif
