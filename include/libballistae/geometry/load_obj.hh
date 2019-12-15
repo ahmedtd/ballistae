@@ -1,13 +1,8 @@
 #ifndef BALLISTAE_GEOMETRY_LOAD_OBJ_HH
 #define BALLISTAE_GEOMETRY_LOAD_OBJ_HH
 
-#include <fcntl.h>
-#include <sys/mman.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <cinttypes>
@@ -23,9 +18,10 @@ namespace ballistae
 {
 
 constexpr int OBJ_ERRC_NONE = 0;
-constexpr int OBJ_ERRC_FILE_NOT_LOADABLE = 1;
-constexpr int OBJ_ERRC_PARSE_ERROR = 2;
-constexpr int OBJ_ERRC_INSANE = 3;
+constexpr int OBJ_ERRC_FILE_NOT_OPENABLE = 1;
+constexpr int OBJ_ERRC_FILE_NOT_LOADABLE = 2;
+constexpr int OBJ_ERRC_PARSE_ERROR = 3;
+constexpr int OBJ_ERRC_INSANE = 4;
 
 /// Test if [a_src, a_lim) begins with [b_src, b_lim)
 template<class ItA, class ItB>
@@ -513,61 +509,33 @@ std::tuple<int, size_t, tri_mesh> tri_mesh_load_obj(
     bool swapyz
 )
 {
+    FILE *f = std::fopen(filename.c_str(), "rb");
+    if(f == nullptr) {
+        return std::make_tuple(OBJ_ERRC_FILE_NOT_OPENABLE, std::size_t(0), tri_mesh());
+    }
+
+    std::fseek(f, 0, SEEK_END);
+    long fsize = std::ftell(f);
+    std::fseek(f, 0, SEEK_SET);
+
+    std::vector<char> buf(fsize);
+    std::fread(&buf[0], 1, fsize, f);
+    if(std::ferror(f)) {
+        std::fclose(f);
+        return std::make_tuple(OBJ_ERRC_FILE_NOT_OPENABLE, std::size_t(0), tri_mesh());
+    }
+    std::fclose(f);
+
     int errc = OBJ_ERRC_NONE;
     size_t error_line = 0;
     tri_mesh the_mesh;
-    void *buf;
-
-    int fd = open(filename.c_str(), O_RDONLY);
-    if(fd == -1)
-    {
-        errc = OBJ_ERRC_FILE_NOT_LOADABLE;
-        goto cleanup_exit_error;
-    }
-
-    struct stat sb;
-    if(fstat(fd, &sb) == -1)
-    {
-        errc = OBJ_ERRC_FILE_NOT_LOADABLE;
-        goto cleanup_close_file;
-    }
-
-    buf = mmap(nullptr, sb.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
-    if(buf == MAP_FAILED)
-    {
-        errc = OBJ_ERRC_FILE_NOT_LOADABLE;
-        goto cleanup_close_file;
-    }
-
-    if(madvise(buf, sb.st_size, MADV_SEQUENTIAL | MADV_WILLNEED) == -1)
-    {
-        errc = OBJ_ERRC_FILE_NOT_LOADABLE;
-        goto cleanup_unmap_file;
-    }
 
     std::tie(errc, error_line, the_mesh) = parse_obj(
-        (char*) buf,
-        ((char*) buf) + sb.st_size,
+        &buf[0],
+        &buf[buf.size()],
         swapyz
     );
-    if(errc != OBJ_ERRC_NONE)
-        goto cleanup_unmap_file;
-
-    if(munmap(buf, sb.st_size) == -1)
-    {
-        errc = OBJ_ERRC_FILE_NOT_LOADABLE;
-        goto cleanup_close_file;
-    }
-
-    close(fd);
     return std::make_tuple(errc, error_line, the_mesh);
-
- cleanup_unmap_file:
-    munmap(buf, sb.st_size);
- cleanup_close_file:
-    close(fd);
- cleanup_exit_error:
-    return std::make_tuple(errc, error_line,(tri_mesh()));
 }
 
 }
