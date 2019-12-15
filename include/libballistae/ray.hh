@@ -1,10 +1,10 @@
 #ifndef LIBBALLISTAE_RAY_HH
 #define LIBBALLISTAE_RAY_HH
 
-#include <frustum-0/geometry/affine_transform.hh>
+#include "include/frustum-0/geometry/affine_transform.hh"
 
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

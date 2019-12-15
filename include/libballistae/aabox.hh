@@ -6,9 +6,9 @@
 #include <array>
 #include <utility>
 
-#include <libballistae/ray.hh>
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

@@ -3,8 +3,8 @@
 
 #include <random>
 
-#include <libballistae/ray.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

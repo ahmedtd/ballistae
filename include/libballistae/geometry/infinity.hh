@@ -1,11 +1,11 @@
 #ifndef BALLISTAE_GEOMETRY_INFINITY_HH
 #define BALLISTAE_GEOMETRY_INFINITY_HH
 
-#include <libballistae/geometry.hh>
+#include "include/libballistae/geometry.hh"
 
-#include <libballistae/ray.hh>
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

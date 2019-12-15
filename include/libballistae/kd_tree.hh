@@ -10,9 +10,9 @@
 #include <memory>
 #include <vector>
 
-#include <libballistae/aabox.hh>
-#include <libballistae/kd_tree.hh>
-#include <libballistae/span.hh>
+#include "include/libballistae/aabox.hh"
+#include "include/libballistae/kd_tree.hh"
+#include "include/libballistae/span.hh"
 
 namespace ballistae
 {

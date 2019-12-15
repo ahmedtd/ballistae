@@ -3,11 +3,11 @@
 
 #include <array>
 
-#include <libballistae/contact.hh>
-#include <libballistae/geometry.hh>
-#include <libballistae/ray.hh>
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/contact.hh"
+#include "include/libballistae/geometry.hh"
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

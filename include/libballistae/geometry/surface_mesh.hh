@@ -1,10 +1,10 @@
 #ifndef BALLISTAE_GEOMETRY_SURFACE_MESH_HH
 #define BALLISTAE_GEOMETRY_SURFACE_MESH_HH
 
-#include <libballistae/geometry.hh>
-#include <libballistae/geometry/load_obj.hh>
-#include <libballistae/geometry/tri_mesh.hh>
-#include <libballistae/kd_tree.hh>
+#include "include/libballistae/geometry.hh"
+#include "include/libballistae/geometry/load_obj.hh"
+#include "include/libballistae/geometry/tri_mesh.hh"
+#include "include/libballistae/kd_tree.hh"
 
 namespace ballistae
 {

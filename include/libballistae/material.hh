@@ -7,8 +7,8 @@
 
 #include <random>
 
-#include <libballistae/contact.hh>
-#include <libballistae/ray.hh>
+#include "include/libballistae/contact.hh"
+#include "include/libballistae/ray.hh"
 
 namespace ballistae
 {

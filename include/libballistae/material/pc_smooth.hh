@@ -1,7 +1,7 @@
 #ifndef LIBBALLISTAE_MATERIAL_PC_SMOOTH_HH
 #define LIBBALLISTAE_MATERIAL_PC_SMOOTH_HH
 
-#include <libballistae/material.hh>
+#include "include/libballistae/material.hh"
 
 namespace ballistae
 {

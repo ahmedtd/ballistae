@@ -8,7 +8,7 @@
 #include <getopt.h>
 #include <sysexits.h>
 
-#include <libballistae/scene.hh>
+#include "include/libballistae/scene.hh"
 
 namespace ballistae
 {

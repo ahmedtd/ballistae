@@ -1,25 +1,25 @@
 #include <iostream>
 
-#include <libballistae/options.hh>
-#include <libballistae/scene.hh>
-#include <libballistae/render_scene.hh>
-#include <libballistae/color.hh>
-#include <libballistae/dense_signal.hh>
+#include "include/libballistae/options.hh"
+#include "include/libballistae/scene.hh"
+#include "include/libballistae/render_scene.hh"
+#include "include/libballistae/color.hh"
+#include "include/libballistae/dense_signal.hh"
 
-#include <libballistae/camera/pinhole.hh>
+#include "include/libballistae/camera/pinhole.hh"
 
-#include <libballistae/geometry/box.hh>
-#include <libballistae/geometry/plane.hh>
-#include <libballistae/geometry/infinity.hh>
-#include <libballistae/geometry/sphere.hh>
-#include <libballistae/geometry/surface_mesh.hh>
+#include "include/libballistae/geometry/box.hh"
+#include "include/libballistae/geometry/plane.hh"
+#include "include/libballistae/geometry/infinity.hh"
+#include "include/libballistae/geometry/sphere.hh"
+#include "include/libballistae/geometry/surface_mesh.hh"
 
-#include <libballistae/material/emitter.hh>
-#include <libballistae/material/gauss.hh>
-#include <libballistae/material/mc_lambert.hh>
-#include <libballistae/material/pc_smooth.hh>
+#include "include/libballistae/material/emitter.hh"
+#include "include/libballistae/material/gauss.hh"
+#include "include/libballistae/material/mc_lambert.hh"
+#include "include/libballistae/material/pc_smooth.hh"
 
-#include <libballistae/material_map.hh>
+#include "include/libballistae/material_map.hh"
 
 using namespace frustum;
 using namespace ballistae;

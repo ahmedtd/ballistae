@@ -5,7 +5,7 @@
 
 #include <random>
 
-#include <libballistae/vector.hh>
+#include "include/libballistae/vector.hh"
 
 // Note that all the std:: distributions are undefined for Field types that are
 // not float, double, or long double.

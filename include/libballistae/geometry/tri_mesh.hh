@@ -4,12 +4,12 @@
 #include <array>
 #include <vector>
 
-#include <libballistae/aabox.hh>
-#include <libballistae/contact.hh>
-#include <libballistae/kd_tree.hh>
-#include <libballistae/ray.hh>
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/aabox.hh"
+#include "include/libballistae/contact.hh"
+#include "include/libballistae/kd_tree.hh"
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

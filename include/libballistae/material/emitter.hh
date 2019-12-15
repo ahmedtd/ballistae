@@ -1,12 +1,12 @@
 #ifndef BALLISTAE_MATERIAL_EMITTER_HH
 #define BALLISTAE_MATERIAL_EMITTER_HH
 
-#include <libballistae/material.hh>
+#include "include/libballistae/material.hh"
 
-#include <frustum-0/indicial/fixed.hh>
+#include "include/frustum-0/indicial/fixed.hh"
 
-#include <libballistae/dense_signal.hh>
-#include <libballistae/material_map.hh>
+#include "include/libballistae/dense_signal.hh"
+#include "include/libballistae/material_map.hh"
 
 namespace ballistae
 {

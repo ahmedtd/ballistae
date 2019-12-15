@@ -1,13 +1,13 @@
 #ifndef BALLISTAE_MATERIAL_MC_LAMBERT_HH
 #define BALLISTAE_MATERIAL_MC_LAMBERT_HH
 
-#include <libballistae/material.hh>
+#include "include/libballistae/material.hh"
 
-#include <frustum-0/indicial/fixed.hh>
+#include "include/frustum-0/indicial/fixed.hh"
 
-#include <libballistae/material_map.hh>
-#include <libballistae/dense_signal.hh>
-#include <libballistae/vector_distributions.hh>
+#include "include/libballistae/material_map.hh"
+#include "include/libballistae/dense_signal.hh"
+#include "include/libballistae/vector_distributions.hh"
 
 namespace ballistae
 {

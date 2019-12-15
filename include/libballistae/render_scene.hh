@@ -5,11 +5,11 @@
 
 #include <functional>
 
-#include <libballistae/camera.hh>
-#include <libballistae/image.hh>
-#include <libballistae/ray.hh>
-#include <libballistae/scene.hh>
-#include <libballistae/span.hh>
+#include "include/libballistae/camera.hh"
+#include "include/libballistae/image.hh"
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/scene.hh"
+#include "include/libballistae/span.hh"
 
 namespace ballistae
 {

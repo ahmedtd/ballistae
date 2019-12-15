@@ -6,19 +6,19 @@
 #include <random>
 #include <vector>
 
-#include <frustum-0/geometry/affine_transform.hh>
+#include "include/frustum-0/geometry/affine_transform.hh"
 
-#include <libballistae/camera.hh>
-#include <libballistae/color.hh>
-#include <libballistae/contact.hh>
-#include <libballistae/geometry.hh>
-#include <libballistae/image.hh>
-#include <libballistae/kd_tree.hh>
-#include <libballistae/material.hh>
-#include <libballistae/material_map.hh>
-#include <libballistae/ray.hh>
-#include <libballistae/span.hh>
-#include <libballistae/vector.hh>
+#include "include/libballistae/camera.hh"
+#include "include/libballistae/color.hh"
+#include "include/libballistae/contact.hh"
+#include "include/libballistae/geometry.hh"
+#include "include/libballistae/image.hh"
+#include "include/libballistae/kd_tree.hh"
+#include "include/libballistae/material.hh"
+#include "include/libballistae/material_map.hh"
+#include "include/libballistae/ray.hh"
+#include "include/libballistae/span.hh"
+#include "include/libballistae/vector.hh"
 
 namespace ballistae
 {

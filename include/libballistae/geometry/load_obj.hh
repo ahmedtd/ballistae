@@ -17,7 +17,7 @@
 #include <string>
 #include <tuple>
 
-#include <libballistae/geometry/tri_mesh.hh>
+#include "include/libballistae/geometry/tri_mesh.hh"
 
 namespace ballistae
 {
