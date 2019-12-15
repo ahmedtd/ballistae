@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "include/libballistae/aabox.hh"
-#include "include/libballistae/kd_tree.hh"
 #include "include/libballistae/span.hh"
 
 namespace ballistae
@@ -119,80 +118,91 @@ void kd_tree_refine_sah(
 
     using std::distance;
 
-    if(distance(cur->elements_src, cur->elements_lim) < 2)
-        return;
+    std::vector<aanode<Field, D, Stored>*> work_stack;
+    work_stack.push_back(cur);
 
-    bool should_cut;
-    size_t cut_axis;
-    Field cut;
-    std::tie(should_cut, cut_axis, cut) = split_sah(
-        *(cur),
-        get_aabox,
-        split_cost,
-        threshold
-    );
+    while(!work_stack.empty()) {
+        std::printf("kd_tree_refine_sah nodes remaining %zu\n", work_stack.size());
 
-    // Terminate recursion if indicated.
-    if(! should_cut)
-        return;
+        cur = work_stack.back();
+        work_stack.pop_back();
 
-    // Place elements that strictly precede the cut into the low child of the
-    // current node.
-    auto precede_src = cur->elements_src;
-    auto precede_lim = std::partition(
-        cur->elements_src,
-        cur->elements_lim,
-        [&](auto &a) {
-            return strictly_precedes(get_aabox(a).spans[cut_axis], cut);
+        if(distance(cur->elements_src, cur->elements_lim) < 2)
+            return;
+
+        bool should_cut;
+        size_t cut_axis;
+        Field cut;
+        std::tie(should_cut, cut_axis, cut) = split_sah(
+            *(cur),
+            get_aabox,
+            split_cost,
+            threshold
+        );
+
+
+        // Terminate recursion if indicated.
+        if(! should_cut)
+            continue;
+
+        // Place elements that strictly precede the cut into the low child of the
+        // current node.
+        auto precede_src = cur->elements_src;
+        auto precede_lim = std::partition(
+            cur->elements_src,
+            cur->elements_lim,
+            [&](auto &a) {
+                return strictly_precedes(get_aabox(a).spans[cut_axis], cut);
+            }
+        );
+
+        if(distance(precede_src, precede_lim) != 0)
+        {
+            aabox<Field, D> lo_bounds = std::accumulate(
+                precede_src,
+                precede_lim,
+                aabox<Field, D>::accum_zero(),
+                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+            );
+
+            cur->lo_child = std::make_unique<aanode<Field, D, Stored>>();
+            *(cur->lo_child) = {
+                                lo_bounds,
+                                precede_src,
+                                precede_lim,
+                                nullptr,
+                                nullptr
+            };
+
+            work_stack.push_back(cur->lo_child.get());
         }
-    );
 
-    if(distance(precede_src, precede_lim) != 0)
-    {
-        aabox<Field, D> lo_bounds = std::accumulate(
-            precede_src,
-            precede_lim,
-            aabox<Field, D>::accum_zero(),
-            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-        );
+        // All remaining elements overlap or strictly succeed the cut, and are
+        // placed in the high child.
 
-        cur->lo_child = std::make_unique<aanode<Field, D, Stored>>();
-        *(cur->lo_child) = {
-            lo_bounds,
-            precede_src,
-            precede_lim,
-            nullptr,
-            nullptr
-        };
+        auto succeed_src = precede_lim;
+        auto succeed_lim = cur->elements_lim;
 
-        kd_tree_refine_sah(cur->lo_child.get(), get_aabox, split_cost, threshold);
-    }
+        if(distance(succeed_src, succeed_lim) != 0)
+        {
+            aabox<Field, D> hi_bounds = std::accumulate(
+                succeed_src,
+                succeed_lim,
+                aabox<Field, D>::accum_zero(),
+                [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
+            );
 
-    // All remaining elements overlap or strictly succeed the cut, and are
-    // placed in the high child.
+            cur->hi_child = std::make_unique<aanode<Field, D, Stored>>();
+            *(cur->hi_child) = {
+                                hi_bounds,
+                                succeed_src,
+                                succeed_lim,
+                                nullptr,
+                                nullptr
+            };
 
-    auto succeed_src = precede_lim;
-    auto succeed_lim = cur->elements_lim;
-
-    if(distance(succeed_src, succeed_lim) != 0)
-    {
-        aabox<Field, D> hi_bounds = std::accumulate(
-            succeed_src,
-            succeed_lim,
-            aabox<Field, D>::accum_zero(),
-            [&](auto a, auto b) {return min_containing(a, get_aabox(b));}
-        );
-
-        cur->hi_child = std::make_unique<aanode<Field, D, Stored>>();
-        *(cur->hi_child) = {
-            hi_bounds,
-            succeed_src,
-            succeed_lim,
-            nullptr,
-            nullptr
-        };
-
-        kd_tree_refine_sah(cur->hi_child.get(), get_aabox, split_cost, threshold);
+            work_stack.push_back(cur->hi_child.get());
+        }
     }
 }
 

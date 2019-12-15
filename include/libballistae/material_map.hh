@@ -6,7 +6,6 @@
 #include "include/frustum-0/indicial/fixed.hh"
 
 #include "include/libballistae/dense_signal.hh"
-#include "include/libballistae/scene.hh"
 #include "include/libballistae/vector.hh"
 
 namespace ballistae
@@ -22,12 +21,12 @@ struct material_coords
 namespace material_map
 {
 
-auto make_constant_scalar(double scalar)
+inline auto make_constant_scalar(double scalar)
 {
     return [=](const material_coords &map){return scalar;};
 }
 
-auto make_constant_spectrum(dense_signal<double> spectrum)
+inline auto make_constant_spectrum(dense_signal<double> spectrum)
 {
     return [=](const material_coords &map){return interpolate(spectrum, map.lambda);};
 }
@@ -67,7 +66,7 @@ auto make_clamp(double min, double max, InputA a)
     };
 }
 
-auto make_checkerboard_surface(double period)
+inline auto make_checkerboard_surface(double period)
 {
     return [=](const material_coords &map) {
         using std::floor;
@@ -88,7 +87,7 @@ auto make_checkerboard_surface(double period)
     };
 }
 
-auto make_checkerboard_volume(double period)
+inline auto make_checkerboard_volume(double period)
 {
     return [=](const material_coords &map) {
         using std::floor;
@@ -109,7 +108,7 @@ auto make_checkerboard_volume(double period)
     };
 }
 
-auto make_bullseye_surface(double period)
+inline auto make_bullseye_surface(double period)
 {
     return [=](const material_coords &map) {
         using std::fmod;
@@ -120,7 +119,7 @@ auto make_bullseye_surface(double period)
     };
 }
 
-auto make_bullseye_volume(double period)
+inline auto make_bullseye_volume(double period)
 {
     return [=](const material_coords &map) {
         using std::fmod;
@@ -136,7 +135,7 @@ auto make_bullseye_volume(double period)
 //
 // The multiplicative constant is floor(2^24 / (golden ratio)), tweaked a bit to
 // avoid attractors above 0xc in the last digit.
-uint32_t hashmul(uint32_t x)
+inline uint32_t hashmul(uint32_t x)
 {
     x = ((x >> 16) ^ x) * 0x45d9f3b;
     x = ((x >> 16) ^ x) * 0x45d9f3b;
@@ -196,7 +195,7 @@ Field lerp(Field t, Field a, Field b)
     return (1 - t) * a + t * b;
 }
 
-auto make_perlin_surface(double period)
+inline auto make_perlin_surface(double period)
 {
     return [=](const material_coords &map) {
         fixvec<double, 3> x_abs = {
@@ -229,7 +228,7 @@ auto make_perlin_surface(double period)
     };
 }
 
-auto make_perlin_volume(double period)
+inline auto make_perlin_volume(double period)
 {
     return [=](const material_coords &map) {
         fixvec<double, 3> x_abs = map.mtl3 * 256.0 / period;

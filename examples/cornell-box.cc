@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "include/libballistae/options.hh"
 #include "include/libballistae/scene.hh"
 #include "include/libballistae/render_scene.hh"
@@ -75,12 +73,11 @@ int main(int argc, char **argv)
         the_camera,
         the_scene,
         [](size_t cur, size_t tot) {
-            std::cout << "\r" << cur << "/" << tot
-            << " " << (cur / (tot / 100)) << "%" << std::flush;
+            std::printf("\r%zu/%zu %zu%%", cur, tot, (cur / (tot / 100)));
         }
     );
 
-    std::cout << std::endl;
+    std::printf("\n");
 
     return 0;
 }

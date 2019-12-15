@@ -518,13 +518,14 @@ std::tuple<int, size_t, tri_mesh> tri_mesh_load_obj(
     long fsize = std::ftell(f);
     std::fseek(f, 0, SEEK_SET);
 
-    std::vector<char> buf(fsize);
+    std::vector<char> buf(fsize+1);
     std::fread(&buf[0], 1, fsize, f);
     if(std::ferror(f)) {
         std::fclose(f);
         return std::make_tuple(OBJ_ERRC_FILE_NOT_OPENABLE, std::size_t(0), tri_mesh());
     }
     std::fclose(f);
+    buf[buf.size()-1] = 0;
 
     int errc = OBJ_ERRC_NONE;
     size_t error_line = 0;

@@ -67,6 +67,20 @@ surface_mesh surface_mesh_from_obj_file(
     size_t err_line;
     tri_mesh the_mesh;
     std::tie(errc, err_line, the_mesh) = tri_mesh_load_obj(filename, swapyz);
+
+    if(errc == OBJ_ERRC_FILE_NOT_OPENABLE) {
+        throw std::runtime_error("could not read file: " + filename);
+    } else if(errc == OBJ_ERRC_FILE_NOT_LOADABLE) {
+        throw std::runtime_error("could not load file: " + filename);
+    } else if(errc == OBJ_ERRC_PARSE_ERROR) {
+        // TODO(ahmedtd): Do this with absl instead
+        throw std::runtime_error("error at line %d while parsing file: " + filename);
+    } else if(errc == OBJ_ERRC_INSANE) {
+        throw std::runtime_error("obj file is not self consistent: " + filename);
+    } else if(errc != OBJ_ERRC_NONE) {
+        throw std::runtime_error("unknown error parsing file: " + filename);
+    }
+
     return (surface_mesh(std::move(the_mesh)));
 }
 

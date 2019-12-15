@@ -4,7 +4,7 @@
 #include <array>
 #include <vector>
 
-#include <libballistae/vector.hh>
+#include "include/libballistae/vector.hh"
 
 namespace ballistae {
 
