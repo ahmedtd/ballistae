@@ -1,5 +1,0 @@
-CFLAGS
-
--fno-trapping-math
--fno-signaling-nans
--fno-rounding-math
