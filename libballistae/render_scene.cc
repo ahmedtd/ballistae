@@ -1,5 +1,9 @@
 #include "libballistae/render_scene.hh"
 
+#include <fstream>
+
+#include "libballistae/spectral_image.hh"
+
 namespace ballistae {
 
 fixvec<double, 3> scan_plane_to_image_space(std::size_t cur_row,
@@ -59,44 +63,14 @@ double sample_ray(const dray3 &initial_query, const scene &the_scene,
   return accum_power;
 }
 
-color_d_XYZ shade_pixel(const std::size_t cur_row, const std::size_t cur_col,
-                        const std::size_t img_rows, const std::size_t img_cols,
-                        const camera &the_camera, const scene &the_scene,
-                        unsigned int ss_gridsize, double lambda_min,
-                        double lambda_max, std::mt19937 &thread_rng,
-                        size_t depth_lim) {
-  std::uniform_real_distribution<double> lambda_dist(lambda_min, lambda_max);
-
-  double sample_bandwidth =
-      (lambda_max - lambda_min) / (ss_gridsize * ss_gridsize);
-
-  color_d_XYZ result = {0, 0, 0};
-
-  for (size_t i = 0; i < ss_gridsize * ss_gridsize; ++i) {
-    // double lambda_cur = lambda_dist(thread_rng);
-    double lambda_cur = lambda_min + double(i) * (lambda_max - lambda_min) /
-                                         double(ss_gridsize * ss_gridsize);
-
-    auto image_coords = scan_plane_to_image_space(cur_row, img_rows, cur_col,
-                                                  img_cols, thread_rng);
-
-    dray3 cur_query = the_camera.image_to_ray(image_coords, thread_rng);
-
-    double sampled_power =
-        sample_ray(cur_query, the_scene, lambda_cur, thread_rng, depth_lim) /
-        (ss_gridsize * ss_gridsize);
-
-    result += spectral_to_XYZ(lambda_cur - sample_bandwidth / 2,
-                              lambda_cur + sample_bandwidth / 2, sampled_power);
-  }
-
-  return result;
-}
-
 void render_scene(const options &the_options, const camera &the_camera,
                   const scene &the_scene,
                   std::function<void(size_t, size_t)> progress_function) {
-  image<float> result({the_options.img_rows, the_options.img_cols, 3}, 0.0f);
+  spectral_image power_density_samples(
+      the_options.img_rows, the_options.img_cols,
+      the_options.gridsize * the_options.gridsize, the_options.lambda_min,
+      the_options.lambda_max);
+
   size_t cur_progress = 0;
 
 #pragma omp parallel
@@ -106,16 +80,35 @@ void render_scene(const options &the_options, const camera &the_camera,
 #pragma omp for schedule(dynamic, 128)
     for (size_t cr = 0; cr < the_options.img_rows; ++cr) {
       for (size_t cc = 0; cc < the_options.img_cols; ++cc) {
-        color_d_XYZ cur_XYZ = shade_pixel(
-            cr, cc, the_options.img_rows, the_options.img_cols, the_camera,
-            the_scene, the_options.gridsize, the_options.lambda_min,
-            the_options.lambda_max, thread_rng, the_options.maxdepth);
+        for (size_t i = 0; i < the_options.gridsize * the_options.gridsize;
+             ++i) {
+          double lambda_cur =
+              the_options.lambda_min +
+              double(i) * (the_options.lambda_max - the_options.lambda_min) /
+                  double(the_options.gridsize * the_options.gridsize);
 
-        color_d_rgb cur_rgb = clamp_0(to_rgb(cur_XYZ));
+          auto image_coords = scan_plane_to_image_space(
+              cr, the_options.img_rows, cc, the_options.img_cols, thread_rng);
 
-        for (size_t chan = 0; chan < 3; ++chan) {
-          result(cr, cc, chan) = cur_rgb.channels[chan];
+          dray3 cur_query = the_camera.image_to_ray(image_coords, thread_rng);
+
+          double sampled_power = sample_ray(cur_query, the_scene, lambda_cur,
+                                            thread_rng, the_options.maxdepth) /
+                                 (the_options.gridsize * the_options.gridsize);
+
+          power_density_samples.record_sample(cr, cc, lambda_cur,
+                                              sampled_power);
+
+          // cur_color +=
+          //     spectral_to_XYZ(lambda_cur - sample_bandwidth / 2,
+          //                     lambda_cur + sample_bandwidth / 2,
+          //                     sampled_power);
         }
+        // color_d_rgb cur_rgb = clamp_0(to_rgb(result));
+
+        // for (size_t chan = 0; chan < 3; ++chan) {
+        //   result(cr, cc, chan) = cur_rgb.channels[chan];
+        // }
       }
 
 #pragma omp atomic
@@ -128,7 +121,9 @@ void render_scene(const options &the_options, const camera &the_camera,
     }
   }
 
-  write_pfm(result, the_options.output_file);
+  std::fstream output(the_options.output_file,
+                      fstream::out | fstream::trunc | fstream::binary);
+  write_spectral_image(&power_density, &out);
 }
 
 }  // namespace ballistae

@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "libballistae/camera.hh"
-#include "libballistae/image.hh"
 #include "libballistae/ray.hh"
 #include "libballistae/scene.hh"
 #include "libballistae/span.hh"

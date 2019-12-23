@@ -1,3 +1,5 @@
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
 cc_library(
     name = "libballistae",
     visibility = ["//visibility:public"],
@@ -8,7 +10,7 @@ cc_library(
         ":contact",
         ":dense_signal",
         ":geometry",
-        ":image",
+        ":spectral_image",
         ":image_patch",
         ":kd_tree",
         ":material",
@@ -81,8 +83,13 @@ cc_library(
 )
 
 cc_library(
-    name = "image",
-    hdrs = ["image.hh"],
+    name = "spectral_image",
+    hdrs = ["spectral_image.hh"],
+    srcs = ["spectral_image.cc"],
+    deps = [
+        ":spectral_image_file_cc_proto",
+        "//third_party/zlib",
+    ],
 )
 
 cc_library(
@@ -142,12 +149,12 @@ cc_library(
     srcs = ["render_scene.cc"],
     deps = [
         ":camera",
-        ":image",
+        ":spectral_image",
         ":ray",
         ":scene",
         ":span",
     ],
-    copts=["-fopenmp"],
+    copts = ["-fopenmp"],
     linkopts = ["-lgomp"],
 )
 
@@ -160,7 +167,7 @@ cc_library(
         ":color",
         ":contact",
         ":geometry",
-        ":image",
+        ":spectral_image",
         ":kd_tree",
         ":material",
         ":material_map",
@@ -198,4 +205,14 @@ cc_library(
     deps = [
         "//frustum/indicial",
     ],
+)
+
+proto_library(
+    name = "spectral_image_file",
+    srcs = ["spectral_image_file.proto"],
+)
+
+cc_proto_library(
+    name = "spectral_image_file_cc_proto",
+    deps = [":spectral_image_file"],
 )

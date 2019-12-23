@@ -12,7 +12,6 @@
 #include "libballistae/color.hh"
 #include "libballistae/contact.hh"
 #include "libballistae/geometry.hh"
-#include "libballistae/image.hh"
 #include "libballistae/kd_tree.hh"
 #include "libballistae/material.hh"
 #include "libballistae/material_map.hh"

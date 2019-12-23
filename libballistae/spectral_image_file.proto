@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package ballistae.spectral_image_file;
+
+message SpectralImageHeader {
+  uint32 row_size = 1;
+  uint32 col_size = 2;
+  uint32 frequency_size = 3;
+  float frequency_min = 4;
+  float frequency_max = 5;
+}
