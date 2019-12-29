@@ -3,4 +3,7 @@ cc_library(
     hdrs = glob(["*.hh"]),
     visibility = ["//visibility:public"],
     deps = ["//frustum/utility"],
+    copts = [
+        "--std=c++17",
+    ],
 )

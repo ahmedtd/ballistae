@@ -10,7 +10,7 @@
 
 namespace ballistae {
 
-class spectral_image {
+struct spectral_image {
   std::size_t row_size;
   std::size_t col_size;
   std::size_t freq_size;
@@ -22,14 +22,37 @@ class spectral_image {
   std::vector<float> power_density_counts;
 
  public:
+  spectral_image();
   spectral_image(std::size_t row_size_in, std::size_t col_size_in,
                  std::size_t freq_size_in, float freq_min_in,
                  float freq_max_in);
+
+  void resize(std::size_t row_size, std::size_t col_size,
+              std::size_t freq_size);
 
   void record_sample(std::size_t x, std::size_t y, float freq,
                      float power_density);
 };
 
-void write_spectral_image(spectral_image *im, std::ostream *out);
+enum class read_spectral_image_error {
+  ok = 0,
+  error_reading_header_length,
+  error_reading_header,
+  error_bad_data_layout_version,
+  error_decompressing,
+};
+
+read_spectral_image_error read_spectral_image(spectral_image *im,
+                                              std::istream *in);
+
+enum class write_spectral_image_error {
+  ok = 0,
+  error_writing_header_length,
+  error_writing_header,
+  error_compressing,
+};
+
+write_spectral_image_error write_spectral_image(spectral_image *im,
+                                                std::ostream *out);
 
 }  // namespace ballistae

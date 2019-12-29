@@ -121,9 +121,10 @@ void render_scene(const options &the_options, const camera &the_camera,
     }
   }
 
-  std::fstream output(the_options.output_file,
-                      fstream::out | fstream::trunc | fstream::binary);
-  write_spectral_image(&power_density, &out);
+  std::fstream output(the_options.output_file, std::fstream::out |
+                                                   std::fstream::trunc |
+                                                   std::fstream::binary);
+  write_spectral_image(&power_density_samples, &output);
 }
 
 }  // namespace ballistae

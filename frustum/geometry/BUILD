@@ -3,4 +3,7 @@ cc_library(
     hdrs = ["affine_transform.hh"],
     visibility = ["//visibility:public"],
     deps = ["//frustum/indicial"],
+    copts = [
+        "--std=c++17",
+    ],
 )
