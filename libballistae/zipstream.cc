@@ -37,12 +37,8 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
   while (true) {
     int flush_mode = this->in->eof() ? Z_FINISH : Z_NO_FLUSH;
 
-    std::cout << "about to inflate avail_in: " << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
     int inflate_status = inflate(&this->stream, flush_mode);
     this->last_read_size = n - this->stream.avail_out;
-    std::cout << "inflated avail_in: " << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
     if (inflate_status == Z_STREAM_END) {
       // The zip stream has ended.
 
@@ -56,6 +52,8 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
       // If there was more data in the input stream, we should error.
       this->in->read(this->buffer.data(), this->buffer.size());
       this->stream.avail_in = this->in->gcount();
+      this->stream.next_in =
+          reinterpret_cast<unsigned char *>(this->buffer.data());
       if (!this->in->eof() || this->stream.avail_in != 0) {
         this->stream.avail_out = 0;
         this->stream.next_out = Z_NULL;
@@ -69,8 +67,6 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
     if (inflate_status != Z_OK) {
       this->stream.avail_out = 0;
       this->stream.next_out = Z_NULL;
-      std::cout << "Exiting due to error_decompressing " << inflate_status
-                << " " << this->stream.msg << std::endl;
       return zipreader_error::error_decompressing;
     }
 
@@ -81,9 +77,9 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
     // EOF but the zip stream hasn't finished.
     if (this->stream.avail_in == 0) {
       this->in->read(this->buffer.data(), this->buffer.size());
+      this->stream.avail_in = this->in->gcount();
       this->stream.next_in =
           reinterpret_cast<unsigned char *>(this->buffer.data());
-      this->stream.avail_in = this->in->gcount();
     }
 
     if (this->stream.avail_out == 0) {
@@ -119,9 +115,6 @@ zipwriter_error zipwriter::close() {
   this->stream.avail_in = 0;
   this->stream.next_in = Z_NULL;
   while (true) {
-    std::cerr << "about to Z_FINISH deflate... avail_in: "
-              << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
     int deflate_status = deflate(&this->stream, Z_FINISH);
     if (deflate_status == Z_STREAM_ERROR) {
       // TODO(ahmedtd): Preserve section of this->buffer that hasn't been
@@ -130,13 +123,8 @@ zipwriter_error zipwriter::close() {
       return zipwriter_error::error_compressing;
     }
 
-    std::cerr << "Z_FINISH deflated... avail_in: " << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
-
     // Flush output buffer if possible
     if (this->stream.avail_out != this->buffer.size()) {
-      std::cerr << "flushing " << this->buffer.size() - this->stream.avail_out
-                << std::endl;
       this->out->write(this->buffer.data(),
                        this->buffer.size() - this->stream.avail_out);
       if (!out->good()) {
@@ -162,8 +150,6 @@ zipwriter_error zipwriter::write(char *buf, std::size_t n) {
   this->stream.avail_in = n;
   this->stream.next_in = reinterpret_cast<unsigned char *>(buf);
   while (this->stream.avail_in > 0) {
-    std::cerr << "about to deflate... avail_in: " << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
     int deflate_status = deflate(&this->stream, Z_NO_FLUSH);
     if (deflate_status == Z_STREAM_ERROR) {
       // TODO(ahmedtd): Preserve section of this->buffer that hasn't been
@@ -173,13 +159,8 @@ zipwriter_error zipwriter::write(char *buf, std::size_t n) {
       return zipwriter_error::error_compressing;
     }
 
-    std::cerr << "deflated... avail_in: " << this->stream.avail_in
-              << " avail_out: " << this->stream.avail_out << std::endl;
-
     // Flush output buffer if possible
     if (this->stream.avail_out != this->buffer.size()) {
-      std::cerr << "flushing " << this->buffer.size() - this->stream.avail_out
-                << std::endl;
       this->out->write(this->buffer.data(),
                        this->buffer.size() - this->stream.avail_out);
       if (!out->good()) {

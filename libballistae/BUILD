@@ -305,6 +305,7 @@ cc_test(
     copts = ["--std=c++17"],
     deps = [
         ":zipstream",
+        "//third_party/cc/rapidcheck:gtest",
         "@googletest//:gtest_main",
     ],
 )
