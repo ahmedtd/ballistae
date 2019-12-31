@@ -44,7 +44,6 @@ TEST(ZipStream, BasicRoundTrip) {
 }
 
 RC_GTEST_PROP(ZipStream, EverythingRoundTrips, ()) {
-  using std::min;
   auto buf_size = *rc::gen::inRange(1, 1024 * 1024);
   auto data = *rc::gen::arbitrary<std::vector<char>>();
 

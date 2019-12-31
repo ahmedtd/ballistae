@@ -35,9 +35,7 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
   this->stream.avail_out = n;
   this->stream.next_out = reinterpret_cast<unsigned char *>(buf);
   while (true) {
-    int flush_mode = this->in->eof() ? Z_FINISH : Z_NO_FLUSH;
-
-    int inflate_status = inflate(&this->stream, flush_mode);
+    int inflate_status = inflate(&this->stream, Z_NO_FLUSH);
     this->last_read_size = n - this->stream.avail_out;
     if (inflate_status == Z_STREAM_END) {
       // The zip stream has ended.
