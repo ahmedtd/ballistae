@@ -8,9 +8,9 @@ TEST(SpectralImage, BasicRoundTrip) {
   std::stringstream memstream(std::stringstream::in | std::stringstream::out |
                               std::stringstream::binary);
 
-  ballistae::spectral_image im1(10, 11, 12, 0.0, 1.0);
+  ballistae::spectral_image im1(1, 2, 3, 0.0, 1.0);
   im1.record_sample(0, 0, 0.0, 3.14159);
-  im1.record_sample(9, 10, 0.9, 1337.0);
+  im1.record_sample(0, 1, 0.9, 1337.0);
 
   auto write_err = ballistae::write_spectral_image(&im1, &memstream);
   ASSERT_EQ(write_err, ballistae::write_spectral_image_error::ok);

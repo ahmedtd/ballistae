@@ -85,8 +85,6 @@ read_spectral_image_error read_spectral_image(spectral_image *im,
   zipreader_error ret =
       reader.read(reinterpret_cast<char *>(im->power_density_sums.data()), n);
   if (reader.last_read_size != n || ret != zipreader_error::ok) {
-    std::cerr << "didn't read enough data for sums" << std::endl;
-    std::cerr << "read " << reader.last_read_size << std::endl;
     reader.close();
     return read_spectral_image_error::error_decompressing;
   }
@@ -96,7 +94,6 @@ read_spectral_image_error read_spectral_image(spectral_image *im,
       reader.read(reinterpret_cast<char *>(im->power_density_counts.data()), n);
   if (reader.last_read_size != n ||
       (ret != zipreader_error::ok && ret != zipreader_error::error_eof)) {
-    std::cerr << "didn't read enough data for counts" << std::endl;
     reader.close();
     return read_spectral_image_error::error_decompressing;
   }
@@ -133,65 +130,30 @@ write_spectral_image_error write_spectral_image(spectral_image *im,
     return write_spectral_image_error::error_writing_header;
   }
 
-  std::vector<char> zlib_output_buffer(1024 * 1024);
-
-  z_stream strm;
-  strm.zalloc = Z_NULL;
-  strm.zfree = Z_NULL;
-  strm.opaque = Z_NULL;
-  if (deflateInit(&strm, 9)) {
+  ::ballistae::zipwriter writer;
+  auto writer_err = writer.open(out, 1024 * 1024);
+  if (writer_err != ::ballistae::zipwriter_error::ok) {
     return write_spectral_image_error::error_compressing;
   }
 
-  // Write power_density_sums
-  do {
-    strm.avail_out = zlib_output_buffer.size();
-    strm.next_out =
-        reinterpret_cast<unsigned char *>(zlib_output_buffer.data());
+  writer_err =
+      writer.write(reinterpret_cast<char *>(im->power_density_sums.data()),
+                   sizeof(float) * im->power_density_sums.size());
+  if (writer_err != ::ballistae::zipwriter_error::ok) {
+    return write_spectral_image_error::error_compressing;
+  }
 
-    strm.avail_in = sizeof(float) * im->power_density_sums.size();
-    strm.next_in =
-        reinterpret_cast<unsigned char *>(im->power_density_sums.data());
+  writer_err =
+      writer.write(reinterpret_cast<char *>(im->power_density_counts.data()),
+                   sizeof(float) * im->power_density_counts.size());
+  if (writer_err != ::ballistae::zipwriter_error::ok) {
+    return write_spectral_image_error::error_compressing;
+  }
 
-    int ret = deflate(&strm, Z_NO_FLUSH);
-    if (ret == Z_STREAM_ERROR) {
-      deflateEnd(&strm);
-      return write_spectral_image_error::error_compressing;
-    }
-
-    std::size_t used_out = zlib_output_buffer.size() - strm.avail_out;
-    out->write(zlib_output_buffer.data(), used_out);
-    if (!out->good()) {
-      deflateEnd(&strm);
-      return write_spectral_image_error::error_compressing;
-    }
-  } while (strm.avail_out == 0);
-
-  // Write power_density_counts
-  do {
-    strm.avail_out = zlib_output_buffer.size();
-    strm.next_out =
-        reinterpret_cast<unsigned char *>(zlib_output_buffer.data());
-
-    strm.avail_in = sizeof(float) * im->power_density_counts.size();
-    strm.next_in =
-        reinterpret_cast<unsigned char *>(im->power_density_counts.data());
-
-    int ret = deflate(&strm, Z_FINISH);
-    if (ret == Z_STREAM_ERROR) {
-      deflateEnd(&strm);
-      return write_spectral_image_error::error_compressing;
-    }
-
-    std::size_t used_out = zlib_output_buffer.size() - strm.avail_out;
-    out->write(zlib_output_buffer.data(), used_out);
-    if (!out->good()) {
-      deflateEnd(&strm);
-      return write_spectral_image_error::error_compressing;
-    }
-  } while (strm.avail_out == 0);
-
-  deflateEnd(&strm);
+  writer_err = writer.close();
+  if (writer_err != ::ballistae::zipwriter_error::ok) {
+    return write_spectral_image_error::error_compressing;
+  }
 
   return write_spectral_image_error::ok;
 }
