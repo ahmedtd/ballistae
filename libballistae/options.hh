@@ -46,7 +46,7 @@ options take_options(int argc, char **argv) {
   o.lambda_max = 835;
   o.maxdepth = 8;
   o.asset_dir = "./";
-  o.output_file = "output.pfm";
+  o.output_file = "output.spectral";
 
   static option long_options[] = {
       {"help", no_argument, 0, 0},
