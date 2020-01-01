@@ -11,7 +11,6 @@
 #include "libballistae/material/mc_lambert.hh"
 #include "libballistae/material/pc_smooth.hh"
 #include "libballistae/material_map.hh"
-#include "libballistae/options.hh"
 #include "libballistae/render_scene.hh"
 #include "libballistae/scene.hh"
 
@@ -19,7 +18,15 @@ using namespace frustum;
 using namespace ballistae;
 
 int main(int argc, char **argv) {
-  options the_options = take_options(argc, argv);
+  options the_options;
+  the_options.gridsize = 5;
+  the_options.img_rows = 512;
+  the_options.img_cols = 512;
+  the_options.lambda_min = 390.0;
+  the_options.lambda_max = 835.0;
+  the_options.maxdepth = 8;
+  the_options.asset_dir = "./";
+  the_options.output_file = "output.spectral";
 
   scene the_scene;
 

@@ -17,7 +17,6 @@ cc_library(
         ":kd_tree",
         ":material",
         ":material_map",
-        ":options",
         ":ray",
         ":render_scene",
         ":scene",
@@ -170,17 +169,6 @@ cc_library(
         ":dense_signal",
         ":vector",
         "//frustum/indicial",
-    ],
-)
-
-cc_library(
-    name = "options",
-    hdrs = ["options.hh"],
-    copts = [
-        "--std=c++17",
-    ],
-    deps = [
-        ":scene",
     ],
 )
 
