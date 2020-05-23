@@ -24,7 +24,9 @@ class surface_mesh : public ballistae::geometry {
   virtual aabox<double, 3> get_aabox() { return mesh_crushed.root->bounds; }
 
   virtual void crush(double time) {
-    if (time != last_crush_time) mesh_crushed = crunch(mesh);
+    if (time != last_crush_time) {
+      mesh_crushed = crunch(mesh);
+    }
     last_crush_time = time;
   }
 
