@@ -408,95 +408,95 @@ const dense_signal<Field>& cie_2006_Y() {
 
 template <class Field>
 const dense_signal<Field>& cie_2006_Z() {
-  static const std::vector<double> vals = {0.0184726,
-                                           0.04609784,
-                                           0.109609,
-                                           0.2369246,
-                                           0.4508369,
-                                           0.7378822,
-                                           1.051821,
-                                           1.305008,
-                                           1.552826,
-                                           1.74828,
-                                           1.917479,
-                                           1.918437,
-                                           1.848545,
-                                           1.664439,
-                                           1.522157,
-                                           1.42844,
-                                           1.25061,
-                                           0.9991789,
-                                           0.7552379,
-                                           0.5617313,
-                                           0.4099313,
-                                           0.3105939,
-                                           0.2376753,
-                                           0.1720018,
-                                           0.1176796,
-                                           0.08283548,
-                                           0.05650407,
-                                           0.03751912,
-                                           0.02438164,
-                                           0.01566174,
-                                           0.00984647,
-                                           0.006131421,
-                                           0.003790291,
-                                           0.002327186,
-                                           0.001432128,
-                                           0.0008822531,
-                                           0.0005452416,
-                                           0.0003386739,
-                                           0.0002117772,
-                                           0.0001335031,
-                                           8.494468E-005,
-                                           5.460706E-005,
-                                           3.549661E-005,
-                                           2.334738E-005,
-                                           1.554631E-005,
-                                           1.048387E-005,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0,
-                                           0};
+  static const std::vector<Field> vals = {0.0184726,
+                                          0.04609784,
+                                          0.109609,
+                                          0.2369246,
+                                          0.4508369,
+                                          0.7378822,
+                                          1.051821,
+                                          1.305008,
+                                          1.552826,
+                                          1.74828,
+                                          1.917479,
+                                          1.918437,
+                                          1.848545,
+                                          1.664439,
+                                          1.522157,
+                                          1.42844,
+                                          1.25061,
+                                          0.9991789,
+                                          0.7552379,
+                                          0.5617313,
+                                          0.4099313,
+                                          0.3105939,
+                                          0.2376753,
+                                          0.1720018,
+                                          0.1176796,
+                                          0.08283548,
+                                          0.05650407,
+                                          0.03751912,
+                                          0.02438164,
+                                          0.01566174,
+                                          0.00984647,
+                                          0.006131421,
+                                          0.003790291,
+                                          0.002327186,
+                                          0.001432128,
+                                          0.0008822531,
+                                          0.0005452416,
+                                          0.0003386739,
+                                          0.0002117772,
+                                          0.0001335031,
+                                          8.494468E-005,
+                                          5.460706E-005,
+                                          3.549661E-005,
+                                          2.334738E-005,
+                                          1.554631E-005,
+                                          1.048387E-005,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0,
+                                          0};
 
   static const dense_signal<Field> sig = {390, 835, vals};
   return sig;
@@ -504,7 +504,7 @@ const dense_signal<Field>& cie_2006_Z() {
 
 template <class Field>
 const dense_signal<Field>& sunlight() {
-  static const std::vector<double> vals = {
+  static const std::vector<Field> vals = {
       1.247, 1.019, 1.026, 0.855, 1.522, 1.682, 1.759, 1.674, 1.589, 1.735,
       1.532, 1.789, 1.737, 1.842, 1.684, 1.757, 1.582, 1.767, 1.698, 1.587,
       1.135, 1.646, 1.670, 1.929, 1.567, 1.713, 1.980, 1.973, 1.891, 1.973,
@@ -535,7 +535,7 @@ const dense_signal<Field>& sunlight() {
 
 template <class Field>
 const dense_signal<Field>& cie_a() {
-  static const std::vector<double> vals = {
+  static const std::vector<Field> vals = {
       0.930483,   1.128210,   1.357690,   1.622190,   1.925080,   2.269800,
       2.659810,   3.098610,   3.589680,   4.136480,   4.742380,   5.410700,
       6.144620,   6.947200,   7.821350,   8.769800,   9.795100,   10.899600,
@@ -560,7 +560,7 @@ const dense_signal<Field>& cie_a() {
 
 template <class Field>
 const dense_signal<Field>& cie_d65() {
-  static const std::vector<double> vals = {
+  static const std::vector<Field> vals = {
       0.034100,   1.664300,   3.294500,   11.765200,  20.236000,  28.644700,
       37.053500,  38.501100,  39.948800,  42.430200,  44.911700,  45.775000,
       46.638300,  49.363700,  52.089100,  51.032300,  49.975500,  52.311800,
@@ -586,43 +586,43 @@ const dense_signal<Field>& cie_d65() {
 
 template <class Field>
 const dense_signal<Field>& smits_zero() {
-  static const std::vector<double> vals = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  static const std::vector<Field> vals = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }
 
 template <class Field>
 const dense_signal<Field>& smits_white() {
-  static const std::vector<double> vals = {1.0000, 1.0000, 0.9999, 0.9993,
-                                           0.9992, 0.9998, 1.0000, 1.0000,
-                                           1.0000, 1.0000};
+  static const std::vector<Field> vals = {1.0000, 1.0000, 0.9999, 0.9993,
+                                          0.9992, 0.9998, 1.0000, 1.0000,
+                                          1.0000, 1.0000};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }
 
 template <class Field>
 const dense_signal<Field>& smits_cyan() {
-  static const std::vector<double> vals = {0.9710, 0.9426, 1.0007, 1.0007,
-                                           1.0007, 1.0007, 0.1564, 0.0000,
-                                           0.0000, 0.0000};
+  static const std::vector<Field> vals = {0.9710, 0.9426, 1.0007, 1.0007,
+                                          1.0007, 1.0007, 0.1564, 0.0000,
+                                          0.0000, 0.0000};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }
 
 template <class Field>
 const dense_signal<Field>& smits_magenta() {
-  static const std::vector<double> vals = {1.0000, 1.0000, 0.9685, 0.2229,
-                                           0.0000, 0.0458, 0.8369, 1.0000,
-                                           1.0000, 0.9959};
+  static const std::vector<Field> vals = {1.0000, 1.0000, 0.9685, 0.2229,
+                                          0.0000, 0.0458, 0.8369, 1.0000,
+                                          1.0000, 0.9959};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }
 
 template <class Field>
 const dense_signal<Field>& smits_yellow() {
-  static const std::vector<double> vals = {0.0001, 0.0000, 0.1088, 0.6651,
-                                           1.0000, 1.0000, 0.9996, 0.9586,
-                                           0.9685, 0.9840};
+  static const std::vector<Field> vals = {0.0001, 0.0000, 0.1088, 0.6651,
+                                          1.0000, 1.0000, 0.9996, 0.9586,
+                                          0.9685, 0.9840};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }
@@ -638,9 +638,9 @@ const dense_signal<Field>& smits_red() {
 
 template <class Field>
 const dense_signal<Field>& smits_green() {
-  static const std::vector<double> vals = {0.0000, 0.0000, 0.0273, 0.7937,
-                                           1.0000, 0.9418, 0.1719, 0.0000,
-                                           0.0000, 0.0025};
+  static const std::vector<Field> vals = {0.0000, 0.0000, 0.0273, 0.7937,
+                                          1.0000, 0.9418, 0.1719, 0.0000,
+                                          0.0000, 0.0025};
   static const dense_signal<Field> sig = {380, 754, vals};
   return sig;
 }

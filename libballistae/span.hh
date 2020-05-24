@@ -2,6 +2,7 @@
 #define LIBBALLISTAE_SPAN_HH
 
 #include <array>
+#include <cmath>
 #include <limits>
 #include <type_traits>
 #include <utility>

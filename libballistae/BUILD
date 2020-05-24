@@ -1,5 +1,7 @@
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
+package(default_visibility=["//spectral_converter:__pkg__"])
+
 cc_library(
     name = "libballistae",
     copts = [
@@ -59,6 +61,7 @@ cc_library(
 
 cc_library(
     name = "color",
+    srcs = ["color.cc"],
     hdrs = ["color.hh"],
     copts = [
         "--std=c++17",
@@ -110,6 +113,7 @@ cc_library(
         "--std=c++17",
     ],
     deps = [
+        ":span",
         ":spectral_image_file_cc_proto",
         ":zipstream",
     ],

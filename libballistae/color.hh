@@ -10,8 +10,8 @@
 
 namespace ballistae {
 
-struct rgb_tag {};
-struct XYZ_tag {};
+struct srgb_tag {};
+struct xyz_tag {};
 
 template <class Elem, class CSTag>
 struct color3 {
@@ -49,29 +49,36 @@ color3<Elem, CSTag> operator+(const color3<Elem, CSTag> &a,
 template <class Elem, class CSTag>
 color3<Elem, CSTag> clamp_0(const color3<Elem, CSTag> &a) {
   using std::max;
-
   color3<Elem, CSTag> result = {max(Elem(0), a.channels[0]),
                                 max(Elem(0), a.channels[1]),
                                 max(Elem(0), a.channels[2])};
   return result;
 }
 
-template <class Field>
-color3<Field, rgb_tag> to_rgb(const color3<Field, XYZ_tag> &src) {
-  color3<Field, rgb_tag> result = {
-      3.240479 * src[0] + -1.537150 * src[1] + -0.498535 * src[2],
-      -0.969265 * src[0] + 1.875992 * src[1] + 0.041556 * src[2],
-      0.055648 * src[0] + -0.204043 * src[1] + 1.057311 * src[2]};
+template <class Elem, class CSTag>
+color3<Elem, CSTag> clamp_1(const color3<Elem, CSTag> &a) {
+  using std::min;
+  color3<Elem, CSTag> result = {min(Elem(1), a.channels[0]),
+                                min(Elem(1), a.channels[1]),
+                                min(Elem(1), a.channels[2])};
   return result;
 }
 
-using color_d_rgb = color3<double, rgb_tag>;
-using color_d_XYZ = color3<double, XYZ_tag>;
+template <class Elem, class CSTag>
+color3<Elem, CSTag> clamp_01(const color3<Elem, CSTag> &a) {
+  return clamp_0<Elem, CSTag>(clamp_1<Elem, CSTag>(a));
+}
+
+color3<float, srgb_tag> xyz_to_srgb(const color3<float, xyz_tag> &src);
+color3<float, xyz_tag> srgb_to_xyz(const color3<float, srgb_tag> &src);
+
+using color_d_srgb = color3<double, srgb_tag>;
+using color_d_XYZ = color3<double, xyz_tag>;
 
 template <class Field>
-color3<Field, XYZ_tag> spectral_to_XYZ(const Field &src_x, const Field &lim_x,
+color3<Field, xyz_tag> spectral_to_XYZ(const Field &src_x, const Field &lim_x,
                                        const Field &y) {
-  color3<Field, XYZ_tag> result;
+  color3<Field, xyz_tag> result;
   result.channels[0] = partial_iprod(cie_2006_X<Field>(), src_x, lim_x, y);
   result.channels[1] = partial_iprod(cie_2006_Y<Field>(), src_x, lim_x, y);
   result.channels[2] = partial_iprod(cie_2006_Z<Field>(), src_x, lim_x, y);
@@ -79,7 +86,7 @@ color3<Field, XYZ_tag> spectral_to_XYZ(const Field &src_x, const Field &lim_x,
 }
 
 template <class Field>
-dense_signal<Field> rgb_to_spectral(const color3<Field, rgb_tag> &src) {
+dense_signal<Field> srgb_to_spectral(const color3<Field, srgb_tag> &src) {
   const Field &r = src[0];
   const Field &g = src[1];
   const Field &b = src[2];

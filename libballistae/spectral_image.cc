@@ -45,6 +45,40 @@ void spectral_image::record_sample(std::size_t row, std::size_t col, float freq,
   this->power_density_counts[sample_index] += 1.0;
 }
 
+spectral_image::sample spectral_image::read_sample(std::size_t r, std::size_t c,
+                                                   std::size_t f) {
+  std::size_t sample_index =
+      r * this->col_size * this->freq_size + c * this->freq_size + f;
+
+  float freq_step = (this->freq_max - this->freq_min) / this->freq_size;
+
+  spectral_image::sample sample;
+
+  sample.freq_span =
+      span<float>{f * freq_step + freq_min, (f + 1) * freq_step + freq_min};
+  sample.power_density_sum = this->power_density_sums[sample_index];
+  sample.power_density_count = this->power_density_counts[sample_index];
+
+  return sample;
+}
+
+std::string read_spectral_image_error_to_string(read_spectral_image_error err) {
+  switch (err) {
+    case read_spectral_image_error::ok:
+      return "ok";
+    case read_spectral_image_error::error_reading_header_length:
+      return "error while reading header length";
+    case read_spectral_image_error::error_reading_header:
+      return "error while reading header";
+    case read_spectral_image_error::error_bad_data_layout_version:
+      return "got bad data layout version";
+    case read_spectral_image_error::error_decompressing:
+      return "error while decompressing";
+    default:
+      return "unknown error";
+  }
+}
+
 read_spectral_image_error read_spectral_image(spectral_image *im,
                                               std::istream *in) {
   ::ballistae::spectral_image_file::SpectralImageHeader hdr;

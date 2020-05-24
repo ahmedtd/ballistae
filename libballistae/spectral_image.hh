@@ -8,6 +8,8 @@
 #include <type_traits>
 #include <vector>
 
+#include "libballistae/span.hh"
+
 namespace ballistae {
 
 struct spectral_image {
@@ -30,8 +32,16 @@ struct spectral_image {
   void resize(std::size_t row_size, std::size_t col_size,
               std::size_t freq_size);
 
-  void record_sample(std::size_t x, std::size_t y, float freq,
+  void record_sample(std::size_t r, std::size_t c, float freq,
                      float power_density);
+
+  struct sample {
+    span<float> freq_span;
+    float power_density_sum;
+    float power_density_count;
+  };
+
+  sample read_sample(std::size_t r, std::size_t c, std::size_t f);
 };
 
 enum class read_spectral_image_error {
@@ -41,6 +51,8 @@ enum class read_spectral_image_error {
   error_bad_data_layout_version,
   error_decompressing,
 };
+
+std::string read_spectral_image_error_to_string(read_spectral_image_error err);
 
 read_spectral_image_error read_spectral_image(spectral_image *im,
                                               std::istream *in);
