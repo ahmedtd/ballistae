@@ -92,6 +92,8 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
 
   using std::distance;
 
+  std::mt19937 rng;
+
   std::vector<aanode<Field, D, Stored> *> work_stack;
   work_stack.push_back(cur);
 
@@ -107,7 +109,7 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
     size_t cut_axis;
     Field cut;
     std::tie(should_cut, cut_axis, cut) =
-        split_sah(*(cur), get_aabox, split_cost, threshold);
+        split_sah(*(cur), get_aabox, split_cost, threshold, rng);
 
     // Terminate recursion if indicated.
     if (!should_cut) continue;
@@ -156,7 +158,8 @@ template <typename Field, size_t D, typename Stored, typename StoredToAABox>
 std::tuple<bool, size_t, Field> split_sah(aanode<Field, D, Stored> &cur,
                                           StoredToAABox get_aabox,
                                           Field split_cost,
-                                          Field termination_threshold) {
+                                          Field termination_threshold,
+                                          std::mt19937 &rng) {
   using std::begin;
   using std::end;
 
@@ -169,24 +172,23 @@ std::tuple<bool, size_t, Field> split_sah(aanode<Field, D, Stored> &cur,
   Field piv_cut;
   Field piv_objective = std::numeric_limits<Field>::infinity();
 
+  std::uniform_int_distribution<std::size_t> element_picker(
+      0, std::distance(cur.elements_src, cur.elements_lim));
   for (size_t axis = 0; axis < D; ++axis) {
-    // Sort on axis
-    std::sort(cur.elements_src, cur.elements_lim, [&](auto a, auto b) {
-      return aabox_axial_comparator(axis, get_aabox(a), get_aabox(b));
-    });
+    // Check five random elements from this axis
+    for (std::size_t cur_check = 0; cur_check < 5; cur_check++) {
+      auto it = cur.elements_src + element_picker(rng);
 
-    // auto median_it = cur.elements_src + distance(cur.elements_src,
-    // cur.elements_lim) / 2;
-
-    for (auto it = cur.elements_src; it != cur.elements_lim; ++it) {
-      auto precede_src = cur.elements_src;
-      auto precede_lim =
-          std::find_if_not(cur.elements_src, cur.elements_lim, [&](auto &e) {
+      auto split =
+          std::partition(cur.elements_src, cur.elements_lim, [&](auto &e) {
             return strictly_precedes(get_aabox(e).spans[axis],
                                      get_aabox(*it).spans[axis].hi);
           });
 
-      auto succeed_src = precede_lim;
+      auto precede_src = cur.elements_src;
+      auto precede_lim = split;
+
+      auto succeed_src = split;
       auto succeed_lim = cur.elements_lim;
 
       aabox<Field, D> lo_box = std::accumulate(
