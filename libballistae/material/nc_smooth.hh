@@ -1,11 +1,11 @@
 #ifndef BALLISTAE_MATERIAL_NC_SMOOTH_HH
 #define BALLISTAE_MATERIAL_NC_SMOOTH_HH
 
-#include <frustum-0/indicial/fixed.hh>
-#include <libballistae/dense_signal.hh>
-#include <libballistae/material.hh>
-#include <libballistae/material_map.hh>
-#include <libballistae/vector.hh>
+#include "frustum/indicial/fixed.hh"
+#include "libballistae/dense_signal.hh"
+#include "libballistae/material.hh"
+#include "libballistae/material_map.hh"
+#include "libballistae/vector.hh"
 
 namespace ballistae {
 

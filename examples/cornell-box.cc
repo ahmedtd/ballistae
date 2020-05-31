@@ -13,6 +13,7 @@
 #include "libballistae/material/emitter.hh"
 #include "libballistae/material/gauss.hh"
 #include "libballistae/material/mc_lambert.hh"
+#include "libballistae/material/nc_smooth.hh"
 #include "libballistae/material/pc_smooth.hh"
 #include "libballistae/material_map.hh"
 #include "libballistae/render_scene.hh"
@@ -114,7 +115,13 @@ int main(int argc, char **argv) {
   auto cie_a_emitter = materials::make_emitter(
       material_map::make_constant_spectrum(10 * cie_a<double>()));
   auto matte = materials::make_gauss(material_map::make_constant_scalar(0.5));
-  auto matte2 = materials::make_gauss(material_map::make_constant_scalar(0.0));
+  auto matte2 = materials::make_gauss(material_map::make_constant_scalar(0.05));
+  auto green_matte = materials::make_mc_lambert(
+      material_map::make_constant_spectrum(smits_green<double>()));
+  auto glass =
+      materials::make_nc_smooth(material_map::make_constant_spectrum(
+                                    ramp<double>(390.0, 835.0, 89, 1.7, 1.5)),
+                                material_map::make_constant_scalar(1.0));
 
   infinity infinity;
   sphere sphere;
@@ -144,9 +151,11 @@ int main(int argc, char **argv) {
            affine_transform<double, 3>::scaling(10)},
       {&ground, &matte2, affine_transform<double, 3>::identity()},
       {&roof, &matte2, affine_transform<double, 3>::identity()},
-      {&wall_n, &matte2, affine_transform<double, 3>::identity()},
-      {&wall_w, &matte2, affine_transform<double, 3>::identity()},
-      {&wall_s, &matte2, affine_transform<double, 3>::identity()}};
+      {&wall_n, &green_matte, affine_transform<double, 3>::identity()},
+      {&wall_w, &green_matte, affine_transform<double, 3>::identity()},
+      {&wall_s, &green_matte, affine_transform<double, 3>::identity()},
+      {&center_box, &glass,
+       affine_transform<double, 3>::translation({4, 4, 0})}};
 
   crush(the_scene, 0.0);
 

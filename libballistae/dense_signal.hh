@@ -311,6 +311,17 @@ dense_signal<Field> delta(Field sigsrc, Field siglim, size_t n, Field x,
   return sig;
 }
 
+template <class Field>
+dense_signal<Field> ramp(Field sigsrc, Field siglim, size_t n, Field start_val,
+                         Field end_val) {
+  dense_signal<Field> sig = {sigsrc, siglim, std::vector<Field>(n, Field(0))};
+  for (std::size_t i = 0; i < n; i++) {
+    Field t = Field(i) / Field(n);
+    sig[i] = (Field(1) - t) * start_val + t * end_val;
+  }
+  return sig;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 /// Visible spectra suitable for representing primary colors.
 ////////////////////////////////////////////////////////////////////////////////
