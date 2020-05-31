@@ -1,13 +1,11 @@
 cc_binary(
-    name = "cornell-box",
-    srcs = ["cornell-box.cc"],
+    name = "spectral_inspector",
+    srcs = ["spectral_inspector.cc"],
     deps = [
-        "//libballistae:libballistae",
+        "//libballistae:color",
+        "//libballistae:spectral_image",
         "//third_party/cc/absl/absl/flags:flag",
         "//third_party/cc/absl/absl/flags:parse",
         "//third_party/cc/absl/absl/strings:str_format",
-    ],
-    copts = [
-        "--std=c++17",
     ],
 )

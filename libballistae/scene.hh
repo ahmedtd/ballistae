@@ -21,21 +21,6 @@
 
 namespace ballistae {
 
-struct options {
-  size_t gridsize;
-
-  size_t img_rows;
-  size_t img_cols;
-
-  double lambda_min;
-  double lambda_max;
-
-  size_t maxdepth;
-
-  std::string asset_dir;
-  std::string output_file;
-};
-
 class geometry;
 class material;
 template <size_t>

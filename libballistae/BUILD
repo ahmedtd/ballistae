@@ -1,6 +1,6 @@
 load("@rules_proto//proto:defs.bzl", "proto_library")
 
-package(default_visibility=["//spectral_converter:__pkg__"])
+package(default_visibility=["//spectral_converter:__pkg__", "//spectral_inspector:__pkg__"])
 
 cc_library(
     name = "libballistae",
@@ -195,9 +195,7 @@ cc_library(
     hdrs = ["render_scene.hh"],
     copts = [
         "--std=c++17",
-        "-fopenmp",
     ],
-    linkopts = ["-lgomp"],
     deps = [
         ":camera",
         ":ray",

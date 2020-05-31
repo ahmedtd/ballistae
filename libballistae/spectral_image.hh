@@ -15,10 +15,10 @@ namespace ballistae {
 struct spectral_image {
   std::size_t row_size;
   std::size_t col_size;
-  std::size_t freq_size;
+  std::size_t wavelength_size;
 
-  float freq_min;
-  float freq_max;
+  float wavelength_min;
+  float wavelength_max;
 
   std::vector<float> power_density_sums;
   std::vector<float> power_density_counts;
@@ -26,22 +26,29 @@ struct spectral_image {
  public:
   spectral_image();
   spectral_image(std::size_t row_size_in, std::size_t col_size_in,
-                 std::size_t freq_size_in, float freq_min_in,
-                 float freq_max_in);
+                 std::size_t wavelength_size_in, float wavelength_min_in,
+                 float wavelength_max_in);
 
   void resize(std::size_t row_size, std::size_t col_size,
-              std::size_t freq_size);
+              std::size_t wavelength_size);
 
-  void record_sample(std::size_t r, std::size_t c, float freq,
+  span<float> wavelength_bin(std::size_t i) const;
+
+  void record_sample(std::size_t r, std::size_t c, std::size_t wavelength_index,
                      float power_density);
 
   struct sample {
-    span<float> freq_span;
+    span<float> wavelength_span;
     float power_density_sum;
     float power_density_count;
   };
 
-  sample read_sample(std::size_t r, std::size_t c, std::size_t f);
+  sample read_sample(std::size_t r, std::size_t c, std::size_t f) const;
+
+  void cut(spectral_image *dst, std::size_t row_src, std::size_t row_lim,
+           std::size_t col_src, std::size_t col_lim) const;
+  void paste(spectral_image const *src, std::size_t row_src,
+             std::size_t col_src);
 };
 
 enum class read_spectral_image_error {
