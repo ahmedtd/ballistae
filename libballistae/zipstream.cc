@@ -88,7 +88,8 @@ zipreader_error zipreader::read(char *buf, std::size_t n) {
   }
 }
 
-zipwriter_error zipwriter::open(std::ostream *out, std::size_t bufsize) {
+zipwriter_error zipwriter::open(std::ostream *out, std::size_t bufsize,
+                                int compresslevel) {
   this->out = out;
 
   this->buffer.resize(bufsize);
@@ -96,7 +97,7 @@ zipwriter_error zipwriter::open(std::ostream *out, std::size_t bufsize) {
   this->stream.zalloc = Z_NULL;
   this->stream.zfree = Z_NULL;
   this->stream.opaque = Z_NULL;
-  if (deflateInit(&this->stream, 0)) {
+  if (deflateInit(&this->stream, compresslevel)) {
     return zipwriter_error::error_compressing;
   }
 

@@ -230,7 +230,7 @@ write_spectral_image_error write_spectral_image(spectral_image *im,
   }
 
   ::ballistae::zipwriter writer;
-  auto writer_err = writer.open(out, 1024 * 1024);
+  auto writer_err = writer.open(out, 1024 * 1024, 9);
   if (writer_err != ::ballistae::zipwriter_error::ok) {
     return write_spectral_image_error::error_compressing;
   }

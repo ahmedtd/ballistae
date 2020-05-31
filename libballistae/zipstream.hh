@@ -40,7 +40,8 @@ struct zipwriter {
   std::vector<char> buffer;
   std::size_t last_write_size;
 
-  zipwriter_error open(std::ostream *out, std::size_t bufsize);
+  zipwriter_error open(std::ostream *out, std::size_t bufsize,
+                       int compress_level);
 
   zipwriter_error close();
 

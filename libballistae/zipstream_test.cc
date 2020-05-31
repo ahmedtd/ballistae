@@ -13,7 +13,7 @@ TEST(ZipStream, BasicRoundTrip) {
   std::vector<char> data = {0x41, 0x41, 0x41, 0x41};
 
   ::ballistae::zipwriter writer;
-  auto write_err = writer.open(&memstream, 8);
+  auto write_err = writer.open(&memstream, 8, 9);
   ASSERT_EQ(write_err, ::ballistae::zipwriter_error::ok);
 
   write_err = writer.write(data.data(), data.size());
@@ -51,7 +51,7 @@ RC_GTEST_PROP(ZipStream, EverythingRoundTrips, ()) {
                               std::stringstream::binary);
 
   ::ballistae::zipwriter writer;
-  auto write_err = writer.open(&memstream, buf_size);
+  auto write_err = writer.open(&memstream, buf_size, 9);
   RC_ASSERT(write_err == ::ballistae::zipwriter_error::ok);
 
   write_err = writer.write(data.data(), data.size());
