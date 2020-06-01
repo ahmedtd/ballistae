@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
       {&wall_w, &green_matte, affine_transform<double, 3>::identity()},
       {&wall_s, &green_matte, affine_transform<double, 3>::identity()},
       {&center_box, &glass,
-       affine_transform<double, 3>::translation({4, 4, 0})}};
+       affine_transform<double, 3>::translation({3, 3, 0})}};
 
   crush(the_scene, 0.0);
 
