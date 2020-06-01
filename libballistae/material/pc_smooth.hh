@@ -20,9 +20,9 @@ class pc_smooth : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda, std::mt19937 &rng) const {
-    shade_info<double> result;
+  virtual shade_info shade(const contact &glb_contact, double lambda,
+                           std::mt19937 &rng) const {
+    shade_info result;
     result.emitted_power = 0.0;
     result.propagation_k =
         reflectance({glb_contact.mtl2, glb_contact.mtl3, lambda});

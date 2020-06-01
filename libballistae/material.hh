@@ -12,11 +12,10 @@
 
 namespace ballistae {
 
-template <class Field>
 struct shade_info {
-  Field propagation_k;
-  Field emitted_power;
-  ray<Field, 3> incident_ray;
+  double propagation_k;
+  double emitted_power;
+  ray incident_ray;
 };
 
 class material {
@@ -25,9 +24,8 @@ class material {
 
   virtual void crush(double time) = 0;
 
-  virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda,
-                                   std::mt19937 &thread_rng) const = 0;
+  virtual shade_info shade(const contact &glb_contact, double lambda,
+                           std::mt19937 &thread_rng) const = 0;
 };
 
 }  // namespace ballistae

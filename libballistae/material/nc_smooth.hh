@@ -27,8 +27,8 @@ class nc_smooth : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda, std::mt19937 &rng) const {
+  virtual shade_info shade(const contact &glb_contact, double lambda,
+                           std::mt19937 &rng) const {
     using std::pow;
     using std::sqrt;
     using std::swap;
@@ -66,7 +66,7 @@ class nc_smooth : public material {
       // All power was contributed by the reflected ray (total internal
       // reflection).
 
-      shade_info<double> result;
+      shade_info result;
       result.emitted_power = 0;
       result.propagation_k = 1.0;
       result.incident_ray.point = p;
@@ -87,7 +87,7 @@ class nc_smooth : public material {
 
     std::uniform_real_distribution<> dist(0, coeff_refl + coeff_tran);
 
-    shade_info<double> result;
+    shade_info result;
     result.emitted_power = 0.0;
     if (dist(rng) < coeff_refl) {
       // Give the ray that contributed by reflection.

@@ -16,15 +16,13 @@ class geometry {
  public:
   virtual ~geometry() {}
 
-  virtual aabox<double, 3> get_aabox() = 0;
+  virtual aabox get_aabox() = 0;
 
   virtual void crush(double time) = 0;
 
-  virtual contact<double> ray_into(
-      const ray_segment<double, 3> &query) const = 0;
+  virtual contact ray_into(const ray_segment &query) const = 0;
 
-  virtual contact<double> ray_exit(
-      const ray_segment<double, 3> &query) const = 0;
+  virtual contact ray_exit(const ray_segment &query) const = 0;
 };
 
 }  // namespace ballistae

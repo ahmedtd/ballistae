@@ -19,11 +19,11 @@ class box : public geometry {
 
   virtual ~box() {}
 
-  virtual aabox<double, 3> get_aabox() { return aabox<double, 3>{spans}; }
+  virtual aabox get_aabox() { return aabox{spans}; }
 
   virtual void crush(double time) {}
 
-  virtual contact<double> ray_into(const ray_segment<double, 3> &query) const {
+  virtual contact ray_into(const ray_segment &query) const {
     using std::max;
     using std::min;
     using std::swap;
@@ -43,7 +43,7 @@ class box : public geometry {
         normal_component = 1;
       }
 
-      if (!(overlaps(cover, cur))) return contact<double>::nan();
+      if (!(overlaps(cover, cur))) return contact::nan();
 
       if (cover.lo < cur.lo) {
         cover.lo = cur.lo;
@@ -57,7 +57,7 @@ class box : public geometry {
     }
 
     if (overlaps(cover, query.the_segment)) {
-      contact<double> result;
+      contact result;
 
       result.t = cover.lo;
       result.r = query.the_ray;
@@ -68,11 +68,11 @@ class box : public geometry {
 
       return result;
     } else {
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 
-  virtual contact<double> ray_exit(const ray_segment<double, 3> &query) const {
+  virtual contact ray_exit(const ray_segment &query) const {
     using std::max;
     using std::min;
     using std::swap;
@@ -92,7 +92,7 @@ class box : public geometry {
         normal_component = -1;
       }
 
-      if (!(overlaps(cover, cur))) return contact<double>::nan();
+      if (!(overlaps(cover, cur))) return contact::nan();
 
       if (cover.lo < cur.lo) {
         cover.lo = cur.lo;
@@ -106,7 +106,7 @@ class box : public geometry {
     }
 
     if (overlaps(cover, query.the_segment)) {
-      contact<double> result;
+      contact result;
 
       result.t = cover.hi;
       result.r = query.the_ray;
@@ -117,7 +117,7 @@ class box : public geometry {
 
       return result;
     } else {
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 };

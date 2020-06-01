@@ -15,27 +15,27 @@ class plane : public geometry {
 
   virtual ~plane() {}
 
-  virtual aabox<double, 3> get_aabox() {
+  virtual aabox get_aabox() {
     // Very few planes are not infinite on all principle axes.
-    aabox<double, 3> infinity = {-std::numeric_limits<double>::infinity(),
-                                 std::numeric_limits<double>::infinity(),
-                                 -std::numeric_limits<double>::infinity(),
-                                 std::numeric_limits<double>::infinity(),
-                                 -std::numeric_limits<double>::infinity(),
-                                 std::numeric_limits<double>::infinity()};
+    aabox infinity = {-std::numeric_limits<double>::infinity(),
+                      std::numeric_limits<double>::infinity(),
+                      -std::numeric_limits<double>::infinity(),
+                      std::numeric_limits<double>::infinity(),
+                      -std::numeric_limits<double>::infinity(),
+                      std::numeric_limits<double>::infinity()};
 
     return infinity;
   }
 
   virtual void crush(double time) {}
 
-  virtual contact<double> ray_into(const ray_segment<double, 3> &query) const {
+  virtual contact ray_into(const ray_segment &query) const {
     auto height = query.the_ray.point(0);
     auto slope = query.the_ray.slope(0);
     auto t = -height / slope;
 
     if (slope < double(0) && contains(query.the_segment, t)) {
-      contact<double> result;
+      contact result;
 
       result.t = t;
       result.r = query.the_ray;
@@ -47,17 +47,17 @@ class plane : public geometry {
       return result;
     } else {
       // Ray never intersects plane.
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 
-  virtual contact<double> ray_exit(const ray_segment<double, 3> &query) const {
+  virtual contact ray_exit(const ray_segment &query) const {
     auto height = query.the_ray.point(0);
     auto slope = query.the_ray.slope(0);
     auto t = -height / slope;
 
     if (slope > double(0) && contains(query.the_segment, t)) {
-      contact<double> result;
+      contact result;
 
       result.t = t;
       result.r = query.the_ray;
@@ -69,7 +69,7 @@ class plane : public geometry {
       return result;
     } else {
       // Ray never intersects plane.
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 };

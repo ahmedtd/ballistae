@@ -10,7 +10,7 @@ namespace ballistae {
 
 class surface_mesh : public ballistae::geometry {
   tri_mesh mesh;
-  kd_tree<double, 3, tri_face_crunched> mesh_crushed;
+  kd_tree<tri_face_crunched> mesh_crushed;
   double last_crush_time = std::numeric_limits<double>::quiet_NaN();
 
  public:
@@ -21,7 +21,7 @@ class surface_mesh : public ballistae::geometry {
 
   virtual ~surface_mesh() {}
 
-  virtual aabox<double, 3> get_aabox() { return mesh_crushed.root->bounds; }
+  virtual aabox get_aabox() { return mesh_crushed.root->bounds; }
 
   virtual void crush(double time) {
     if (time != last_crush_time) {
@@ -30,11 +30,11 @@ class surface_mesh : public ballistae::geometry {
     last_crush_time = time;
   }
 
-  virtual contact<double> ray_into(const ray_segment<double, 3> &query) const {
+  virtual contact ray_into(const ray_segment &query) const {
     return tri_mesh_contact(query, mesh_crushed, CONTACT_INTO);
   }
 
-  virtual contact<double> ray_exit(const ray_segment<double, 3> &query) const {
+  virtual contact ray_exit(const ray_segment &query) const {
     return tri_mesh_contact(query, mesh_crushed, CONTACT_EXIT);
   }
 };

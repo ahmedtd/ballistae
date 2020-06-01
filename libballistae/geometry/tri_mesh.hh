@@ -71,7 +71,7 @@ struct tri_face_crunched {
   double recip_denom;
 };
 
-ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f) {
+ballistae::aabox get_aabox(const tri_face_crunched &f) {
   using std::minmax_element;
 
   fixvec<double, 3> v0 = f.v0;
@@ -82,14 +82,14 @@ ballistae::aabox<double, 3> get_aabox(const tri_face_crunched &f) {
   std::array<double, 3> y = {v0(1), v1(1), v2(1)};
   std::array<double, 3> z = {v0(2), v1(2), v2(2)};
 
-  aabox<double, 3> result = {from_ptr_pair(minmax_element(x.begin(), x.end())),
-                             from_ptr_pair(minmax_element(y.begin(), y.end())),
-                             from_ptr_pair(minmax_element(z.begin(), z.end()))};
+  aabox result = {from_ptr_pair(minmax_element(x.begin(), x.end())),
+                  from_ptr_pair(minmax_element(y.begin(), y.end())),
+                  from_ptr_pair(minmax_element(z.begin(), z.end()))};
 
   return result;
 }
 
-ballistae::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m) {
+ballistae::kd_tree<tri_face_crunched> crunch(const tri_mesh &m) {
   using std::log;
   using std::move;
 
@@ -118,7 +118,7 @@ ballistae::kd_tree<double, 3, tri_face_crunched> crunch(const tri_mesh &m) {
     facets[i] = cf;
   }
 
-  kd_tree<double, 3, tri_face_crunched> result(move(facets), get_aabox);
+  kd_tree<tri_face_crunched> result(move(facets), get_aabox);
 
   kd_tree_refine_sah(result.root.get(), get_aabox, 1.0, 0.9);
 
@@ -148,9 +148,9 @@ struct tri_contact {
   ballistae::fixvec<double, 3> n;
 };
 
-tri_contact tri_face_contact(const ballistae::ray_segment<double, 3> &query,
+tri_contact tri_face_contact(const ballistae::ray_segment &query,
                              const tri_face_crunched &f, const int want_type) {
-  const ray<double, 3> &r = query.the_ray;
+  const ray &r = query.the_ray;
 
   double cosine = iprod(f.n, r.slope);
   double offset = iprod(f.n, r.point - f.v0);
@@ -190,15 +190,15 @@ tri_contact tri_face_contact(const ballistae::ray_segment<double, 3> &query,
   return {contact_type, ray_t, tri_s, tri_t, p, f.n};
 }
 
-ballistae::contact<double> tri_mesh_contact(
-    ballistae::ray_segment<double, 3> r,
-    const ballistae::kd_tree<double, 3, tri_face_crunched> &mesh_kd_tree,
+ballistae::contact tri_mesh_contact(
+    ballistae::ray_segment r,
+    const ballistae::kd_tree<tri_face_crunched> &mesh_kd_tree,
     const int want_type) {
   tri_contact least_contact;
   least_contact.ray_t = std::numeric_limits<double>::infinity();
 
   // The kd_tree uses selector to drive the search.
-  auto selector = [&](const aabox<double, 3> &box) -> bool {
+  auto selector = [&](const aabox &box) -> bool {
     using std::isnan;
     auto t = ray_test(r, box);
     return !isnan(t);
@@ -216,7 +216,7 @@ ballistae::contact<double> tri_mesh_contact(
 
   mesh_kd_tree.query(selector, computor);
 
-  contact<double> result;
+  contact result;
   if (least_contact.ray_t == std::numeric_limits<double>::infinity()) {
     // If we didn't hit any triangles, we can bail now.
     result.t = std::numeric_limits<double>::quiet_NaN();

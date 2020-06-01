@@ -11,60 +11,55 @@
 
 namespace ballistae {
 
-template <typename Field, size_t D>
 struct aabox final {
-  std::array<span<Field>, D> spans;
+  std::array<span<double>, 3> spans;
 
-  span<Field> &operator[](size_t i) { return spans[i]; }
+  span<double> &operator[](size_t i) { return spans[i]; }
 
-  const span<Field> &operator[](size_t i) const { return spans[i]; }
+  const span<double> &operator[](size_t i) const { return spans[i]; }
 
-  static aabox<Field, D> nan();
+  static aabox nan();
 
   // A bounding box suitable for use as the zero element in a call to
   // std::accumulate with the min_containing aggregator function.
-  static aabox<Field, D> accum_zero() {
-    aabox<Field, D> result;
-    for (size_t i = 0; i < D; ++i) {
-      result[i].lo = std::numeric_limits<Field>::infinity();
-      result[i].hi = -std::numeric_limits<Field>::infinity();
-    }
-    return result;
-  }
+  static aabox accum_zero();
 };
 
-template <typename Field, size_t D>
-aabox<Field, D> aabox<Field, D>::nan() {
-  aabox<Field, D> result;
-  for (size_t i = 0; i < D; ++i) result.spans[i] = span<Field>::nan();
+inline aabox aabox::nan() {
+  aabox result;
+  for (size_t i = 0; i < 3; ++i) result.spans[i] = span<double>::nan();
+  return result;
+}
+
+inline aabox aabox::accum_zero() {
+  aabox result;
+  for (size_t i = 0; i < 3; ++i) {
+    result[i].lo = std::numeric_limits<double>::infinity();
+    result[i].hi = -std::numeric_limits<double>::infinity();
+  }
   return result;
 }
 
 /// Order A and B along the given axis.
 ///
 /// Convenient for use with std::bind.
-template <typename Field, size_t D>
-bool aabox_axial_comparator(size_t axis, const aabox<Field, D> &a,
-                            const aabox<Field, D> &b) {
+inline bool aabox_axial_comparator(size_t axis, const aabox &a,
+                                   const aabox &b) {
   return a.spans[axis] < b.spans[axis];
 }
 
 /// Smallest aabox containing A and B.
-template <typename Field, size_t D>
-aabox<Field, D> min_containing(const aabox<Field, D> &a,
-                               const aabox<Field, D> &b) {
-  aabox<Field, D> result;
-  for (size_t i = 0; i < D; ++i)
+inline aabox min_containing(const aabox &a, const aabox &b) {
+  aabox result;
+  for (size_t i = 0; i < 3; ++i)
     result.spans[i] = min_containing(a.spans[i], b.spans[i]);
   return result;
 }
 
 /// Grow BOX to include P.
-template <typename Field, size_t D>
-aabox<Field, D> min_containing(const aabox<Field, D> &box,
-                               const fixvec<Field, D> &p) {
-  aabox<Field, D> result;
-  for (size_t i = 0; i < D; ++i) result.spans[i] = min_containing(box[i], p(i));
+inline aabox min_containing(const aabox &box, const fixvec<double, 3> &p) {
+  aabox result;
+  for (size_t i = 0; i < 3; ++i) result.spans[i] = min_containing(box[i], p(i));
   return result;
 }
 
@@ -73,33 +68,35 @@ aabox<Field, D> min_containing(const aabox<Field, D> &box,
 /// Preconditions:
 ///
 ///   * The plane defined by AXIS and CUT_PLANE must make contact with BOX.
-template <typename Field, size_t D>
-std::array<aabox<Field, D>, 2> cut(const aabox<Field, D> &box, size_t axis,
-                                   const Field &cut_plane) {
+inline std::array<aabox, 2> cut(const aabox &box, size_t axis,
+                                const double &cut_plane) {
   auto span_cut = cut(box.spans[axis], cut_plane);
 
-  aabox<Field, D> lo = box;
-  aabox<Field, D> hi = box;
+  aabox lo = box;
+  aabox hi = box;
   lo.spans[axis] = span_cut[0];
   hi.spans[axis] = span_cut[1];
   return {lo, hi};
 }
 
-template <typename Field, size_t D>
-span<Field> ray_test(const ray_segment<Field, D> &r, const aabox<Field, D> &b) {
+inline span<double> ray_test(const ray_segment &r, const aabox &b) {
   using std::swap;
 
-  span<Field> cover = {-std::numeric_limits<Field>::infinity(),
-                       std::numeric_limits<Field>::infinity()};
+  span<double> cover = {-std::numeric_limits<double>::infinity(),
+                        std::numeric_limits<double>::infinity()};
 
-  for (size_t i = 0; i < D; ++i) {
+  for (size_t i = 0; i < 3; ++i) {
     span<double> cur = {
         (b.spans[i].lo - r.the_ray.point(i)) / r.the_ray.slope(i),
         (b.spans[i].hi - r.the_ray.point(i)) / r.the_ray.slope(i)};
 
-    if (cur.hi < cur.lo) swap(cur.lo, cur.hi);
+    if (cur.hi < cur.lo) {
+      swap(cur.lo, cur.hi);
+    }
 
-    if (!(overlaps(cover, cur))) return span<double>::nan();
+    if (!(overlaps(cover, cur))) {
+      return span<double>::nan();
+    }
 
     cover = max_intersecting(cover, cur);
   }
@@ -108,24 +105,22 @@ span<Field> ray_test(const ray_segment<Field, D> &r, const aabox<Field, D> &b) {
                                         : span<double>::nan();
 }
 
-template <typename Field, size_t D>
-Field surface_area(const aabox<Field, D> &box) {
-  Field accum = 0;
-  for (size_t axis_a = 0; axis_a < D; ++axis_a) {
-    for (size_t axis_b = axis_a; axis_b < D; ++axis_b) {
+inline double surface_area(const aabox &box) {
+  double accum = 0;
+  for (size_t axis_a = 0; axis_a < 3; ++axis_a) {
+    for (size_t axis_b = axis_a; axis_b < 3; ++axis_b) {
       accum +=
-          Field(2) * measure(box.spans[axis_a]) * measure(box.spans[axis_b]);
+          double(2) * measure(box.spans[axis_a]) * measure(box.spans[axis_b]);
     }
   }
 
   return accum;
 }
 
-template <typename Field, size_t D>
-bool isfinite(const aabox<Field, D> &box) {
+inline bool isfinite(const aabox &box) {
   using std::isfinite;
 
-  for (size_t i = 0; i < D; ++i) {
+  for (size_t i = 0; i < 3; ++i) {
     if (!isfinite(measure(box.spans[i]))) return false;
   }
 
@@ -136,15 +131,13 @@ bool isfinite(const aabox<Field, D> &box) {
 ///
 /// Note that incremental updates using these grown bounding boxes could cause
 /// the bounding box to grow without bound.
-template <typename Field, size_t D>
-aabox<Field, D> operator*(const affine_transform<Field, D> &t,
-                          const aabox<Field, D> &box) {
-  auto result = aabox<Field, D>::accum_zero();
+inline aabox operator*(const affine_transform<double, 3> &t, const aabox &box) {
+  auto result = aabox::accum_zero();
 
-  size_t npoints = size_t(1) << D;
+  size_t npoints = size_t(1) << 3;
   for (size_t i = 0; i < npoints; ++i) {
-    fixvec<Field, D> cur_point;
-    for (size_t j = 0; j < D; ++j)
+    fixvec<double, 3> cur_point;
+    for (size_t j = 0; j < 3; ++j)
       cur_point(j) = ((i >> j) & 0x1) ? box[j].hi : box[j].lo;
 
     result = min_containing(result, t * cur_point);

@@ -25,13 +25,13 @@ fixvec<double, 3> scan_plane_to_image_space(std::size_t cur_row,
   return {1.0, y, z};
 }
 
-shade_info<double> shade_ray(const scene &the_scene, const dray3 &reflected_ray,
-                             double lambda_cur, std::mt19937 &rng) {
-  ray_segment<double, 3> refl_query = {
+shade_info shade_ray(const scene &the_scene, const ray &reflected_ray,
+                     double lambda_cur, std::mt19937 &rng) {
+  ray_segment refl_query = {
       reflected_ray,
       {epsilon<double>(), std::numeric_limits<double>::infinity()}};
 
-  contact<double> glb_contact;
+  contact glb_contact;
   const crushed_scene_element *hit_element;
   std::tie(glb_contact, hit_element) =
       scene_ray_intersect(the_scene, refl_query);
@@ -42,18 +42,18 @@ shade_info<double> shade_ray(const scene &the_scene, const dray3 &reflected_ray,
 
     return shade_result;
   } else {
-    return shade_info<double>{0.0, 0, {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
+    return shade_info{0.0, 0, {{0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}}};
   }
 }
 
-double sample_ray(const dray3 &initial_query, const scene &the_scene,
+double sample_ray(const ray &initial_query, const scene &the_scene,
                   double lambda_cur, std::mt19937 &rng, size_t depth_lim) {
   double accum_power = 0.0;
   double cur_k = 1.0;
-  ray<double, 3> cur_ray = initial_query;
+  ray cur_ray = initial_query;
 
   for (size_t i = 0; i < depth_lim && cur_k != 0.0; ++i) {
-    shade_info<double> shading = shade_ray(the_scene, cur_ray, lambda_cur, rng);
+    shade_info shading = shade_ray(the_scene, cur_ray, lambda_cur, rng);
 
     accum_power += cur_k * shading.emitted_power;
     cur_k = shading.propagation_k;
@@ -109,7 +109,7 @@ void chunk_worker::render() {
           auto image_coords = scan_plane_to_image_space(
               cr, this->img_rows, cc, this->img_cols, this->rng);
 
-          dray3 cur_query =
+          ray cur_query =
               this->the_camera->image_to_ray(image_coords, this->rng);
 
           double sampled_power =

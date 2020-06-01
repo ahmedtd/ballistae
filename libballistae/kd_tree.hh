@@ -14,32 +14,30 @@
 
 namespace ballistae {
 
-///
-///
 /// The LINK field is an index into the kd tree's NODES field, and points to a
 /// the source of a two-node block holding the children of this node.
-template <typename Field, size_t D, typename Stored>
+template <typename Stored>
 struct aanode {
-  aabox<Field, D> bounds;
+  aabox bounds;
 
   typename std::vector<Stored>::iterator elements_src;
   typename std::vector<Stored>::iterator elements_lim;
 
-  std::unique_ptr<aanode<Field, D, Stored>> lo_child;
-  std::unique_ptr<aanode<Field, D, Stored>> hi_child;
+  std::unique_ptr<aanode<Stored>> lo_child;
+  std::unique_ptr<aanode<Stored>> hi_child;
 };
 
 /// A balanced, bounded-volume
-template <typename Field, size_t D, typename Stored>
+template <typename Stored>
 struct kd_tree final {
   std::vector<Stored> infinite_elements;
   std::vector<Stored> finite_elements;
-  std::unique_ptr<aanode<Field, D, Stored>> root;
+  std::unique_ptr<aanode<Stored>> root;
 
   kd_tree() = default;
 
-  kd_tree(const kd_tree<Field, D, Stored> &other) = delete;
-  kd_tree(kd_tree<Field, D, Stored> &&other) = default;
+  kd_tree(const kd_tree<Stored> &other) = delete;
+  kd_tree(kd_tree<Stored> &&other) = default;
 
   template <typename StoredToAABox>
   kd_tree(std::vector<Stored> &&storage_in, StoredToAABox get_aabox);
@@ -47,16 +45,14 @@ struct kd_tree final {
   template <typename Selector, typename Computor>
   void query(Selector selector, Computor computor) const;
 
-  kd_tree<Field, D, Stored> &operator=(const kd_tree<Field, D, Stored> &other) =
-      delete;
-  kd_tree<Field, D, Stored> &operator=(kd_tree<Field, D, Stored> &&other) =
-      default;
+  kd_tree<Stored> &operator=(const kd_tree<Stored> &other) = delete;
+  kd_tree<Stored> &operator=(kd_tree<Stored> &&other) = default;
 };
 
-template <typename Field, size_t D, typename Stored>
+template <typename Stored>
 template <typename StoredToAABox>
-kd_tree<Field, D, Stored>::kd_tree(std::vector<Stored> &&storage,
-                                   StoredToAABox get_aabox) {
+kd_tree<Stored>::kd_tree(std::vector<Stored> &&storage,
+                         StoredToAABox get_aabox) {
   using std::begin;
   using std::end;
 
@@ -71,20 +67,20 @@ kd_tree<Field, D, Stored>::kd_tree(std::vector<Stored> &&storage,
   infinite_elements = std::vector<Stored>(make_move_iterator(finite_lim),
                                           make_move_iterator(end(storage)));
 
-  aabox<Field, D> max_box = std::accumulate(
+  aabox max_box = std::accumulate(
       std::begin(finite_elements), std::end(finite_elements),
-      aabox<Field, D>::accum_zero(),
+      aabox::accum_zero(),
       [&](auto a, auto b) { return min_containing(a, get_aabox(b)); });
 
   // Root node encompasses all finite boxes.
-  root = std::make_unique<aanode<Field, D, Stored>>();
+  root = std::make_unique<aanode<Stored>>();
   *root = {max_box, begin(finite_elements), end(finite_elements), nullptr,
            nullptr};
 }
 
-template <typename Field, size_t D, typename Stored, typename StoredToAABox>
-void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
-                        Field split_cost, Field threshold) {
+template <typename Stored, typename StoredToAABox>
+void kd_tree_refine_sah(aanode<Stored> *cur, StoredToAABox get_aabox,
+                        double split_cost, double threshold) {
   using std::begin;
   using std::end;
 
@@ -94,7 +90,7 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
 
   std::mt19937 rng;
 
-  std::vector<aanode<Field, D, Stored> *> work_stack;
+  std::vector<aanode<Stored> *> work_stack;
   work_stack.push_back(cur);
 
   while (!work_stack.empty()) {
@@ -105,7 +101,7 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
 
     bool should_cut;
     size_t cut_axis;
-    Field cut;
+    double cut;
     std::tie(should_cut, cut_axis, cut) =
         split_sah(*(cur), get_aabox, split_cost, threshold, rng);
 
@@ -121,11 +117,11 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
         });
 
     if (distance(precede_src, precede_lim) != 0) {
-      aabox<Field, D> lo_bounds = std::accumulate(
-          precede_src, precede_lim, aabox<Field, D>::accum_zero(),
+      aabox lo_bounds = std::accumulate(
+          precede_src, precede_lim, aabox::accum_zero(),
           [&](auto a, auto b) { return min_containing(a, get_aabox(b)); });
 
-      cur->lo_child = std::make_unique<aanode<Field, D, Stored>>();
+      cur->lo_child = std::make_unique<aanode<Stored>>();
       *(cur->lo_child) = {lo_bounds, precede_src, precede_lim, nullptr,
                           nullptr};
 
@@ -139,11 +135,11 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
     auto succeed_lim = cur->elements_lim;
 
     if (distance(succeed_src, succeed_lim) != 0) {
-      aabox<Field, D> hi_bounds = std::accumulate(
-          succeed_src, succeed_lim, aabox<Field, D>::accum_zero(),
+      aabox hi_bounds = std::accumulate(
+          succeed_src, succeed_lim, aabox::accum_zero(),
           [&](auto a, auto b) { return min_containing(a, get_aabox(b)); });
 
-      cur->hi_child = std::make_unique<aanode<Field, D, Stored>>();
+      cur->hi_child = std::make_unique<aanode<Stored>>();
       *(cur->hi_child) = {hi_bounds, succeed_src, succeed_lim, nullptr,
                           nullptr};
 
@@ -152,27 +148,27 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
   }
 }
 
-template <typename Field, size_t D, typename Stored, typename StoredToAABox>
-std::tuple<bool, size_t, Field> split_sah(aanode<Field, D, Stored> &cur,
-                                          StoredToAABox get_aabox,
-                                          Field split_cost,
-                                          Field termination_threshold,
-                                          std::mt19937 &rng) {
+template <typename Stored, typename StoredToAABox>
+std::tuple<bool, size_t, double> split_sah(aanode<Stored> &cur,
+                                           StoredToAABox get_aabox,
+                                           double split_cost,
+                                           double termination_threshold,
+                                           std::mt19937 &rng) {
   using std::begin;
   using std::end;
 
   using std::distance;
 
-  Field parent_objective =
+  double parent_objective =
       distance(cur.elements_src, cur.elements_lim) * surface_area(cur.bounds);
 
   size_t piv_axis = 0;
-  Field piv_cut;
-  Field piv_objective = std::numeric_limits<Field>::infinity();
+  double piv_cut;
+  double piv_objective = std::numeric_limits<double>::infinity();
 
   std::uniform_int_distribution<std::size_t> element_picker(
       0, std::distance(cur.elements_src, cur.elements_lim));
-  for (size_t axis = 0; axis < D; ++axis) {
+  for (size_t axis = 0; axis < 3; ++axis) {
     // Check five random elements from this axis
     for (std::size_t cur_check = 0; cur_check < 5; cur_check++) {
       auto it = cur.elements_src + element_picker(rng);
@@ -189,15 +185,15 @@ std::tuple<bool, size_t, Field> split_sah(aanode<Field, D, Stored> &cur,
       auto succeed_src = split;
       auto succeed_lim = cur.elements_lim;
 
-      aabox<Field, D> lo_box = std::accumulate(
-          precede_src, precede_lim, aabox<Field, D>::accum_zero(),
+      aabox lo_box = std::accumulate(
+          precede_src, precede_lim, aabox::accum_zero(),
           [&](auto a, auto b) { return min_containing(a, get_aabox(b)); });
 
-      aabox<Field, D> hi_box = std::accumulate(
-          succeed_src, succeed_lim, aabox<Field, D>::accum_zero(),
+      aabox hi_box = std::accumulate(
+          succeed_src, succeed_lim, aabox::accum_zero(),
           [&](auto a, auto b) { return min_containing(a, get_aabox(b)); });
 
-      Field objective = Field(0);
+      double objective = double(0);
       if (distance(precede_src, precede_lim) != 0)
         objective += surface_area(lo_box) * distance(precede_src, precede_lim);
       if (distance(succeed_src, succeed_lim) != 0)
@@ -214,16 +210,15 @@ std::tuple<bool, size_t, Field> split_sah(aanode<Field, D, Stored> &cur,
   // Now we have computed the optimal split.  We need to check if it is a good
   // improvement over simply not splitting.
   if (piv_objective + split_cost > termination_threshold * parent_objective) {
-    return std::make_tuple(false, 0, Field(0));
+    return std::make_tuple(false, 0, double(0));
   } else {
     return std::make_tuple(true, piv_axis, piv_cut);
   }
 }
 
-template <typename Field, size_t D, typename Stored>
+template <typename Stored>
 template <typename Selector, typename Computor>
-void kd_tree<Field, D, Stored>::query(Selector selector,
-                                      Computor computor) const {
+void kd_tree<Stored>::query(Selector selector, Computor computor) const {
   using std::begin;
   using std::end;
 
@@ -231,7 +226,7 @@ void kd_tree<Field, D, Stored>::query(Selector selector,
   std::for_each(begin(infinite_elements), end(infinite_elements), computor);
 
   // We recurse to a fixed depth.
-  std::array<aanode<Field, D, Stored> *, 2048> work_stack;
+  std::array<aanode<Stored> *, 2048> work_stack;
 
   auto top = begin(work_stack);
   auto base = begin(work_stack);

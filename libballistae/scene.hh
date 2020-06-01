@@ -50,19 +50,19 @@ struct crushed_scene_element {
   fixmat<double, 3, 3> model_to_world_normals;
 
   /// The element's bounding box in world coordinates.
-  aabox<double, 3> world_aabox;
+  aabox world_aabox;
 };
 
 struct scene {
   std::vector<scene_element> elements;
 
-  kd_tree<double, 3, crushed_scene_element> crushed_elements;
+  kd_tree<crushed_scene_element> crushed_elements;
 };
 
 void crush(scene &the_scene, double time);
 
-std::tuple<contact<double>, const crushed_scene_element *> scene_ray_intersect(
-    const scene &the_scene, ray_segment<double, 3> query);
+std::tuple<contact, const crushed_scene_element *> scene_ray_intersect(
+    const scene &the_scene, ray_segment query);
 
 }  // namespace ballistae
 

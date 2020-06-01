@@ -17,8 +17,8 @@ class sphere : public geometry {
 
   virtual ~sphere() {}
 
-  virtual aabox<double, 3> get_aabox() {
-    aabox<double, 3> infinity = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
+  virtual aabox get_aabox() {
+    aabox infinity = {-1.0, 1.0, -1.0, 1.0, -1.0, 1.0};
 
     return infinity;
   }
@@ -27,7 +27,7 @@ class sphere : public geometry {
     // Nothing to do.
   }
 
-  virtual contact<double> ray_into(const ray_segment<double, 3> &query) const {
+  virtual contact ray_into(const ray_segment &query) const {
     using std::acos;
     using std::atan2;
     using std::sqrt;
@@ -39,7 +39,7 @@ class sphere : public geometry {
     auto t_min = -b - sqrt(b * b - c);
 
     if (contains(query.the_segment, t_min)) {
-      contact<double> result;
+      contact result;
 
       auto p = eval_ray(query.the_ray, t_min);
       result.t = t_min;
@@ -51,11 +51,11 @@ class sphere : public geometry {
 
       return result;
     } else {
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 
-  virtual contact<double> ray_exit(const ray_segment<double, 3> &query) const {
+  virtual contact ray_exit(const ray_segment &query) const {
     using std::asin;
     using std::atan2;
     using std::sqrt;
@@ -67,7 +67,7 @@ class sphere : public geometry {
     auto t_max = -b + sqrt(b * b - c);
 
     if (contains(query.the_segment, t_max)) {
-      contact<double> result;
+      contact result;
       auto p = eval_ray(query.the_ray, t_max);
       result.t = t_max;
       result.p = p;
@@ -78,7 +78,7 @@ class sphere : public geometry {
 
       return result;
     } else {
-      return contact<double>::nan();
+      return contact::nan();
     }
   }
 };

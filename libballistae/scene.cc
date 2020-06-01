@@ -30,7 +30,7 @@ void crush(scene &the_scene, double time) {
     crushed_elts.push_back(crush_elt);
   }
 
-  the_scene.crushed_elements = kd_tree<double, 3, crushed_scene_element>(
+  the_scene.crushed_elements = kd_tree<crushed_scene_element>(
       std::move(crushed_elts), [](const auto &s) { return s.world_aabox; });
 
   // Refine using the surface area heuristic.
@@ -39,12 +39,12 @@ void crush(scene &the_scene, double time) {
       [](const auto &s) { return s.world_aabox; }, 1.0, 0.9);
 }
 
-std::tuple<contact<double>, const crushed_scene_element *> scene_ray_intersect(
-    const scene &the_scene, ray_segment<double, 3> query) {
-  contact<double> min_contact;
+std::tuple<contact, const crushed_scene_element *> scene_ray_intersect(
+    const scene &the_scene, ray_segment query) {
+  contact min_contact;
   const crushed_scene_element *min_element = nullptr;
 
-  auto selector = [&](const aabox<double, 3> &box) -> bool {
+  auto selector = [&](const aabox &box) -> bool {
     using std::isnan;
     auto overlap = ray_test(query, box);
     return !isnan(overlap);

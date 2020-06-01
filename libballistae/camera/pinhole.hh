@@ -24,8 +24,8 @@ class pinhole : public ballistae::camera {
 
   ~pinhole() {}
 
-  virtual dray3 image_to_ray(const fixvec<double, 3> &image_coords,
-                             std::mt19937 &rng) const override {
+  virtual ray image_to_ray(const fixvec<double, 3> &image_coords,
+                           std::mt19937 &rng) const override {
     using frustum::eltwise_mul;
     using frustum::normalise;
 

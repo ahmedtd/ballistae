@@ -24,11 +24,11 @@ class mc_lambert : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda, std::mt19937 &rng) const {
+  virtual shade_info shade(const contact &glb_contact, double lambda,
+                           std::mt19937 &rng) const {
     static thread_local std::mt19937 thread_rng;
 
-    shade_info<double> result;
+    shade_info result;
 
     hemisphere_unitv_distribution<double, 3> dist(glb_contact.n);
     auto dir = dist(thread_rng);
