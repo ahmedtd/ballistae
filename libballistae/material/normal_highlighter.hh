@@ -1,7 +1,9 @@
 #ifndef LIBBALLISTAE_MATERIAL_NORMAL_HIGHLIGHTER_HH
 #define LIBBALLISTAE_MATERIAL_NORMAL_HIGHLIGHTER_HH
 
-#include <libballistae/material.hh>
+#include <random>
+
+#include "libballistae/material.hh"
 
 namespace ballistae {
 
@@ -23,7 +25,7 @@ class normal_highlighter : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     shade_info<double> result;
     result.emitted_power =
         iprod(highlight_direction, glb_contact.n) *

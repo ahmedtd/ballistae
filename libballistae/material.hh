@@ -26,7 +26,8 @@ class material {
   virtual void crush(double time) = 0;
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const = 0;
+                                   double lambda,
+                                   std::mt19937 &thread_rng) const = 0;
 };
 
 }  // namespace ballistae

@@ -1,6 +1,8 @@
 #ifndef BALLISTAE_MATERIAL_EMITTER_HH
 #define BALLISTAE_MATERIAL_EMITTER_HH
 
+#include <random>
+
 #include "frustum/indicial/fixed.hh"
 #include "libballistae/dense_signal.hh"
 #include "libballistae/material.hh"
@@ -25,7 +27,7 @@ class emitter : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     const auto &mtl2 = glb_contact.mtl2;
     const auto &mtl3 = glb_contact.mtl3;
 

@@ -1,6 +1,8 @@
 #ifndef BALLISTAE_MATERIAL_MC_LAMBERT_HH
 #define BALLISTAE_MATERIAL_MC_LAMBERT_HH
 
+#include <random>
+
 #include "frustum/indicial/fixed.hh"
 #include "libballistae/dense_signal.hh"
 #include "libballistae/material.hh"
@@ -23,7 +25,7 @@ class mc_lambert : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     static thread_local std::mt19937 thread_rng;
 
     shade_info<double> result;

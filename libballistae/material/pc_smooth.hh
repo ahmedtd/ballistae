@@ -1,6 +1,8 @@
 #ifndef LIBBALLISTAE_MATERIAL_PC_SMOOTH_HH
 #define LIBBALLISTAE_MATERIAL_PC_SMOOTH_HH
 
+#include <random>
+
 #include "libballistae/material.hh"
 
 namespace ballistae {
@@ -19,7 +21,7 @@ class pc_smooth : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     shade_info<double> result;
     result.emitted_power = 0.0;
     result.propagation_k =

@@ -11,7 +11,7 @@ fixvec<double, 3> scan_plane_to_image_space(std::size_t cur_row,
                                             std::size_t img_rows,
                                             std::size_t cur_col,
                                             std::size_t img_cols,
-                                            std::mt19937 &thread_rng) {
+                                            std::mt19937 &rng) {
   double d_cur_col = static_cast<double>(cur_col);
   double d_cur_row = static_cast<double>(cur_row);
   double d_img_cols = static_cast<double>(img_cols);
@@ -19,14 +19,14 @@ fixvec<double, 3> scan_plane_to_image_space(std::size_t cur_row,
 
   std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
 
-  double y = 1.0 - 2.0 * (d_cur_col - ss_dist(thread_rng)) / d_img_cols;
-  double z = 1.0 - 2.0 * (d_cur_row - ss_dist(thread_rng)) / d_img_rows;
+  double y = 1.0 - 2.0 * (d_cur_col - ss_dist(rng)) / d_img_cols;
+  double z = 1.0 - 2.0 * (d_cur_row - ss_dist(rng)) / d_img_rows;
 
   return {1.0, y, z};
 }
 
 shade_info<double> shade_ray(const scene &the_scene, const dray3 &reflected_ray,
-                             double lambda_cur) {
+                             double lambda_cur, std::mt19937 &rng) {
   ray_segment<double, 3> refl_query = {
       reflected_ray,
       {epsilon<double>(), std::numeric_limits<double>::infinity()}};
@@ -38,7 +38,7 @@ shade_info<double> shade_ray(const scene &the_scene, const dray3 &reflected_ray,
 
   if (hit_element != nullptr) {
     auto shade_result =
-        hit_element->the_material->shade(glb_contact, lambda_cur);
+        hit_element->the_material->shade(glb_contact, lambda_cur, rng);
 
     return shade_result;
   } else {
@@ -47,14 +47,13 @@ shade_info<double> shade_ray(const scene &the_scene, const dray3 &reflected_ray,
 }
 
 double sample_ray(const dray3 &initial_query, const scene &the_scene,
-                  double lambda_cur, std::mt19937 &thread_rng,
-                  size_t depth_lim) {
+                  double lambda_cur, std::mt19937 &rng, size_t depth_lim) {
   double accum_power = 0.0;
   double cur_k = 1.0;
   ray<double, 3> cur_ray = initial_query;
 
   for (size_t i = 0; i < depth_lim && cur_k != 0.0; ++i) {
-    shade_info<double> shading = shade_ray(the_scene, cur_ray, lambda_cur);
+    shade_info<double> shading = shade_ray(the_scene, cur_ray, lambda_cur, rng);
 
     accum_power += cur_k * shading.emitted_power;
     cur_k = shading.propagation_k;

@@ -5,6 +5,7 @@
 #include <libballistae/dense_signal.hh>
 #include <libballistae/material.hh>
 #include <libballistae/material_map.hh>
+#include <random>
 
 namespace ballistae {
 
@@ -24,7 +25,7 @@ class directional_emitter : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda_cur) const {
+                                   double lambda_cur, std::mt19937 &rng) const {
     using std::max;
 
     const auto &r = glb_contact.r.slope;

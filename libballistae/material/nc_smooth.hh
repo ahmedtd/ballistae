@@ -1,6 +1,8 @@
 #ifndef BALLISTAE_MATERIAL_NC_SMOOTH_HH
 #define BALLISTAE_MATERIAL_NC_SMOOTH_HH
 
+#include <random>
+
 #include "frustum/indicial/fixed.hh"
 #include "libballistae/dense_signal.hh"
 #include "libballistae/material.hh"
@@ -26,12 +28,10 @@ class nc_smooth : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     using std::pow;
     using std::sqrt;
     using std::swap;
-
-    static thread_local std::mt19937 thread_rng;
 
     fixvec<double, 3> p = glb_contact.p;
     fixvec<double, 3> n = glb_contact.n;
@@ -89,7 +89,7 @@ class nc_smooth : public material {
 
     shade_info<double> result;
     result.emitted_power = 0.0;
-    if (dist(thread_rng) < coeff_refl) {
+    if (dist(rng) < coeff_refl) {
       // Give the ray that contributed by reflection.
       result.propagation_k = 1;
       result.incident_ray.slope = reflect(refl, n);

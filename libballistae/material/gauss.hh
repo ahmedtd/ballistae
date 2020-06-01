@@ -1,6 +1,8 @@
 #ifndef BALLISTAE_MATERIAL_GAUSS_HH
 #define BALLISTAE_MATERIAL_GAUSS_HH
 
+#include <random>
+
 #include "frustum/indicial/fixed.hh"
 #include "libballistae/dense_signal.hh"
 #include "libballistae/material.hh"
@@ -70,7 +72,7 @@ struct gauss : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda) const {
+                                   double lambda, std::mt19937 &rng) const {
     static thread_local std::mt19937 thread_rng;
 
     const auto &geom_p = glb_contact.p;
