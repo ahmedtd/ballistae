@@ -7,24 +7,6 @@
 
 namespace ballistae {
 
-fixvec<double, 3> scan_plane_to_image_space(std::size_t cur_row,
-                                            std::size_t img_rows,
-                                            std::size_t cur_col,
-                                            std::size_t img_cols,
-                                            std::mt19937 &rng) {
-  double d_cur_col = static_cast<double>(cur_col);
-  double d_cur_row = static_cast<double>(cur_row);
-  double d_img_cols = static_cast<double>(img_cols);
-  double d_img_rows = static_cast<double>(img_rows);
-
-  std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
-
-  double y = 1.0 - 2.0 * (d_cur_col - ss_dist(rng)) / d_img_cols;
-  double z = 1.0 - 2.0 * (d_cur_row - ss_dist(rng)) / d_img_rows;
-
-  return {1.0, y, z};
-}
-
 shade_info shade_ray(const scene &the_scene, const ray &reflected_ray,
                      double lambda_cur, std::mt19937 &rng) {
   ray_segment refl_query = {
@@ -106,11 +88,8 @@ void chunk_worker::render() {
         for (std::size_t cs = 0; cs < samples_to_add; ++cs) {
           double lambda_cur = this->sample_db.wavelength_bin(cw).lo;
 
-          auto image_coords = scan_plane_to_image_space(
+          ray cur_query = this->the_camera->image_to_ray(
               cr, this->img_rows, cc, this->img_cols, this->rng);
-
-          ray cur_query =
-              this->the_camera->image_to_ray(image_coords, this->rng);
 
           double sampled_power =
               sample_ray(cur_query, *(this->the_scene), lambda_cur, this->rng,

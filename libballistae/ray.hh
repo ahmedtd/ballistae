@@ -15,6 +15,8 @@ namespace ballistae {
 struct ray {
   fixvec<double, 3> point;
   fixvec<double, 3> slope;
+
+  double patch_area;
 };
 
 /// Evaluate R for the given parameter value T.
@@ -23,7 +25,10 @@ inline fixvec<double, 3> eval_ray(const ray &r, const double &t) {
 }
 
 inline ray operator*(const affine_transform<double, 3> &a, const ray &b) {
-  return {a.linear * b.point + a.offset, normalise(a.linear * b.slope)};
+  return {a.linear * b.point + a.offset, normalise(a.linear * b.slope),
+          // TODO: For general affine transforms, the patch area needs to be
+          // modified.
+          b.patch_area};
 }
 
 struct ray_segment {
@@ -34,6 +39,9 @@ struct ray_segment {
 inline ray_segment operator*(const affine_transform<double, 3> &a,
                              const ray_segment &b) {
   ray_segment result;
+
+  // TODO: This is not correct for general affine transforms.
+  result.the_ray.patch_area = b.the_ray.patch_area;
 
   result.the_ray.point = a * b.the_ray.point;
   result.the_ray.slope = a.linear * b.the_ray.slope;

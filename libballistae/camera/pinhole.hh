@@ -24,10 +24,23 @@ class pinhole : public ballistae::camera {
 
   ~pinhole() {}
 
-  virtual ray image_to_ray(const fixvec<double, 3> &image_coords,
+  virtual ray image_to_ray(std::size_t cur_row, std::size_t img_rows,
+                           std::size_t cur_col, std::size_t img_cols,
                            std::mt19937 &rng) const override {
     using frustum::eltwise_mul;
     using frustum::normalise;
+
+    double d_cur_col = static_cast<double>(cur_col);
+    double d_cur_row = static_cast<double>(cur_row);
+    double d_img_cols = static_cast<double>(img_cols);
+    double d_img_rows = static_cast<double>(img_rows);
+
+    std::uniform_real_distribution<double> ss_dist(0.0, 1.0);
+
+    double y = 1.0 - 2.0 * (d_cur_col - ss_dist(rng)) / d_img_cols;
+    double z = 1.0 - 2.0 * (d_cur_row - ss_dist(rng)) / d_img_rows;
+
+    fixvec<double, 3> image_coords{1.0, y, z};
 
     fixvec<double, 3> aperture_coords = eltwise_mul(image_coords, aperture);
     return {center, normalise(aperture_to_world * aperture_coords)};

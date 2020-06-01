@@ -12,8 +12,9 @@ class camera {
  public:
   virtual ~camera() {}
 
-  virtual ray image_to_ray(const fixvec<double, 3> &image_coords,
-                           std::mt19937 &thread_rng) const = 0;
+  virtual ray image_to_ray(std::size_t cur_row, std::size_t img_rows,
+                           std::size_t cur_col, std::size_t img_cols,
+                           std::mt19937 &rng) const = 0;
 };
 
 }  // namespace ballistae
