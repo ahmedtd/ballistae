@@ -26,7 +26,7 @@
 ABSL_FLAG(std::string, output_file, "output.spectral",
           "Output spectral sample db");
 ABSL_FLAG(std::size_t, output_rows, 512, "Output image rows");
-ABSL_FLAG(std::size_t, output_cols, 512, "Output image cols");
+ABSL_FLAG(std::size_t, output_cols, 768, "Output image cols");
 ABSL_FLAG(std::size_t, wavelength_bins, 25, "Output wavelength bins");
 ABSL_FLAG(float, wavelength_min, 390.0, "Output wavelength min");
 ABSL_FLAG(float, wavelength_max, 935.0, "Output wavelength max");
