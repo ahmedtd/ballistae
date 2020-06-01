@@ -110,18 +110,19 @@ int main(int argc, char **argv) {
 
   scene the_scene;
 
+  // 1 KW / m^2 (TODO: Think about what that actually means for a skybox).
   auto cie_d65_emitter = materials::make_emitter(
-      material_map::make_constant_spectrum(10 * cie_d65<double>()));
+      material_map::make_constant_spectrum(1000 * cie_d65_emission()));
+  // A 100 W / m^2
   auto cie_a_emitter = materials::make_emitter(
-      material_map::make_constant_spectrum(10 * cie_a<double>()));
+      material_map::make_constant_spectrum(100 * cie_a_emission()));
   auto matte = materials::make_gauss(material_map::make_constant_scalar(0.5));
   auto matte2 = materials::make_gauss(material_map::make_constant_scalar(0.05));
   auto green_matte = materials::make_mc_lambert(
-      material_map::make_constant_spectrum(smits_green<double>()));
-  auto glass =
-      materials::make_nc_smooth(material_map::make_constant_spectrum(
-                                    ramp<double>(390.0, 835.0, 89, 1.7, 1.5)),
-                                material_map::make_constant_scalar(1.0));
+      material_map::make_constant_spectrum(smits_green()));
+  auto glass = materials::make_nc_smooth(
+      material_map::make_constant_spectrum(ramp(390.0, 835.0, 89, 1.7, 1.5)),
+      material_map::make_constant_scalar(1.0));
 
   infinity infinity;
   sphere sphere;

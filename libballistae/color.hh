@@ -75,50 +75,50 @@ color3<float, xyz_tag> srgb_to_xyz(const color3<float, srgb_tag> &src);
 using color_d_srgb = color3<double, srgb_tag>;
 using color_d_XYZ = color3<double, xyz_tag>;
 
-template <class Field>
-color3<Field, xyz_tag> spectral_to_XYZ(const Field &src_x, const Field &lim_x,
-                                       const Field &y) {
-  color3<Field, xyz_tag> result;
-  result.channels[0] = partial_iprod(cie_2006_X<Field>(), src_x, lim_x, y);
-  result.channels[1] = partial_iprod(cie_2006_Y<Field>(), src_x, lim_x, y);
-  result.channels[2] = partial_iprod(cie_2006_Z<Field>(), src_x, lim_x, y);
+inline color3<float, xyz_tag> spectral_to_XYZ(const float &src_x,
+                                              const float &lim_x,
+                                              const float &y) {
+  color3<float, xyz_tag> result;
+  result.channels[0] = partial_iprod(cie_2006_X(), src_x, lim_x, y);
+  result.channels[1] = partial_iprod(cie_2006_Y(), src_x, lim_x, y);
+  result.channels[2] = partial_iprod(cie_2006_Z(), src_x, lim_x, y);
   return result;
 }
 
-template <class Field>
-dense_signal<Field> srgb_to_spectral(const color3<Field, srgb_tag> &src) {
-  const Field &r = src[0];
-  const Field &g = src[1];
-  const Field &b = src[2];
+// TODO: This is crap.  Use the SRGB -> XYZ conversion instead.
+inline dense_signal srgb_to_spectral(const color3<float, srgb_tag> &src) {
+  const float &r = src[0];
+  const float &g = src[1];
+  const float &b = src[2];
 
-  dense_signal<Field> result = smits_zero<Field>();
+  dense_signal result = smits_zero();
 
   if (r < g && r < b) {
-    result += r * smits_white<Field>();
+    result += r * smits_white();
     if (g < b) {
-      result += (g - r) * smits_cyan<Field>();
-      result += (b - g) * smits_blue<Field>();
+      result += (g - r) * smits_cyan();
+      result += (b - g) * smits_blue();
     } else {
-      result += (b - r) * smits_cyan<Field>();
-      result += (g - b) * smits_green<Field>();
+      result += (b - r) * smits_cyan();
+      result += (g - b) * smits_green();
     }
   } else if (g < r && g < b) {
-    result += g * smits_white<Field>();
+    result += g * smits_white();
     if (r < b) {
-      result += (r - g) * smits_magenta<Field>();
-      result += (b - r) * smits_blue<Field>();
+      result += (r - g) * smits_magenta();
+      result += (b - r) * smits_blue();
     } else {
-      result += (b - g) * smits_magenta<Field>();
-      result += (r - b) * smits_red<Field>();
+      result += (b - g) * smits_magenta();
+      result += (r - b) * smits_red();
     }
   } else {
-    result += b * smits_white<Field>();
+    result += b * smits_white();
     if (r < g) {
-      result += (r - b) * smits_yellow<Field>();
-      result += (g - r) * smits_green<Field>();
+      result += (r - b) * smits_yellow();
+      result += (g - r) * smits_green();
     } else {
-      result += (g - b) * smits_yellow<Field>();
-      result += (r - g) * smits_red<Field>();
+      result += (g - b) * smits_yellow();
+      result += (r - g) * smits_red();
     }
   }
 

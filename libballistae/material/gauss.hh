@@ -71,10 +71,8 @@ struct gauss : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info shade(const contact &glb_contact, double lambda,
+  virtual shade_info shade(const contact &glb_contact, float lambda,
                            std::mt19937 &rng) const {
-    static thread_local std::mt19937 thread_rng;
-
     const auto &geom_p = glb_contact.p;
     const auto &refl_s = glb_contact.r.slope;
     const auto &geom_n = glb_contact.n;
@@ -84,14 +82,16 @@ struct gauss : public material {
     gaussian_dist<double, 3> facet_n_dist(geom_n,
                                           variance({mtl2, mtl3, lambda}));
 
-    fixvec<double, 3> facet_n = facet_n_dist(thread_rng);
+    fixvec<double, 3> facet_n = facet_n_dist(rng);
 
     // Performance hack.
-    if (iprod(facet_n, refl_s) < 0.0) facet_n = reflect(facet_n, glb_contact.n);
+    if (iprod(facet_n, refl_s) < 0.0) {
+      facet_n = reflect(facet_n, glb_contact.n);
+    }
 
     shade_info result;
-    result.emitted_power = 0.0;
-    result.propagation_k = 0.8;
+    result.emitted_power = 0.0f;
+    result.propagation_k = 0.8f;
     result.incident_ray.point = geom_p;
     result.incident_ray.slope = reflect(refl_s, facet_n);
 

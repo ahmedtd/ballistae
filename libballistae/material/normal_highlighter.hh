@@ -25,10 +25,10 @@ class normal_highlighter : public material {
   virtual void crush(double time) {}
 
   virtual shade_info<double> shade(const contact<double> &glb_contact,
-                                   double lambda, std::mt19937 &rng) const {
+                                   float lambda, std::mt19937 &rng) const {
     shade_info<double> result;
     result.emitted_power =
-        iprod(highlight_direction, glb_contact.n) *
+        float(iprod(highlight_direction, glb_contact.n)) *
         emission({glb_contact.mtl2, glb_contact.mtl3, lambda});
     result.propagation_k = 0;
 

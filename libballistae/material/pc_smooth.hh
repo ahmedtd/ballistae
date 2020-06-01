@@ -20,12 +20,12 @@ class pc_smooth : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info shade(const contact &glb_contact, double lambda,
+  virtual shade_info shade(const contact &glb_contact, float lambda,
                            std::mt19937 &rng) const {
     shade_info result;
-    result.emitted_power = 0.0;
+    result.emitted_power = 0.0f;
     result.propagation_k =
-        reflectance({glb_contact.mtl2, glb_contact.mtl3, lambda});
+        float(reflectance({glb_contact.mtl2, glb_contact.mtl3, lambda}));
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = reflect(glb_contact.r.slope, glb_contact.n);
 

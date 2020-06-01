@@ -24,22 +24,21 @@ class mc_lambert : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info shade(const contact &glb_contact, double lambda,
+  virtual shade_info shade(const contact &glb_contact, float lambda,
                            std::mt19937 &rng) const {
-    static thread_local std::mt19937 thread_rng;
 
     shade_info result;
 
     hemisphere_unitv_distribution<double, 3> dist(glb_contact.n);
-    auto dir = dist(thread_rng);
+    auto dir = dist(rng);
 
     result.incident_ray.point = glb_contact.p;
     result.incident_ray.slope = dir;
 
-    double r = reflectance({glb_contact.mtl2, glb_contact.mtl3, lambda});
-    result.propagation_k = iprod(glb_contact.n, dir) * r;
+    float r = reflectance({glb_contact.mtl2, glb_contact.mtl3, lambda});
+    result.propagation_k = float(iprod(glb_contact.n, dir)) * r;
 
-    result.emitted_power = 0.0;
+    result.emitted_power = 0.0f;
 
     return result;
   }

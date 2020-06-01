@@ -13,8 +13,8 @@
 namespace ballistae {
 
 struct shade_info {
-  double propagation_k;
-  double emitted_power;
+  float propagation_k;
+  float emitted_power;
   ray incident_ray;
 };
 
@@ -24,7 +24,7 @@ class material {
 
   virtual void crush(double time) = 0;
 
-  virtual shade_info shade(const contact &glb_contact, double lambda,
+  virtual shade_info shade(const contact &glb_contact, float lambda,
                            std::mt19937 &thread_rng) const = 0;
 };
 

@@ -26,13 +26,13 @@ class emitter : public material {
 
   virtual void crush(double time) {}
 
-  virtual shade_info shade(const contact &glb_contact, double lambda,
+  virtual shade_info shade(const contact &glb_contact, float lambda,
                            std::mt19937 &rng) const {
     const auto &mtl2 = glb_contact.mtl2;
     const auto &mtl3 = glb_contact.mtl3;
 
     shade_info result;
-    result.propagation_k = 0.0;
+    result.propagation_k = 0.0f;
     result.emitted_power = emissivity({mtl2, mtl3, lambda});
 
     return result;

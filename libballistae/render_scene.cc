@@ -8,7 +8,7 @@
 namespace ballistae {
 
 shade_info shade_ray(const scene &the_scene, const ray &reflected_ray,
-                     double lambda_cur, std::mt19937 &rng) {
+                     float lambda_cur, std::mt19937 &rng) {
   ray_segment refl_query = {
       reflected_ray,
       {epsilon<double>(), std::numeric_limits<double>::infinity()}};
@@ -28,10 +28,10 @@ shade_info shade_ray(const scene &the_scene, const ray &reflected_ray,
   }
 }
 
-double sample_ray(const ray &initial_query, const scene &the_scene,
-                  double lambda_cur, std::mt19937 &rng, size_t depth_lim) {
-  double accum_power = 0.0;
-  double cur_k = 1.0;
+float sample_ray(const ray &initial_query, const scene &the_scene,
+                 float lambda_cur, std::mt19937 &rng, size_t depth_lim) {
+  float accum_power = 0.0;
+  float cur_k = 1.0;
   ray cur_ray = initial_query;
 
   for (size_t i = 0; i < depth_lim && cur_k != 0.0; ++i) {
@@ -86,15 +86,15 @@ void chunk_worker::render() {
             this->target_samples - samp.power_density_count;
 
         for (std::size_t cs = 0; cs < samples_to_add; ++cs) {
-          double lambda_cur = this->sample_db.wavelength_bin(cw).lo;
+          float lambda_cur = this->sample_db.wavelength_bin(cw).lo;
 
           ray cur_query = this->the_camera->image_to_ray(
               cr, this->img_rows, cc, this->img_cols, this->rng);
 
-          double sampled_power =
+          // We get a power density sample, in W / m^2
+          float sampled_power =
               sample_ray(cur_query, *(this->the_scene), lambda_cur, this->rng,
-                         this->maxdepth) /
-              (this->sample_db.wavelength_size);
+                         this->maxdepth);
 
           this->sample_db.record_sample(r, c, cw, sampled_power);
           samples_collected++;

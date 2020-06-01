@@ -12,16 +12,16 @@ namespace ballistae {
 struct material_coords {
   fixvec<double, 2> mtl2;
   fixvec<double, 3> mtl3;
-  double lambda;
+  float lambda;
 };
 
 namespace material_map {
 
-inline auto make_constant_scalar(double scalar) {
+inline auto make_constant_scalar(float scalar) {
   return [=](const material_coords &map) { return scalar; };
 }
 
-inline auto make_constant_spectrum(dense_signal<double> spectrum) {
+inline auto make_constant_spectrum(dense_signal spectrum) {
   return [=](const material_coords &map) {
     return interpolate(spectrum, map.lambda);
   };
