@@ -110,10 +110,13 @@ int main(int argc, char **argv) {
 
   scene the_scene;
 
-  // 1 KW / m^2 (TODO: Think about what that actually means for a skybox).
+  // 300 W / m^2 (TODO: Think about what that actually means for a skybox).
   auto cie_d65_emitter = materials::make_emitter(
-      material_map::make_constant_spectrum(1000 * cie_d65_emission()));
-  // A 100 W / m^2
+      material_map::make_constant_spectrum(300 * cie_d65_emission()));
+
+  // A 100 W / m^2 emitter: TODO: This looks ridiculous in bright light.  I need
+  // to extend the gauss or mc_lambert materials with emissivity and use them
+  // instead.
   auto cie_a_emitter = materials::make_emitter(
       material_map::make_constant_spectrum(100 * cie_a_emission()));
   auto matte = materials::make_gauss(material_map::make_constant_scalar(0.5));
