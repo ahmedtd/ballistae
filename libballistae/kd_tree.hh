@@ -98,8 +98,6 @@ void kd_tree_refine_sah(aanode<Field, D, Stored> *cur, StoredToAABox get_aabox,
   work_stack.push_back(cur);
 
   while (!work_stack.empty()) {
-    std::printf("kd_tree_refine_sah nodes remaining %zu\n", work_stack.size());
-
     cur = work_stack.back();
     work_stack.pop_back();
 
